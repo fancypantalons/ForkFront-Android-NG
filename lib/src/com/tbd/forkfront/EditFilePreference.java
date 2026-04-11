@@ -12,8 +12,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.preference.Preference;
-import android.preference.PreferenceManager;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -196,3 +196,4 @@ public class EditFilePreference extends Preference implements DialogInterface.On
 	}
 
 }
+
