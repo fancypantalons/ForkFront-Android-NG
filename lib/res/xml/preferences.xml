@@ -16,6 +16,13 @@
 				android:summary="The visual style of the game world"
 				android:layout="@layout/tileset_select_menu"/>
 
+			<androidx.preference.CheckBoxPreference
+				android:title="Smooth tile scaling"
+				android:summary="Use bilinear filtering for smoother tile graphics on modern displays"
+				android:persistent="true"
+				android:defaultValue="true"
+				android:key="smoothTileScaling"/>
+
 		</androidx.preference.PreferenceScreen>
 
 		<androidx.preference.CheckBoxPreference

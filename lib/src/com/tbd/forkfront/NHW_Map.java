@@ -9,6 +9,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.*;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.FontMetrics;
@@ -123,6 +124,7 @@ public class NHW_Map implements NH_Window
 	private NH_State mNHState;
 	private final ByteDecoder mDecoder;
 	private int mBorderColor;
+	private int mScreenSizeClass;
 
 	// System insets for edge-to-edge support
 	private int mSystemInsetsTop;
@@ -165,15 +167,42 @@ public class NHW_Map implements NH_Window
 	}
 	
 	// ____________________________________________________________________________________
+	private float getMinTileSizeDp()
+	{
+		// For xxxhdpi (4K phones), allow smaller tiles
+		if (mDisplayDensity >= 4.0f)
+			return 8.f;
+		if (mDisplayDensity >= 3.0f)
+			return 6.f;
+		return 5.f;
+	}
+
+	// ____________________________________________________________________________________
+	private float getMaxTileSizeDp()
+	{
+		// For tablets and foldables, allow larger tiles
+		if (mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_XLARGE)
+			return 150.f;
+		if (mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_LARGE)
+			return 120.f;
+		return 100.f;
+	}
+
+	// ____________________________________________________________________________________
 	@Override
 	public void setContext(AppCompatActivity context)
 	{
 		if(mContext == context)
 			return;
 		mContext = context;
+
+		// Detect screen size class for adaptive tile scaling
+		Configuration config = context.getResources().getConfiguration();
+		mScreenSizeClass = config.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK;
+
 		mDisplayDensity = context.getResources().getDisplayMetrics().density;
-		mMinTileH = MIN_TILE_SIZE_FACTOR * mDisplayDensity;
-		mMaxTileH = MAX_TILE_SIZE_FACTOR * mDisplayDensity;
+		mMinTileH = getMinTileSizeDp() * mDisplayDensity;
+		mMaxTileH = getMaxTileSizeDp() * mDisplayDensity;
 		mSelfRadius = SELF_RADIUS_FACTOR * mDisplayDensity;
 		mSelfRadiusSquared = mSelfRadius * mSelfRadius;
 		mLockTopMargin = mStatus.getHeight();
@@ -183,6 +212,37 @@ public class NHW_Map implements NH_Window
 		else
 			hide();
 		updateZoomLimits();
+	}
+
+	// ____________________________________________________________________________________
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		if(mContext == null)
+			return;
+
+		// Update screen size class for adaptive tile scaling
+		int newScreenSizeClass = newConfig.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK;
+		float newDisplayDensity = mContext.getResources().getDisplayMetrics().density;
+
+		// Check if screen size class or density has changed
+		boolean sizeChanged = (mScreenSizeClass != newScreenSizeClass);
+		boolean densityChanged = (Math.abs(mDisplayDensity - newDisplayDensity) > 0.01f);
+
+		if(sizeChanged || densityChanged)
+		{
+			mScreenSizeClass = newScreenSizeClass;
+			mDisplayDensity = newDisplayDensity;
+
+			// Preserve current zoom level preference (mScaleCount)
+			// Recalculate absolute tile sizes with new density/size class
+			mMinTileH = getMinTileSizeDp() * mDisplayDensity;
+			mMaxTileH = getMaxTileSizeDp() * mDisplayDensity;
+			mSelfRadius = SELF_RADIUS_FACTOR * mDisplayDensity;
+			mSelfRadiusSquared = mSelfRadius * mSelfRadius;
+
+			// Recalculate zoom limits and clamp mScaleCount to new bounds if necessary
+			updateZoomLimits();
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -645,6 +705,9 @@ public class NHW_Map implements NH_Window
 		private volatile boolean mIsRendering;
 		private volatile boolean mNeedsRedraw;
 
+		// Preference change listener
+		private SharedPreferences.OnSharedPreferenceChangeListener mPrefListener;
+
 		// ____________________________________________________________________________________
 		public UI()
 		{
@@ -662,7 +725,21 @@ public class NHW_Map implements NH_Window
 			mTypeface = Typeface.createFromAsset(mContext.getAssets(), "fonts/monobold.ttf");
 			mPaint.setTypeface(mTypeface);
 			mPaint.setTextAlign(Align.LEFT);
-			mPaint.setFilterBitmap(false);
+
+			// Apply smooth tile scaling preference
+			updateTileFiltering();
+
+			// Create preference change listener (registered in surfaceCreated)
+			mPrefListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+				@Override
+				public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+					if("smoothTileScaling".equals(key)) {
+						updateTileFiltering();
+						mNeedsRedraw = true;
+					}
+				}
+			};
+
 			mBaseTextSize = 32.f;
 			mPointer0 = new PointF();
 			mPointer1 = new PointF();
@@ -695,6 +772,24 @@ public class NHW_Map implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
+		private void updateTileFiltering()
+		{
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+			boolean smoothScaling = prefs.getBoolean("smoothTileScaling", true);
+
+			if(smoothScaling)
+			{
+				mPaint.setFilterBitmap(true);
+				mPaint.setAntiAlias(true);
+			}
+			else
+			{
+				mPaint.setFilterBitmap(false);
+				mPaint.setAntiAlias(false);
+			}
+		}
+
+		// ____________________________________________________________________________________
 		// SurfaceHolder.Callback implementation
 		// ____________________________________________________________________________________
 
@@ -703,6 +798,17 @@ public class NHW_Map implements NH_Window
 		{
 			mIsRendering = true;
 			mNeedsRedraw = true;
+
+			// Register preference change listener
+			if (mPrefListener != null)
+			{
+				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+				prefs.registerOnSharedPreferenceChangeListener(mPrefListener);
+			}
+
+			// Re-apply tile filtering in case preference changed while surface was destroyed
+			updateTileFiltering();
+
 			mRenderingThread = new Thread(new RenderLoop(), "NHW_Map-Render");
 			mRenderingThread.start();
 		}
@@ -729,6 +835,13 @@ public class NHW_Map implements NH_Window
 					// Thread was interrupted, continue cleanup
 				}
 				mRenderingThread = null;
+			}
+
+			// Unregister preference listener
+			if (mPrefListener != null)
+			{
+				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+				prefs.unregisterOnSharedPreferenceChangeListener(mPrefListener);
 			}
 		}
 

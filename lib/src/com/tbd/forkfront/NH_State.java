@@ -120,6 +120,10 @@ public class NH_State
 
 		mCmdPanelLayout.setOrientation(newConfig.orientation);
 		mDPad.setOrientation(newConfig.orientation);
+
+		// Forward configuration changes to map for adaptive tile scaling
+		if(mMap != null)
+			mMap.onConfigurationChanged(newConfig);
 	}
 
 	// ____________________________________________________________________________________
