@@ -18,6 +18,11 @@ package com.tbd.forkfront;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -59,6 +64,9 @@ public class ForkFront extends AppCompatActivity
 
 		Log.print("onCreate");
 
+		// Enable edge-to-edge display
+		WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
 		if(DEBUG.isOn())
 		{
 			if(getResources().getString(R.string.namespace).length() == 0
@@ -81,6 +89,27 @@ public class ForkFront extends AppCompatActivity
 		// takeKeyEvents(true);
 
 		setContentView(R.layout.mainwindow);
+
+		// Apply window insets to avoid system bars cutting off UI elements
+		View rootView = findViewById(R.id.base_frame);
+		if (rootView != null) {
+			ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+				androidx.core.graphics.Insets systemBars = insets.getInsets(
+					WindowInsetsCompat.Type.systemBars());
+
+				// Apply bottom padding to keyboard frame to avoid gesture bar
+				View kbdFrame = findViewById(R.id.kbd_frame);
+				if (kbdFrame != null) {
+					kbdFrame.setPadding(
+						kbdFrame.getPaddingLeft(),
+						kbdFrame.getPaddingTop(),
+						kbdFrame.getPaddingRight(),
+						systemBars.bottom);
+				}
+
+				return WindowInsetsCompat.CONSUMED;
+			});
+		}
 
 		ensureReadWritePermissions(new RequestExternalStorageResult() {
 			@Override
