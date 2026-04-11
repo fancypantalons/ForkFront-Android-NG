@@ -6,25 +6,19 @@ import android.text.TextUtils;
 import android.widget.Toast;
 import com.tbd.forkfront.Log;
 import com.tbd.forkfront.R;
-import cz.msebera.android.httpclient.Header;
-import cz.msebera.android.httpclient.HttpEntity;
-import cz.msebera.android.httpclient.HttpResponse;
-import cz.msebera.android.httpclient.client.HttpClient;
-import cz.msebera.android.httpclient.client.methods.HttpGet;
-import cz.msebera.android.httpclient.client.methods.HttpPost;
-import cz.msebera.android.httpclient.entity.ByteArrayEntity;
-import cz.msebera.android.httpclient.impl.client.DefaultHttpClient;
-import cz.msebera.android.httpclient.message.BasicHeader;
-
 import java.io.*;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,9 +30,8 @@ public class Hearse {
 
 	private final String CLIENT_ID;
 	private final String HEARSE_CRC;
-	private static final String HOST = "hearse.krollmark.com";
-	private static final String BASE_URL = "http://hearse.krollmark.com/bones.dll?act=";
-	// hearse commands
+	static final String HOST = "hearse.krollmark.com";
+	static String BASE_URL = "http://hearse.krollmark.com/bones.dll?act=";	// hearse commands
 	private static final String NEW_USER = "newuser";
 	private static final String UPLOAD = "upload";
 	private static final String DOWNLOAD = "download";
@@ -96,7 +89,6 @@ public class Hearse {
 	private String userToken;
 	private boolean keepUploaded;
 	private long lastUpload;
-	private HttpClient httpClient;
 	private boolean mLittleEndian;
 	private String mNethackVersion;
 
@@ -127,17 +119,17 @@ public class Hearse {
 		userNick = prefs.getString(PREFS_HEARSE_NAME, "");
 		keepUploaded = prefs.getBoolean(PREFS_HEARSE_KEEP_UPLOADED, false);
 		lastUpload = prefs.getLong(PREFS_HEARSE_LAST_UPLOAD, 0);
-		httpClient = new DefaultHttpClient();
 
 		prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
-
-		if(prefs.getBoolean(PREFS_HEARSE_ENABLE, false)) {
-			hearseThread.start();
-		}
 	}
 
-	private static boolean checkMD5(String md5, File updateFile) {
-		if (TextUtils.isEmpty(md5) || updateFile == null) {
+		public void start() {
+		if(prefs.getBoolean(PREFS_HEARSE_ENABLE, false)) {
+		        hearseThread.start();
+		}
+		}
+	static boolean checkMD5(String md5, File updateFile) {
+		if (md5 == null || md5.length() == 0 || updateFile == null) {
 			return false;
 		}
 
@@ -148,36 +140,36 @@ public class Hearse {
 		return calculatedDigest.equalsIgnoreCase(md5);
 	}
 
-	private static String getByteMD5(byte[] bytesOfMessage) {
+	static String getByteMD5(byte[] bytesOfMessage) {
 
-		MessageDigest md = null;
-		try {
-			md = MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException e) {
-			Log.print(e.toString());
-			return null;
-		}
-		byte[] md5sum = md.digest(bytesOfMessage);
-		BigInteger bigInt = new BigInteger(1, md5sum);
-		String output = bigInt.toString(16);
-		// Fill to 32 chars
-		output = String.format("%32s", output).replace(' ', '0');
-		return output;
+	        MessageDigest md = null;
+	        try {
+	                md = MessageDigest.getInstance("MD5");
+	        } catch (NoSuchAlgorithmException e) {
+	                Log.print(e.toString());
+	                return null;
+	        }
+	        byte[] md5sum = md.digest(bytesOfMessage);
+	        BigInteger bigInt = new BigInteger(1, md5sum);
+	        String output = bigInt.toString(16);
+	        // Fill to 32 chars
+	        output = String.format("%32s", output).replace(' ', '0');
+	        return output;
 	}
 
-	private static String getStringMD5(String input) {
-		byte[] bytesOfMessage;
-		try {
-			bytesOfMessage = input.getBytes("UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			Log.print(e.toString());
-			return null;
-		}
+	static String getStringMD5(String input) {
+	        byte[] bytesOfMessage;
+	        try {
+	                bytesOfMessage = input.getBytes("UTF-8");
+	        } catch (UnsupportedEncodingException e) {
+	                Log.print(e.toString());
+	                return null;
+	        }
 
-		return getByteMD5(bytesOfMessage);
+	        return getByteMD5(bytesOfMessage);
 	}
 
-	private static String getFileMD5(File updateFile) {
+	static String getFileMD5(File updateFile) {
 		MessageDigest digest;
 		try {
 			digest = MessageDigest.getInstance("MD5");
@@ -185,17 +177,11 @@ public class Hearse {
 			return null;
 		}
 
-		BufferedInputStream is;
+		BufferedInputStream is = null;
 		try {
 			is = new BufferedInputStream(new FileInputStream(updateFile));
-		} catch (FileNotFoundException e) {
-			Log.print("Exception while getting FileInputStream" + e);
-			return null;
-		}
-
-		byte[] buffer = new byte[8192];
-		int read;
-		try {
+			byte[] buffer = new byte[8192];
+			int read;
 			while ((read = is.read(buffer)) > 0) {
 				digest.update(buffer, 0, read);
 			}
@@ -208,10 +194,12 @@ public class Hearse {
 		} catch (IOException e) {
 			throw new RuntimeException("Unable to process file for MD5", e);
 		} finally {
-			try {
-				is.close();
-			} catch (IOException e) {
-				Log.print(TAG + " Exception on closing MD5 input stream " + e);
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					Log.print(TAG + " Exception on closing MD5 input stream " + e);
+				}
 			}
 		}
 	}
@@ -308,37 +296,33 @@ public class Hearse {
 		});
 	}
 
-	private String createNewUser() throws IOException {
-		List<Header> headerList = new ArrayList<Header>();
+	String createNewUser() throws IOException {
+		List<HearseHeader> headerList = new ArrayList<HearseHeader>();
 
 
-		headerList.add(new BasicHeader(HEADER_TOKEN, userEmail));
+		headerList.add(new HearseHeader(HEADER_TOKEN, userEmail));
 
-		headerList.add(new BasicHeader(HEADER_NICK, userNick));
+		headerList.add(new HearseHeader(HEADER_NICK, userNick));
 
-		HttpResponse resp = doGet(BASE_URL, NEW_USER, headerList);
+		HearseResponse resp = doGet(BASE_URL, NEW_USER, headerList);
 
 		if (resp.getFirstHeader(HEADER_HEARSE) == null) {
-			consumeContent(resp);
 			return "";
 		}
 		if (resp.getFirstHeader(HEADER_ERROR) != null) {
 			printContent(resp);
-			consumeContent(resp);
 			return "";
 
 		}
 
-		Header tokenHeader = resp.getFirstHeader(HEADER_TOKEN);
+		String tokenValue = resp.getFirstHeader(HEADER_TOKEN);
 		SharedPreferences.Editor ed = prefs.edit();
-		ed.putString(PREFS_HEARSE_ID, tokenHeader.getValue());
+		ed.putString(PREFS_HEARSE_ID, tokenValue);
 		ed.commit();
-		consumeContent(resp);
-		return tokenHeader.getValue();
+		return tokenValue;
 	}
 
-	private int downloadBones() throws IOException {
-
+	int downloadBones() throws IOException {
 		int nDownloaded = 0;
 		String hackver = prefs.getString(HEADER_NETHACKVER, mNethackVersion);
 
@@ -351,39 +335,37 @@ public class Hearse {
 
 		while (true) {
 
-			List<Header> headerList = new ArrayList<Header>();
+			List<HearseHeader> headerList = new ArrayList<HearseHeader>();
 
-			headerList.add(new BasicHeader(HEADER_TOKEN, userToken));
+			headerList.add(new HearseHeader(HEADER_TOKEN, userToken));
 			if(existingBonesSet.length() > 0)
-				headerList.add(new BasicHeader(HEADER_USER_LEVELS, existingBonesSet));
+				headerList.add(new HearseHeader(HEADER_USER_LEVELS, existingBonesSet));
 			//isEmpty requires API 9
 			if (!"".equals(hackver)) {
-				headerList.add(new BasicHeader(HEADER_NETHACKVER, hackver));
+				headerList.add(new HearseHeader(HEADER_NETHACKVER, hackver));
 			}
 
-			HttpResponse resp = doGet(BASE_URL, DOWNLOAD, headerList);
+			HearseResponse resp = doGet(BASE_URL, DOWNLOAD, headerList);
 
 			if (resp.getFirstHeader(HEADER_HEARSE) == null) {
-				consumeContent(resp);
 				return 0;
 			}
-			Header header = resp.getFirstHeader(HEADER_ERROR);
-			if (header != null) {
+			String errorHeader = resp.getFirstHeader(HEADER_ERROR);
+			if (errorHeader != null) {
 
-				if (header.getValue().equals(F_ERROR_INFO)) {
+				if (errorHeader.equals(F_ERROR_INFO)) {
 					// This is a warning so pretend we succeeded.
 					printContent(resp);
 				} else {
 					printContent(resp);
 				}
-				consumeContent(resp);
 				break;
 			} else {
 
-				Header fileName = resp.getFirstHeader(HEADER_FILE_NAME);
-				Header md5 = resp.getFirstHeader(HEADER_BONES_CRC);
+				String fileNameValue = resp.getFirstHeader(HEADER_FILE_NAME);
+				String md5Value = resp.getFirstHeader(HEADER_BONES_CRC);
 
-				File bonesFile = new File(dataDirString, fileName.getValue());
+				File bonesFile = new File(dataDirString, fileNameValue);
 				// For thread safety, don't download as real name.  Nethack might try to load it before complete
 				File tmpBonesFile = new File(dataDirString, bonesFile.getName() + ".tmp");
 
@@ -391,7 +373,7 @@ public class Hearse {
 				InputStream in = null;
 				try {
 					tmpBonesFile.createNewFile();
-					in = resp.getEntity().getContent();
+					in = resp.getInputStream();
 					out = new BufferedOutputStream(new FileOutputStream(tmpBonesFile));
 					int c;
 					while ((c = in.read()) != -1) {
@@ -417,7 +399,7 @@ public class Hearse {
 					}
 				}
 
-				if(checkMD5(md5.getValue(), tmpBonesFile)) {
+				if(checkMD5(md5Value, tmpBonesFile)) {
 					tmpBonesFile.renameTo(bonesFile);
 					Log.print("Downloaded " + bonesFile.getName());
 					existingBonesSet = existingBonesSet + bonesFile.getName() + ",";
@@ -427,8 +409,6 @@ public class Hearse {
 					Log.print("Bad bones downloaded");
 					tmpBonesFile.delete();
 				}
-
-				consumeContent(resp);
 
 			}
 		}
@@ -450,8 +430,7 @@ public class Hearse {
 		return uploadBonesFiles(newBones);
 	}
 
-	private int uploadBonesFiles(List<File> files) {
-
+	int uploadBonesFiles(List<File> files) {
 		int nUploaded = 0;
 		String currentFileName;
 
@@ -461,12 +440,12 @@ public class Hearse {
 
 			currentFileName = files.get(i).getName();
 
-			List<Header> headerList = new ArrayList<Header>();
+			List<HearseHeader> headerList = new ArrayList<HearseHeader>();
 
-			headerList.add(new BasicHeader(HEADER_TOKEN, userToken));
-			headerList.add(new BasicHeader(HEADER_FILE_NAME, currentFileName));
+			headerList.add(new HearseHeader(HEADER_TOKEN, userToken));
+			headerList.add(new HearseHeader(HEADER_FILE_NAME, currentFileName));
 			if (i == 0) {
-				headerList.add(new BasicHeader(HEADER_WANTS_INFO, "Y"));
+				headerList.add(new HearseHeader(HEADER_WANTS_INFO, "Y"));
 			}
 
 			NHFileInfo info = loadFile(files.get(i));
@@ -475,15 +454,15 @@ public class Hearse {
 			String info2 = info.get2();
 			String info3 = info.get3();
 			String info4 = info.get4();
-//            headerList.add(new BasicHeader(HEADER_VERSION + 1, info.get1()));
-//            headerList.add(new BasicHeader(HEADER_VERSION + 2, info.get2()));
-//            headerList.add(new BasicHeader(HEADER_VERSION + 3, info.get3()));
-//            headerList.add(new BasicHeader(HEADER_VERSION + 4, info.get4()));
-			headerList.add(new BasicHeader(HEADER_VERSIONCRC, getStringMD5(info1 + "," + info2 + "," + info3 + "," + info4)));
+//            headerList.add(new HearseHeader(HEADER_VERSION + 1, info.get1()));
+//            headerList.add(new HearseHeader(HEADER_VERSION + 2, info.get2()));
+//            headerList.add(new HearseHeader(HEADER_VERSION + 3, info.get3()));
+//            headerList.add(new HearseHeader(HEADER_VERSION + 4, info.get4()));
+			headerList.add(new HearseHeader(HEADER_VERSIONCRC, getStringMD5(info1 + "," + info2 + "," + info3 + "," + info4)));
 
-			headerList.add(new BasicHeader(HEADER_BONES_CRC, info.md5));
+			headerList.add(new HearseHeader(HEADER_BONES_CRC, info.md5));
 
-			HttpResponse resp;
+			HearseResponse resp;
 			try {
 				resp = doPost(BASE_URL, UPLOAD, headerList, info.data);
 			} catch (IOException e) {
@@ -493,14 +472,13 @@ public class Hearse {
 			}
 
 			if (resp.getFirstHeader(HEADER_HEARSE) == null) {
-				consumeContent(resp);
 				return 0;
 			}
 
-			Header header = resp.getFirstHeader(HEADER_ERROR);
-			if (header != null) {
+			String errorValue = resp.getFirstHeader(HEADER_ERROR);
+			if (errorValue != null) {
 
-				if (header.getValue().equals(F_ERROR_INFO)) {
+				if (errorValue.equals(F_ERROR_INFO)) {
 					// This is a warning so pretend we succeeded.
 					nUploaded++;
 
@@ -514,9 +492,9 @@ public class Hearse {
 				}
 			} else {
 				// Save the version for requests. Will help prevent bad bones.
-				header = resp.getFirstHeader(HEADER_NETHACKVER);
-				if (header != null) {
-					ed.putString(HEADER_NETHACKVER, header.getValue());
+				String hackVerValue = resp.getFirstHeader(HEADER_NETHACKVER);
+				if (hackVerValue != null) {
+					ed.putString(HEADER_NETHACKVER, hackVerValue);
 				}
 				Log.print("Uploaded " + currentFileName);
 				nUploaded++;
@@ -525,13 +503,13 @@ public class Hearse {
 					files.get(i).delete();
 				}
 
-				header = resp.getFirstHeader(HEADER_MOTD);
-				if (header != null) {
-					Log.print(header.getName() + ":" + header.getValue()); //@todo output this to screen
+				String motdValue = resp.getFirstHeader(HEADER_MOTD);
+				if (motdValue != null) {
+					Log.print(HEADER_MOTD + ":" + motdValue); //@todo output this to screen
 				}
 
 			}
-			consumeContent(resp);
+	
 		}
 
 		ed.commit();
@@ -578,38 +556,61 @@ public class Hearse {
 		return results;
 	}
 
-	private HttpResponse doGet(String baseUrl, String action, List<Header> headers) throws IOException {
-		HttpGet httpGet = new HttpGet(baseUrl + action);
+	HearseResponse doGet(String baseUrl, String action, List<HearseHeader> headers) throws IOException {
+		URL url = new URL(baseUrl + action);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("GET");
 
-		httpGet.setHeaders(headers.toArray(new Header[headers.size()]));
-		httpGet.addHeader(HEADER_HEARSE_CRC, HEARSE_CRC);
-		httpGet.addHeader(HEADER_CLIENT, CLIENT_ID);
+		for (HearseHeader h : headers) {
+			conn.setRequestProperty(h.getName(), h.getValue());
+		}
+		conn.setRequestProperty(HEADER_HEARSE_CRC, HEARSE_CRC);
+		conn.setRequestProperty(HEADER_CLIENT, CLIENT_ID);
 
-		//making GET request.
-		HttpResponse response = httpClient.execute(httpGet);
-		// write response to log
-		Log.print("Http Get Response:" + response.toString());
-		return response;
+		int responseCode = conn.getResponseCode();
+		InputStream is = (responseCode >= 400) ? conn.getErrorStream() : conn.getInputStream();
+		byte[] content = (is != null) ? readStream(is) : new byte[0];
+		Map<String, List<String>> responseHeaders = conn.getHeaderFields();
+
+		Log.print("Http Get Response code:" + responseCode);
+		return new HearseResponse(responseCode, content, responseHeaders);
 	}
 
-	private HttpResponse doPost(String baseUrl, String action, List<Header> headers, byte[] data) throws IOException {
+	private byte[] readStream(InputStream is) throws IOException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		byte[] buffer = new byte[8192];
+		int read;
+		while ((read = is.read(buffer)) != -1) {
+			bos.write(buffer, 0, read);
+		}
+		return bos.toByteArray();
+	}
 
-		HttpPost httpPost = new HttpPost(baseUrl + action);
+	HearseResponse doPost(String baseUrl, String action, List<HearseHeader> headers, byte[] data) throws IOException {
+		URL url = new URL(baseUrl + action);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setDoOutput(true);
 
+		for (HearseHeader h : headers) {
+			conn.setRequestProperty(h.getName(), h.getValue());
+		}
+		conn.setRequestProperty(HEADER_HEARSE_CRC, HEARSE_CRC);
+		conn.setRequestProperty(HEADER_CLIENT, CLIENT_ID);
 
-		httpPost.setHeaders(headers.toArray(new Header[headers.size()]));
-		httpPost.addHeader(HEADER_HEARSE_CRC, HEARSE_CRC);
-		httpPost.addHeader(HEADER_CLIENT, CLIENT_ID);
 		if (data != null) {
-			ByteArrayEntity entity = new ByteArrayEntity(data);
-			httpPost.setEntity(entity);
+			OutputStream os = conn.getOutputStream();
+			os.write(data);
+			os.close();
 		}
 
-		//making POST request.
-		HttpResponse response = httpClient.execute(httpPost);
-		// write response to log
-		Log.print("Http Post Response:" + response.toString());
-		return response;
+		int responseCode = conn.getResponseCode();
+		InputStream is = (responseCode >= 400) ? conn.getErrorStream() : conn.getInputStream();
+		byte[] content = (is != null) ? readStream(is) : new byte[0];
+		Map<String, List<String>> responseHeaders = conn.getHeaderFields();
+
+		Log.print("Http Post Response code:" + responseCode);
+		return new HearseResponse(responseCode, content, responseHeaders);
 	}
 
 	private boolean isValidBonesFileName(String name) {
@@ -620,42 +621,27 @@ public class Hearse {
 		return result;
 	}
 
-	private void changeUserInfo() throws IOException {
+	void changeUserInfo() throws IOException {
 		Log.print("Hearse updating user info: " + userNick + ", " + userEmail);
 
-		List<Header> headerList = new ArrayList<Header>();
+		List<HearseHeader> headerList = new ArrayList<HearseHeader>();
 
-		headerList.add(new BasicHeader(HEADER_EMAIL, userEmail));
+		headerList.add(new HearseHeader(HEADER_EMAIL, userEmail));
 
-		headerList.add(new BasicHeader(HEADER_NICK, userNick));
+		headerList.add(new HearseHeader(HEADER_NICK, userNick));
 
-		headerList.add(new BasicHeader(HEADER_TOKEN, userToken));
+		headerList.add(new HearseHeader(HEADER_TOKEN, userToken));
 
-		HttpResponse resp = doGet(BASE_URL, UPDATE_USER, headerList);
+		HearseResponse resp = doGet(BASE_URL, UPDATE_USER, headerList);
 
 		if (resp.getFirstHeader(HEADER_HEARSE) != null && resp.getFirstHeader(HEADER_ERROR) != null) {
-
 			printContent(resp);
 		}
-
-		consumeContent(resp);
 	}
 
-	private void consumeContent(HttpResponse resp)
-	{
+	private void printContent(HearseResponse resp) {
 		try {
-			HttpEntity entity = resp.getEntity();
-			if(entity != null)
-				entity.consumeContent();
-		} catch(IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void printContent(HttpResponse resp) {
-		try {
-			HttpEntity entity = resp.getEntity();
-			BufferedReader in = new BufferedReader(new InputStreamReader(entity.getContent()));
+			BufferedReader in = new BufferedReader(new InputStreamReader(resp.getInputStream()));
 			StringBuilder message = new StringBuilder();
 			String line;
 			while ((line = in.readLine()) != null) {
@@ -697,29 +683,59 @@ public class Hearse {
 	};
 
 	private class NHFileInfo {
-		public byte[] data;
-		String md5;
-		long incarnation;    /* actual version number */
-		long feature_set;    /* bitmask of config settings */
-		long entity_count;   /* # of monsters and objects */
-		long struct_sizes;   /* size of key structs */
+	        public byte[] data;
+	        String md5;
+	        long incarnation;    /* incarnation = major, minor, patchlevel, editlevel */
+	        long feature_set;    /* bitmask of config settings */
+	        long entity_count;   /* # of monsters and objects */
+	        long struct_sizes;   /* size of key structs */
 
-		public String get1() {
-			return String.valueOf(incarnation);
-		}
+	        public String get1() {
+	                return String.valueOf(incarnation);
+	        }
 
-		public String get2() {
-			return String.valueOf(feature_set);
-		}
+	        public String get2() {
+	                return String.valueOf(feature_set);
+	        }
 
-		public String get3() {
-			return String.valueOf(entity_count);
-		}
+	        public String get3() {
+	                return String.valueOf(entity_count);
+	        }
 
-		public String get4() {
-			return String.valueOf(struct_sizes);
-		}
+	        public String get4() {
+	                return String.valueOf(struct_sizes);
+	        }
 	}
 
-}
+	static class HearseHeader {
+	        private String name;
+	        private String value;
+	        public HearseHeader(String name, String value) {
+	                this.name = name;
+	                this.value = value;
+	        }
+	        public String getName() { return name; }
+	        public String getValue() { return value; }
+	}
 
+	static class HearseResponse {
+	        private int statusCode;
+	        private byte[] content;
+	        private Map<String, List<String>> headers;
+	        public HearseResponse(int statusCode, byte[] content, Map<String, List<String>> headers) {
+	                this.statusCode = statusCode;
+	                this.content = content;
+	                this.headers = headers;
+	        }
+	        public int getStatusCode() { return statusCode; }
+	        public byte[] getContent() { return content; }
+	        public String getFirstHeader(String name) {
+	                List<String> values = headers.get(name);
+	                return (values != null && !values.isEmpty()) ? values.get(0) : null;
+	        }
+	        public InputStream getInputStream() {
+	                return new ByteArrayInputStream(content);
+	        }
+	}
+
+	}
