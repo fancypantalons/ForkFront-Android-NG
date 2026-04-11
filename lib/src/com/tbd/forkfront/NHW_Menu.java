@@ -164,6 +164,8 @@ public class NHW_Menu implements NH_Window
 			mBuilder.append('\n');
 			mBuilder.append(TextAttr.style(str, attr));
 		}
+		if(mFragment != null && mFragment.isAdded())
+			mFragment.updateText();
 	}
 
 	// ____________________________________________________________________________________
@@ -278,6 +280,17 @@ public class NHW_Menu implements NH_Window
 				mRoot.requestFocus();
 
 			return mRoot;
+		}
+
+		// ____________________________________________________________________________________
+		void updateText()
+		{
+			if(mMenu.mType == Type.Text && mRoot != null)
+			{
+				TextView tv = mRoot.findViewById(R.id.text_view);
+				if(tv != null && mMenu.mBuilder != null)
+					tv.setText(mMenu.mBuilder);
+			}
 		}
 
 		// ____________________________________________________________________________________
