@@ -577,15 +577,20 @@ public class Hearse {
 	}
 
 	private byte[] readStream(InputStream is) throws IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		byte[] buffer = new byte[8192];
-		int read;
-		while ((read = is.read(buffer)) != -1) {
-			bos.write(buffer, 0, read);
-		}
-		return bos.toByteArray();
+	        try {
+	                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+	                byte[] buffer = new byte[8192];
+	                int read;
+	                while ((read = is.read(buffer)) != -1) {
+	                        bos.write(buffer, 0, read);
+	                }
+	                return bos.toByteArray();
+	        } finally {
+	                if (is != null) {
+	                        is.close();
+	                }
+	        }
 	}
-
 	HearseResponse doPost(String baseUrl, String action, List<HearseHeader> headers, byte[] data) throws IOException {
 		URL url = new URL(baseUrl + action);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -640,21 +645,29 @@ public class Hearse {
 	}
 
 	private void printContent(HearseResponse resp) {
-		try {
-			BufferedReader in = new BufferedReader(new InputStreamReader(resp.getInputStream()));
-			StringBuilder message = new StringBuilder();
-			String line;
-			while ((line = in.readLine()) != null) {
-				if(message.length() > 0)
-					message.append('\n');
-				message.append(line);
-			}
-			showToast(message.toString());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	        BufferedReader in = null;
+	        try {
+	                in = new BufferedReader(new InputStreamReader(resp.getInputStream()));
+	                StringBuilder message = new StringBuilder();
+	                String line;
+	                while ((line = in.readLine()) != null) {
+	                        if(message.length() > 0)
+	                                message.append('\n');
+	                        message.append(line);
+	                }
+	                showToast(message.toString());
+	        } catch (IOException e) {
+	                e.printStackTrace();
+	        } finally {
+	                if (in != null) {
+	                        try {
+	                                in.close();
+	                        } catch (IOException e) {
+	                                e.printStackTrace();
+	                        }
+	                }
+	        }
 	}
-
 	/**
 	 * Method to allow this class to listen for email or nickname changes and send them to Hearse
 	 * @param sharedPreferences Preferences
@@ -730,12 +743,17 @@ public class Hearse {
 	        public int getStatusCode() { return statusCode; }
 	        public byte[] getContent() { return content; }
 	        public String getFirstHeader(String name) {
-	                List<String> values = headers.get(name);
-	                return (values != null && !values.isEmpty()) ? values.get(0) : null;
+	                if (name == null) return null;
+	                for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+	                        if (name.equalsIgnoreCase(entry.getKey())) {
+	                                List<String> values = entry.getValue();
+	                                return (values != null && !values.isEmpty()) ? values.get(0) : null;
+	                        }
+	                }
+	                return null;
 	        }
 	        public InputStream getInputStream() {
 	                return new ByteArrayInputStream(content);
 	        }
-	}
-
+	        }
 	}
