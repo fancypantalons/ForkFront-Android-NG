@@ -1,8 +1,11 @@
 package com.tbd.forkfront;
 
 import java.io.*;
+import java.lang.ref.WeakReference;
 import java.util.Date;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.app.AlertDialog;
@@ -10,12 +13,13 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.preference.PreferenceManager;
 
-public class UpdateAssets extends AsyncTask<Void, Void, Void>
+public class UpdateAssets
 {
 	public interface Listener
 	{
@@ -44,19 +48,22 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	private boolean mDefaultsFileBackedUp;
 	private long mRequiredSpace;
 	private long mTotalRead;
-	private AppCompatActivity mActivity;
+	private final WeakReference<AppCompatActivity> mActivityRef;
 	private final Listener mListener;
 	private final String mNativeDataDir;
 	private final String mNamespace;
 	private final String mDefaultsFile;
+	private final ExecutorService mExecutor;
+	private final Handler mMainHandler;
+	private volatile boolean mIsCancelled = false;
 
 	// ____________________________________________________________________________________
 	public UpdateAssets(AppCompatActivity activity, Listener listener)
 	{
 		convertFromOldPreferences(activity);
-		mActivity = activity;
+		mActivityRef = new WeakReference<>(activity);
 		mPrefs = PreferenceManager.getDefaultSharedPreferences(activity);
-		mAM = mActivity.getResources().getAssets();
+		mAM = activity.getResources().getAssets();
 		mIsInitiating = true;
 		mTotalRead = 0;
 		mRequiredSpace = 0;
@@ -64,6 +71,8 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 		mNativeDataDir = activity.getResources().getString(R.string.nativeDataDir);
 		mNamespace = activity.getResources().getString(R.string.namespace);
 		mDefaultsFile = activity.getResources().getString(R.string.defaultsFile);
+		mExecutor = Executors.newSingleThreadExecutor();
+		mMainHandler = new Handler(Looper.getMainLooper());
 	}
 
 	// ____________________________________________________________________________________
@@ -105,50 +114,85 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	}
 
 	// ____________________________________________________________________________________
-	@Override
-	protected void onPostExecute(Void unused)
+	/**
+	 * Execute the asset update task on a background thread.
+	 * Replaces AsyncTask.execute() pattern.
+	 */
+	public void execute(Void... params)
 	{
-		if(mProgress != null)
-			mProgress.dismiss();
-		if(mDstPath == null)
-		{
-			showError();
-		}
-		else
-		{
-			if(mDefaultsFileBackedUp) {
-				String symLinkedPath = "/sdcard/Android/data/" + mNamespace + "/";
-				showMessage("Your " + mDefaultsFile + " file was replaced during the update. A backup is saved in:\n" + symLinkedPath);
+		mExecutor.execute(() -> {
+			// Background work (replaces doInBackground)
+			mDstPath = load();
+
+			// Post result to main thread (replaces onPostExecute)
+			mMainHandler.post(() -> {
+				if (mIsCancelled) return;
+
+				if(mProgress != null)
+					mProgress.dismiss();
+				if(mDstPath == null)
+				{
+					showError();
+				}
+				else
+				{
+					if(mDefaultsFileBackedUp) {
+						String symLinkedPath = "/sdcard/Android/data/" + mNamespace + "/";
+						showMessage("Your " + mDefaultsFile + " file was replaced during the update. A backup is saved in:\n" + symLinkedPath);
+					}
+					Log.print("Starting on: " + mDstPath.getAbsolutePath());
+					mListener.onAssetsReady(mDstPath);
+				}
+			});
+		});
+	}
+
+	// ____________________________________________________________________________________
+	/**
+	 * Cancel the asset update task.
+	 * Shuts down the executor and dismisses any dialogs.
+	 */
+	public void cancel()
+	{
+		mIsCancelled = true;
+		mExecutor.shutdownNow();
+		mMainHandler.post(() -> {
+			if (mProgress != null) {
+				mProgress.dismiss();
 			}
-			Log.print("Starting on: " + mDstPath.getAbsolutePath());
-			mListener.onAssetsReady(mDstPath);
-		}
+		});
 	}
 
 	// ____________________________________________________________________________________
-	@Override
-	protected Void doInBackground(Void... params)
+	/**
+	 * Update progress on main thread.
+	 * Replaces AsyncTask.publishProgress() / onProgressUpdate() pattern.
+	 */
+    private void updateProgress()
 	{
-		mDstPath = load();
-		return null;
-	}
+		if (mIsCancelled) return;
 
-	// ____________________________________________________________________________________
-	@Override
-    protected void onProgressUpdate(Void... progress)
-	{
-		if(mTotalRead > 0 && mIsInitiating)
-		{
-			mIsInitiating = false;
-			
-			mProgress = new ProgressDialog(mActivity);
-			mProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-			mProgress.setMax((int)mRequiredSpace);
-			mProgress.setMessage("Preparing content...");
-			mProgress.setCancelable(false);
-			mProgress.show();
-		}
-		mProgress.setProgress((int)mTotalRead);
+		mMainHandler.post(() -> {
+			if (mIsCancelled) return;
+
+			AppCompatActivity activity = mActivityRef.get();
+			if (activity == null || activity.isFinishing()) return;
+
+			if(mTotalRead > 0 && mIsInitiating)
+			{
+				mIsInitiating = false;
+
+				mProgress = new ProgressDialog(activity);
+				mProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+				mProgress.setMax((int)mRequiredSpace);
+				mProgress.setMessage("Preparing content...");
+				mProgress.setCancelable(false);
+				mProgress.show();
+			}
+			if (mProgress != null) {
+				mProgress.setProgress((int)mTotalRead);
+			}
+		});
     }
 	
 	// ____________________________________________________________________________________
@@ -207,18 +251,23 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	// ____________________________________________________________________________________
 	private void showError()
 	{
-		AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+		AppCompatActivity activity = mActivityRef.get();
+		if (activity == null || activity.isFinishing()) return;
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 		builder.setMessage(mError).setPositiveButton("Ok", new DialogInterface.OnClickListener()
 		{
 			public void onClick(DialogInterface dialog, int id)
 			{
-				mActivity.finish();
+				AppCompatActivity a = mActivityRef.get();
+				if (a != null) a.finish();
 			}
 		}).setOnCancelListener(new DialogInterface.OnCancelListener()
 		{
 			public void onCancel(DialogInterface dialog)
 			{
-				mActivity.finish();
+				AppCompatActivity a = mActivityRef.get();
+				if (a != null) a.finish();
 			}
 		});
 		AlertDialog alert = builder.create();
@@ -228,7 +277,10 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	// ____________________________________________________________________________________
 	private void showMessage(String msg)
 	{
-		AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+		AppCompatActivity activity = mActivityRef.get();
+		if (activity == null || activity.isFinishing()) return;
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 		builder.setMessage(msg).setPositiveButton("Ok", new DialogInterface.OnClickListener()
 		{
 			public void onClick(DialogInterface dialog, int id)
@@ -335,7 +387,7 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 				else
 					break;
 				mTotalRead += nRead;
-				publishProgress((Void[])null);
+				updateProgress();
 			}
 
 			os.flush();
@@ -425,11 +477,14 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	// ____________________________________________________________________________________
 	private File getExternalDataPath()
 	{
+		AppCompatActivity activity = mActivityRef.get();
+		if (activity == null) return null;
+
 		File dataDir = null;
 		String state = Environment.getExternalStorageState();
 		if(Environment.MEDIA_MOUNTED.equals(state)) {
 			if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-				dataDir = mActivity.getExternalFilesDir(null);
+				dataDir = activity.getExternalFilesDir(null);
 			} else {
 				dataDir = new File(Environment.getExternalStorageDirectory(), "/Android/data/" + mNamespace);
 			}
@@ -440,7 +495,9 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	// ____________________________________________________________________________________
 	private File getInternalDataPath()
 	{
-		return mActivity.getFilesDir();
+		AppCompatActivity activity = mActivityRef.get();
+		if (activity == null) return null;
+		return activity.getFilesDir();
 	}
 
 	// ____________________________________________________________________________________
