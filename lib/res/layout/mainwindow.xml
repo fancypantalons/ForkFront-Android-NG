@@ -2,43 +2,43 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/base_frame"
     android:background="#ff000000"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:baselineAligned="false"
     android:orientation="vertical" >
 
     <FrameLayout
         android:id="@+id/dlg_frame"
-        android:layout_width="fill_parent"
-        android:layout_height="0dip"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1" >
 
         <FrameLayout
             android:id="@+id/map_frame"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:descendantFocusability="blocksDescendants" >
 
             <com.tbd.forkfront.CmdPanelLayout
                 android:id="@+id/cmdPanelLayout1"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent" >
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" >
 
                 <LinearLayout
-                    android:layout_width="fill_parent"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top|fill_horizontal"
                     android:orientation="vertical" >
 
                     <com.tbd.forkfront.AutoFitTextView
                         android:id="@+id/nh_stat0"
-                        android:layout_width="fill_parent"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textSize="15sp" />
 
                     <com.tbd.forkfront.AutoFitTextView
                         android:id="@+id/nh_stat1"
-                        android:layout_width="fill_parent"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textSize="15sp" />
 
@@ -65,7 +65,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom|center"
-					android:paddingBottom="10dip"
+					android:paddingBottom="10dp"
                     android:clickable="false"
                     android:focusable="false"
                     android:focusableInTouchMode="false"
@@ -80,8 +80,8 @@
 				
                 <LinearLayout
                      android:id="@+id/viewArea"
-                     android:layout_width="fill_parent"
-                     android:layout_height="fill_parent"
+                     android:layout_width="match_parent"
+                     android:layout_height="match_parent"
                      android:orientation="horizontal"/>
                 
             </com.tbd.forkfront.CmdPanelLayout>
