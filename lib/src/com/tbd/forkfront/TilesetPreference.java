@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TilesetPreference extends Preference {
-    private static final int GET_IMAGE_REQUEST = 342;
     private final String TTY = "TTY";
 
     private List<String> mEntries;
@@ -39,12 +38,16 @@ public class TilesetPreference extends Preference {
     private EditText mTileH;
     private ViewGroup mTilesetUI;
     private LinearLayout mRoot;
-    private AppCompatActivity mActivity;
     private String mCustomTilesetPath;
     private Bitmap mCustomTileset;
     private ImageButton mBrowse;
     private boolean mTileWFocus;
     private boolean mTileHFocus;
+    private ImagePickerLauncher mImagePickerLauncher;
+
+    public interface ImagePickerLauncher {
+        void launchImagePicker();
+    }
 
     public TilesetPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -84,7 +87,7 @@ public class TilesetPreference extends Preference {
                 }
             });
         }
-        
+
         mTilesetPath = (TextView) mRoot.findViewById(R.id.image_path);
 
         if (mTileW != null && mTileH != null) {
@@ -125,7 +128,7 @@ public class TilesetPreference extends Preference {
     private void bindViewLogic() {
         SharedPreferences prefs = getSharedPreferences();
         if (prefs == null) return;
-        
+
         String currentValue = prefs.getString("tileset", TTY);
 
         int i = mEntryValues.indexOf(currentValue);
@@ -155,21 +158,16 @@ public class TilesetPreference extends Preference {
     }
 
     private void choseCustomTilesetImage() {
-        if (mActivity == null) return;
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        mActivity.startActivityForResult(Intent.createChooser(intent, "Select Tileset Image"), GET_IMAGE_REQUEST);
+        if (mImagePickerLauncher != null) {
+            mImagePickerLauncher.launchImagePicker();
+        }
     }
 
-    public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == AppCompatActivity.RESULT_OK && requestCode == GET_IMAGE_REQUEST) {
-            if (createCustomTilesetLocalCopy(data.getData())) {
-                String path = queryPath(data.getData());
-                if (mTilesetPath != null) mTilesetPath.setText(path);
-            }
+    public void handleImageResult(Uri imageUri) {
+        if (imageUri != null && createCustomTilesetLocalCopy(imageUri)) {
+            String path = queryPath(imageUri);
+            if (mTilesetPath != null) mTilesetPath.setText(path);
         }
-        return requestCode == GET_IMAGE_REQUEST;
     }
 
     private boolean createCustomTilesetLocalCopy(Uri from) {
@@ -191,15 +189,17 @@ public class TilesetPreference extends Preference {
     }
 
     public String queryPath(Uri uri) {
-        if (mActivity == null) return uri.getPath();
         String[] projection = {MediaStore.Images.Media.DATA};
-        Cursor cursor = mActivity.managedQuery(uri, projection, null, null, null);
+        Cursor cursor = getContext().getContentResolver().query(uri, projection, null, null, null);
         if (cursor != null) {
-            int column_index = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
-            if (column_index >= 0) {
-                cursor.moveToFirst();
-                String path = cursor.getString(column_index);
-                if (path != null && path.length() > 0) return path;
+            try {
+                int column_index = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+                if (column_index >= 0 && cursor.moveToFirst()) {
+                    String path = cursor.getString(column_index);
+                    if (path != null && path.length() > 0) return path;
+                }
+            } finally {
+                cursor.close();
             }
         }
         return uri.getPath();
@@ -262,7 +262,7 @@ public class TilesetPreference extends Preference {
 
         SharedPreferences prefs = getSharedPreferences();
         if (prefs == null) return;
-        
+
         boolean custom = prefs.getBoolean("customTiles", false);
         String id = prefs.getString("tileset", TTY);
 
@@ -347,7 +347,7 @@ public class TilesetPreference extends Preference {
         }
     }
 
-    public void setActivity(AppCompatActivity activity) {
-        mActivity = activity;
+    public void setImagePickerLauncher(ImagePickerLauncher launcher) {
+        mImagePickerLauncher = launcher;
     }
 }
