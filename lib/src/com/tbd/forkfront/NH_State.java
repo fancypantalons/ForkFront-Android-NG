@@ -112,6 +112,9 @@ public class NH_State
 			}
 			if (mKeyboard == null) {
 				mKeyboard = new SoftKeyboard(activity, this);
+			} else {
+				// Update keyboard with new Activity context when Activity is recreated
+				mKeyboard.setContext(activity);
 			}
 			if (mMap == null) {
 				mMap = new NHW_Map(activity, mTileset, mStatus, this, mDecoder);
@@ -158,8 +161,9 @@ public class NH_State
 		mMap.loadZoomLevel();
 
 		// I have preferences already, might as well pass them in...
+		// Pass Application context to Hearse to avoid Activity leaks
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
-		mHearse = new Hearse(mActivity, prefs, path);
+		mHearse = new Hearse(mApp, prefs, path);
 	}
 
 	// ____________________________________________________________________________________
