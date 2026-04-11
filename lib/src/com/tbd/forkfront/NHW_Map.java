@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.graphics.*;
 import android.graphics.Paint.Align;
@@ -88,7 +88,7 @@ public class NHW_Map implements NH_Window
 		SEND_DIR
 	}
 
-	private Activity mContext;
+	private AppCompatActivity mContext;
 	private UI mUI;
 	private Tile[][] mTiles;
 	private float mScale;
@@ -120,7 +120,7 @@ public class NHW_Map implements NH_Window
 	private int mBorderColor;
 
 	// ____________________________________________________________________________________
-	public NHW_Map(Activity context, Tileset tileset, NHW_Status status, NH_State nhState, ByteDecoder decoder)
+	public NHW_Map(AppCompatActivity context, Tileset tileset, NHW_Status status, NH_State nhState, ByteDecoder decoder)
 	{
 		mNHState = nhState;
 		mDecoder = decoder;
@@ -151,7 +151,7 @@ public class NHW_Map implements NH_Window
 	
 	// ____________________________________________________________________________________
 	@Override
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		if(mContext == context)
 			return;

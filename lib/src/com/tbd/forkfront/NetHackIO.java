@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Environment;
 import android.os.Handler;
 
@@ -140,7 +140,7 @@ public class NetHackIO
 	}
 
 	// ____________________________________________________________________________________
-	public NetHackIO(Activity context, NH_Handler nhHandler, ByteDecoder decoder)
+	public NetHackIO(AppCompatActivity context, NH_Handler nhHandler, ByteDecoder decoder)
 	{
 		mNhHandler = nhHandler;
 		mDecoder = decoder;

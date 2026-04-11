@@ -1,6 +1,6 @@
 package com.tbd.forkfront.Hearse;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -81,7 +81,7 @@ public class Hearse {
 	private static final String PREFS_HEARSE_ENABLE = "hearseEnable";
 	private static final String PREFS_HEARSE_UPDATE_USER = "hearseUpdateUser";
 	private static final String PREFS_HEARSE_LAST_UPLOAD = "hearseLastUpload";
-	private final Activity context;
+	private final AppCompatActivity context;
 	private final SharedPreferences prefs;
 	private final String dataDirString;
 	private String userNick;
@@ -95,12 +95,12 @@ public class Hearse {
 	/**
 	 * Creates a new instance of Hearse
 	 *
-	 * @param context The {@link Activity} application for access to {@link Activity}, through which it can
+	 * @param context The {@link AppCompatActivity} application for access to {@link AppCompatActivity}, through which it can
 	 *            create {@link Toast} notifications, etc.
 	 * @param prefs SharedPreferences
 	 * @param path nethack datadir
 	 */
-	public Hearse(Activity context, SharedPreferences prefs, String path) {
+	public Hearse(AppCompatActivity context, SharedPreferences prefs, String path) {
 
 		this.context = context;
 		dataDirString = path;

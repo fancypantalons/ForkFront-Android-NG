@@ -1,7 +1,7 @@
 package com.tbd.forkfront;
 
 import java.util.Set;
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -73,7 +73,7 @@ public class AmountSelector
 	}
 
 	// ____________________________________________________________________________________
-	public AmountSelector(Listener listener, Activity context, Tileset tileset, MenuItem item)
+	public AmountSelector(Listener listener, AppCompatActivity context, Tileset tileset, MenuItem item)
 	{
 		mItem = item;
 		mListener = listener;

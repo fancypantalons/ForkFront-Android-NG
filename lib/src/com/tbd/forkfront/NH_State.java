@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -26,7 +26,7 @@ public class NH_State
 		Keyboard,
 	}
 
-	private Activity mContext;
+	private AppCompatActivity mContext;
 	private NetHackIO mIO;
 	private NHW_Message mMessage;
 	private NHW_Status mStatus;
@@ -50,7 +50,7 @@ public class NH_State
 	private SoundPlayer mSoundPlayer;
 
 	// ____________________________________________________________________________________
-	public NH_State(Activity context, ByteDecoder decoder)
+	public NH_State(AppCompatActivity context, ByteDecoder decoder)
 	{
 		mIO = new NetHackIO(context, NhHandler, decoder);
 		mTileset = new Tileset(context);
@@ -70,7 +70,7 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		mContext = context;
 		for(NH_Window w : mWindows)

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="hearse_background">#ff000000</color>
+    <color name="hearse_text">#ffffffff</color>
+    <color name="hearse_accent">#ff3d5afe</color>
+</resources>

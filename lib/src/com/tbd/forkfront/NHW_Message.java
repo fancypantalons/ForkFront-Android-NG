@@ -1,7 +1,7 @@
 package com.tbd.forkfront;
 
 import java.util.Set;
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -12,7 +12,7 @@ public class NHW_Message implements NH_Window
 	protected static final int SHOW_MAX_LINES = 3;
 
 	private NetHackIO mIO;
-	private Activity mContext;
+	private AppCompatActivity mContext;
 	private final int MaxLog = 256;
 	private String[] mLog = new String[MaxLog];
 	private int mCurrentIdx;
@@ -25,7 +25,7 @@ public class NHW_Message implements NH_Window
 	private int mOpacity;
 
 	// ____________________________________________________________________________________
-	public NHW_Message(Activity context, NetHackIO io)
+	public NHW_Message(AppCompatActivity context, NetHackIO io)
 	{
 		mIO = io;
 		setContext(context);
@@ -40,7 +40,7 @@ public class NHW_Message implements NH_Window
 
 	// ____________________________________________________________________________________
 	@Override
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		if(mContext == context)
 			return;

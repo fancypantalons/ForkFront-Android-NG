@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.Date;
 import java.util.Scanner;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -44,14 +44,14 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	private boolean mDefaultsFileBackedUp;
 	private long mRequiredSpace;
 	private long mTotalRead;
-	private Activity mActivity;
+	private AppCompatActivity mActivity;
 	private final Listener mListener;
 	private final String mNativeDataDir;
 	private final String mNamespace;
 	private final String mDefaultsFile;
 
 	// ____________________________________________________________________________________
-	public UpdateAssets(Activity activity, Listener listener)
+	public UpdateAssets(AppCompatActivity activity, Listener listener)
 	{
 		convertFromOldPreferences(activity);
 		mActivity = activity;
@@ -67,14 +67,14 @@ public class UpdateAssets extends AsyncTask<Void, Void, Void>
 	}
 
 	// ____________________________________________________________________________________
-	private static void convertFromOldPreferences(Activity activity)
+	private static void convertFromOldPreferences(AppCompatActivity activity)
 	{
 		// Old versions used a different preference store than the rest of the app
 		String oldActivityName = activity.getResources().getString(R.string.oldActivityName);
 		if(oldActivityName == null || oldActivityName.length() == 0)
 			return;
 
-		SharedPreferences oldPrefs = activity.getSharedPreferences(oldActivityName, Activity.MODE_PRIVATE);
+		SharedPreferences oldPrefs = activity.getSharedPreferences(oldActivityName, AppCompatActivity.MODE_PRIVATE);
 		SharedPreferences newPrefs = PreferenceManager.getDefaultSharedPreferences(activity);
 		SharedPreferences.Editor oldEditor = oldPrefs.edit();
 		SharedPreferences.Editor newEditor = newPrefs.edit();

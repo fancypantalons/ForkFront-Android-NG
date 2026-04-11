@@ -2,7 +2,7 @@ package com.tbd.forkfront;
 
 import java.util.Set;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.text.SpannableStringBuilder;
 import android.view.View;
@@ -20,7 +20,7 @@ public class NHW_Status implements NH_Window
 	boolean mOldMode; // TODO get rid of this by fixing proper cursor movement and remove append parameter to putString
 
 	// ____________________________________________________________________________________
-	public NHW_Status(Activity context, NetHackIO io)
+	public NHW_Status(AppCompatActivity context, NetHackIO io)
 	{
 		mIO = io;
 		mRows = new SpannableStringBuilder[2];
@@ -40,7 +40,7 @@ public class NHW_Status implements NH_Window
 	
 	// ____________________________________________________________________________________
 	@Override
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		mUI = new UI(context);
 		if(mIsVisible)
@@ -155,7 +155,7 @@ public class NHW_Status implements NH_Window
 		private AutoFitTextView[] mViews;
 
 		// ____________________________________________________________________________________
-		public UI(Activity context)
+		public UI(AppCompatActivity context)
 		{
 			mViews = new AutoFitTextView[2];
 			mViews[0] = (AutoFitTextView)context.findViewById(R.id.nh_stat0);
