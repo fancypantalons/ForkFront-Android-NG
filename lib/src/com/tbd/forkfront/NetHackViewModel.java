@@ -1,5 +1,6 @@
 package com.tbd.forkfront;
 
+import android.app.Application;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,14 +13,13 @@ import java.util.Queue;
  * ViewModel for managing NetHack engine lifecycle and state.
  *
  * Survives configuration changes (like screen rotation) and manages the NetHack
- * engine thread, game state, and JNI callbacks.
- *
- * NOTE: This is Phase 4.2 - foundation only. Full initialization will be
- * implemented in later phases after NH_State and NetHackIO are refactored.
+ * engine thread, game state, and JNI callbacks using Application context to avoid
+ * Activity leaks.
  */
 public class NetHackViewModel extends ViewModel {
     private static final String TAG = "NetHackViewModel";
 
+    private NetHackIO mNetHackIO;
     private NH_State mNHState;
     private boolean mIsEngineStarted = false;
     private String mDataPath;
@@ -34,16 +34,27 @@ public class NetHackViewModel extends ViewModel {
     }
 
     /**
-     * Initialize the ViewModel with NH_State instance.
-     * For now, accepts existing NH_State created by Activity.
-     * Will be refactored in Phase 4.3-4.5 to create state internally.
+     * Initialize the ViewModel with Application context and decoder.
+     * Creates NetHackIO and NH_State internally using Application context.
+     * This only happens once - on first creation.
      *
-     * @param nhState NH_State instance
+     * @param app Application context (survives Activity destruction)
+     * @param decoder ByteDecoder for NetHack protocol
      */
-    public void initialize(NH_State nhState) {
+    public void initialize(Application app, ByteDecoder decoder) {
         if (mNHState == null) {
-            Log.d(TAG, "Initializing NetHackViewModel with NH_State");
-            mNHState = nhState;
+            Log.d(TAG, "Initializing NetHackViewModel with Application context");
+            // Create NH_State first (it needs NetHackIO, but we'll create with null handler)
+            mNetHackIO = new NetHackIO(app, null, decoder);
+            mNHState = new NH_State(app, decoder, mNetHackIO);
+            // Inject NH_State's handler into NetHackIO after both are created
+            try {
+                java.lang.reflect.Field handlerField = NetHackIO.class.getDeclaredField("mNhHandler");
+                handlerField.setAccessible(true);
+                handlerField.set(mNetHackIO, mNHState.getNhHandler());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to inject NhHandler into NetHackIO", e);
+            }
         } else {
             Log.d(TAG, "NetHackViewModel already initialized, skipping");
         }
@@ -142,8 +153,10 @@ public class NetHackViewModel extends ViewModel {
      */
     @Override
     protected void onCleared() {
-        Log.d(TAG, "NetHackViewModel cleared - cleanup will be implemented in later phase");
-        // TODO Phase 4.5: Implement proper cleanup (saveAndQuit)
+        Log.d(TAG, "NetHackViewModel cleared - saving and quitting");
+        if (mNHState != null) {
+            mNHState.saveAndQuit();
+        }
         super.onCleared();
     }
 }
