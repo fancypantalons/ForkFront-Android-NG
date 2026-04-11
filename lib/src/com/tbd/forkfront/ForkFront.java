@@ -24,7 +24,7 @@ import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.view.*;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MenuItem;
@@ -76,7 +76,7 @@ public class ForkFront extends AppCompatActivity
 			}
 		}
 		// turn off the window's title bar
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
 		setDefaultKeyMode(DEFAULT_KEYS_DISABLE);
 		// takeKeyEvents(true);
 

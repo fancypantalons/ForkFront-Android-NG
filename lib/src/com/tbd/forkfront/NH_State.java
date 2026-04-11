@@ -13,7 +13,7 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.Debug;
 import android.os.Handler;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.view.*;
 import com.tbd.forkfront.*;
 import com.tbd.forkfront.Hearse.Hearse;
