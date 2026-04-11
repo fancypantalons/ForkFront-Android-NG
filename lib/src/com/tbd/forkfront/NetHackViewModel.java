@@ -47,6 +47,8 @@ public class NetHackViewModel extends ViewModel {
             // Create NH_State first (it needs NetHackIO, but we'll create with null handler)
             mNetHackIO = new NetHackIO(app, null, decoder);
             mNHState = new NH_State(app, decoder, mNetHackIO);
+            // Set ViewModel reference in NH_State for deferred UI operations
+            mNHState.setViewModel(this);
             // Inject NH_State's handler into NetHackIO after both are created
             try {
                 java.lang.reflect.Field handlerField = NetHackIO.class.getDeclaredField("mNhHandler");

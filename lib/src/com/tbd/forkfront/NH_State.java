@@ -29,6 +29,7 @@ public class NH_State
 
 	private Application mApp;  // Application context (never leaks, survives Activity)
 	private AppCompatActivity mActivity;  // Activity context (updated via setContext())
+	private NetHackViewModel mViewModel;  // Reference to ViewModel for deferred UI operations
 	private NetHackIO mIO;
 	private ByteDecoder mDecoder;  // Stored for deferred initialization
 	private NHW_Message mMessage;
@@ -634,6 +635,15 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
+	/**
+	 * Set the ViewModel reference for deferred UI operations.
+	 * Package-private for access by NetHackViewModel.
+	 */
+	void setViewModel(NetHackViewModel viewModel) {
+		mViewModel = viewModel;
+	}
+
+	// ____________________________________________________________________________________
 	private NH_Handler NhHandler = new NH_Handler() {
 		@Override
 		public void setLastUsername(String username) {
@@ -688,35 +698,50 @@ public class NH_State
 		// ____________________________________________________________________________________
 		@Override
 		public void ynFunction(String question, byte[] choices, int def) {
-			if (mActivity != null) {
-				mQuestion.show(mActivity, question, choices, def);
+			// Defer to when Activity is available using ViewModel's queue
+			if (mViewModel != null) {
+				mViewModel.runOnActivity(() -> {
+					if (mActivity != null) {
+						mQuestion.show(mActivity, question, choices, def);
+					}
+				});
 			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void getLine(String title, int nMaxChars, boolean showLog) {
-			if (mActivity != null) {
-				if(showLog && mMessage != null)
-					mGetLine.show(mActivity, mMessage.getLogLine(2) + title, nMaxChars);
-				else
-					mGetLine.show(mActivity, title, nMaxChars);
+			// Defer to when Activity is available using ViewModel's queue
+			if (mViewModel != null) {
+				mViewModel.runOnActivity(() -> {
+					if (mActivity != null) {
+						if(showLog && mMessage != null)
+							mGetLine.show(mActivity, mMessage.getLogLine(2) + title, nMaxChars);
+						else
+							mGetLine.show(mActivity, title, nMaxChars);
+					}
+				});
 			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void askName(int nMaxChars, String[] saves) {
-			if (mActivity != null) {
-				String last = getLastUsername();
-				List<String> list = new ArrayList<>();
-				for(String s : saves) {
-					if(last.equals(s))
-						list.add(0, s);
-					else
-						list.add(s);
-				}
-				mGetLine.showWhoAreYou(mActivity, nMaxChars, list);
+			// Defer to when Activity is available using ViewModel's queue
+			if (mViewModel != null) {
+				mViewModel.runOnActivity(() -> {
+					if (mActivity != null) {
+						String last = getLastUsername();
+						List<String> list = new ArrayList<>();
+						for(String s : saves) {
+							if(last.equals(s))
+								list.add(0, s);
+							else
+								list.add(s);
+						}
+						mGetLine.showWhoAreYou(mActivity, nMaxChars, list);
+					}
+				});
 			}
 		}
 
@@ -761,14 +786,24 @@ public class NH_State
 			break;
 
 			case 4: // #define NHW_MENU 4
-				if (mActivity != null) {
-					mWindows.add(new NHW_Menu(wid, mActivity, mIO, mTileset));
+				// Defer menu creation until Activity is available
+				if (mViewModel != null) {
+					mViewModel.runOnActivity(() -> {
+						if (mActivity != null) {
+							mWindows.add(new NHW_Menu(wid, mActivity, mIO, mTileset));
+						}
+					});
 				}
 			break;
 
 			case 5: // #define NHW_TEXT 5
-				if (mActivity != null) {
-					mWindows.add(new NHW_Text(wid, mActivity, mIO));
+				// Defer text window creation until Activity is available
+				if (mViewModel != null) {
+					mViewModel.runOnActivity(() -> {
+						if (mActivity != null) {
+							mWindows.add(new NHW_Text(wid, mActivity, mIO));
+						}
+					});
 				}
 			break;
 			}
