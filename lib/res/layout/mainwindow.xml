@@ -101,4 +101,52 @@
         android:orientation="horizontal"
         android:layout_gravity="bottom" />
 
+    <!-- Asset Loading Overlay -->
+    <FrameLayout
+        android:id="@+id/loading_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:background="#FF424242"
+            android:elevation="16dp"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/loading_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Preparing NetHack content..."
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/asset_progress"
+                android:layout_width="300dp"
+                android:layout_height="wrap_content"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"/>
+
+            <TextView
+                android:id="@+id/progress_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="#FFFFFFFF"
+                android:textSize="14sp"
+                android:text="0%"/>
+        </LinearLayout>
+    </FrameLayout>
+
 </LinearLayout>

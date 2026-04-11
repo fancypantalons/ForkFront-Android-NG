@@ -34,6 +34,8 @@ import androidx.preference.PreferenceManager;
 import android.view.*;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MenuItem;
+import android.widget.TextView;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.tbd.forkfront.Input.Modifier;
 
 import java.io.File;
@@ -151,8 +153,29 @@ public class ForkFront extends AppCompatActivity
 		// Attach current Activity context
 		mViewModel.attachActivity(this);
 
-		// Start asset loading
-		new UpdateAssets(this, onAssetsReady).execute((Void[])null);
+		// Get progress UI elements
+		View loadingOverlay = findViewById(R.id.loading_overlay);
+		LinearProgressIndicator progressBar = findViewById(R.id.asset_progress);
+		TextView progressText = findViewById(R.id.progress_text);
+
+		// Start asset loading with progress callback
+		UpdateAssets updateAssets = new UpdateAssets(
+			this,
+			onAssetsReady,
+			(current, total) -> {
+				if (progressBar != null && progressText != null) {
+					int percentage = (total > 0) ? (int)((current * 100L) / total) : 0;
+					progressBar.setMax(total);
+					progressBar.setProgress(current);
+					progressText.setText(percentage + "%");
+
+					if (loadingOverlay != null && loadingOverlay.getVisibility() != View.VISIBLE) {
+						loadingOverlay.setVisibility(View.VISIBLE);
+					}
+				}
+			}
+		);
+		updateAssets.execute((Void[])null);
 	}
 
 	@RequiresApi(Build.VERSION_CODES.M)
@@ -240,6 +263,12 @@ public class ForkFront extends AppCompatActivity
 		@Override
 		public void onAssetsReady(File path)
 		{
+			// Hide loading overlay
+			View loadingOverlay = findViewById(R.id.loading_overlay);
+			if (loadingOverlay != null) {
+				loadingOverlay.setVisibility(View.GONE);
+			}
+
 			// Create save directory if it doesn't exist
 			File nhSaveDir = new File(path, "save");
 			if(!nhSaveDir.exists())
