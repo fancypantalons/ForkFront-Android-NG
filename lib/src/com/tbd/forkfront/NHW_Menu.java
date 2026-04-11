@@ -98,7 +98,7 @@ public class NHW_Menu implements NH_Window
 			mContext.getSupportFragmentManager()
 				.beginTransaction()
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
-				.commitNow();
+				.commit();
 		}
 	}
 
@@ -145,7 +145,7 @@ public class NHW_Menu implements NH_Window
 			mContext.getSupportFragmentManager()
 				.beginTransaction()
 				.remove(mFragment)
-				.commitNow();
+				.commit();
 		}
 		mFragment = null;
 	}
