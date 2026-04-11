@@ -1,6 +1,6 @@
 package com.tbd.forkfront;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -40,7 +40,7 @@ public class TilesetPreference extends Preference implements PreferenceManager.O
 	private EditText mTileH;
 	private ViewGroup mTilesetUI;
 	private LinearLayout mRoot;
-	private AppCompatActivity mActivity;
+	private Activity mActivity;
 	private String mCustomTilesetPath;
 	private Bitmap mCustomTileset;
 	private ImageButton mBrowse;
@@ -172,7 +172,7 @@ public class TilesetPreference extends Preference implements PreferenceManager.O
 	@Override
 	public boolean onActivityResult(int requestCode, int resultCode, Intent data)
 	{
-		if(resultCode == AppCompatActivity.RESULT_OK && requestCode == GET_IMAGE_REQUEST)
+		if(resultCode == Activity.RESULT_OK && requestCode == GET_IMAGE_REQUEST)
 		{
 			if(createCustomTilesetLocalCopy(data.getData()))
 			{
@@ -422,7 +422,7 @@ public class TilesetPreference extends Preference implements PreferenceManager.O
 		return null;
 	}
 
-	public void setActivity(AppCompatActivity activity)
+	public void setActivity(Activity activity)
 	{
 		mActivity = activity;
 	}

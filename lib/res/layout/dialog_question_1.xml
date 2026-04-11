@@ -18,7 +18,7 @@
 			style="@style/DialogText"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:padding="12dp"/>
+			android:padding="@dimen/padding_medium"/>
 
 		<LinearLayout
 			style="@android:style/ButtonBar"

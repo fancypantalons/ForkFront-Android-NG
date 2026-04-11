@@ -16,7 +16,7 @@
 		<TextView
 			android:id="@+id/title"
 			style="@style/DialogText"
-			android:padding="12dp"
+			android:padding="@dimen/padding_medium"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"/>
 
@@ -27,7 +27,7 @@
 
 		<SeekBar
 			android:id="@+id/amount_slider"
-			android:layout_margin="3dp"
+			android:layout_margin="@dimen/padding_small"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"/>
 
@@ -46,25 +46,25 @@
 				    style="@style/ButtonText"
 					android:id="@+id/btn_0"
 					android:layout_weight="4"
-					android:layout_width="0dp"
+					android:layout_width="@dimen/padding_small"
 					android:layout_height="wrap_content"/>
 				<Button
 				    style="@style/ButtonText"
 					android:id="@+id/btn_1"
 					android:layout_weight="4"
-					android:layout_width="0dp"
+					android:layout_width="@dimen/padding_small"
 					android:layout_height="wrap_content"/>
 				<Button
 				    style="@style/ButtonText"
 					android:id="@+id/btn_2"
 					android:layout_weight="4"
-					android:layout_width="0dp"
+					android:layout_width="@dimen/padding_small"
 					android:layout_height="wrap_content"/>
 				<Button
 				    style="@style/ButtonText"
 					android:id="@+id/btn_3"
 					android:layout_weight="4"
-					android:layout_width="0dp"
+					android:layout_width="@dimen/padding_small"
 					android:layout_height="wrap_content"/>
 			</LinearLayout>
 		</LinearLayout>

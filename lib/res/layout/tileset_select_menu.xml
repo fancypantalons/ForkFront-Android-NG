@@ -15,8 +15,8 @@
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:id="@+id/customTilesUI"
-		android:layout_marginTop="10dp"
-		android:layout_marginLeft="25dp">
+		android:layout_marginTop="@dimen/padding_medium"
+		android:layout_marginLeft="@dimen/padding_large">
 
 		<LinearLayout
 			android:orientation="vertical"
@@ -33,8 +33,8 @@
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content">
 				<ImageButton
-					android:layout_width="50dp"
-					android:layout_height="50dp"
+					android:layout_width="@dimen/touch_target_min"
+					android:layout_height="@dimen/touch_target_min"
 					android:id="@+id/browse"
 					android:layout_weight="0"
 					android:scaleType="fitCenter"
@@ -56,20 +56,20 @@
 			<TextView
 				android:layout_width="match_parent"
 				android:layout_height="match_parent"
-				android:layout_marginTop="15dp"
+				android:layout_marginTop="@dimen/padding_large"
 				android:textAppearance="?android:attr/textAppearanceMedium"
 				android:text="Individual tile dimensions"/>
 
 			<LinearLayout
 				android:orientation="horizontal"
 				android:layout_width="match_parent"
-				android:layout_marginTop="5dp"
+				android:layout_marginTop="@dimen/padding_small"
 				android:layout_height="wrap_content">
 				<TextView
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_weight="0"
-					android:layout_marginLeft="15dp"
+					android:layout_marginLeft="@dimen/padding_large"
 					android:text="Width:"/>
 				<EditText
 					android:layout_width="wrap_content"
@@ -83,7 +83,7 @@
 					android:layout_width="wrap_content"
 					android:layout_height="wrap_content"
 					android:layout_weight="0"
-					android:layout_marginLeft="15dp"
+					android:layout_marginLeft="@dimen/padding_large"
 					android:text="Height:"/>
 				<EditText
 					android:layout_width="wrap_content"

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/base_frame"
-    android:background="#ff000000"
+    android:background="@color/hearse_background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:baselineAligned="false"
@@ -10,7 +10,7 @@
     <FrameLayout
         android:id="@+id/dlg_frame"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="@dimen/padding_small"
         android:layout_weight="1" >
 
         <FrameLayout
@@ -65,7 +65,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom|center"
-					android:paddingBottom="10dp"
+					android:paddingBottom="@dimen/padding_medium"
                     android:clickable="false"
                     android:focusable="false"
                     android:focusableInTouchMode="false"

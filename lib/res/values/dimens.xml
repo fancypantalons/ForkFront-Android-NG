@@ -6,5 +6,6 @@
     <dimen name="text_size_small">12sp</dimen>
     <dimen name="text_size_medium">16sp</dimen>
     <dimen name="text_size_large">18sp</dimen>
+    <dimen name="text_size_xlarge">32sp</dimen>
     <dimen name="touch_target_min">48dp</dimen>
 </resources>

@@ -53,7 +53,7 @@ public class SliderPreference extends DialogPreference implements SeekBar.OnSeek
 
 		mValueText = new TextView(mContext);
 		mValueText.setGravity(Gravity.CENTER_HORIZONTAL);
-		mValueText.setTextSize(32);
+		mValueText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, mContext.getResources().getDimensionPixelSize(R.dimen.text_size_xlarge));
 		params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 		layout.addView(mValueText, params);
 
@@ -109,3 +109,4 @@ public class SliderPreference extends DialogPreference implements SeekBar.OnSeek
 	{
 	}
 }
+
