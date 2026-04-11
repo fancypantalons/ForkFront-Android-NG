@@ -2,8 +2,12 @@ package com.tbd.forkfront;
 
 import java.util.Set;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.view.*;
 import android.widget.ScrollView;
@@ -14,8 +18,9 @@ public class NHW_Text implements NH_Window
 	private NetHackIO mIO;
 	private boolean mIsBlocking;
 	private boolean mIsVisible;
-	private SpannableStringBuilder mBuilder;
-	private UI mUI;
+	SpannableStringBuilder mBuilder;
+	private AppCompatActivity mContext;
+	private NHW_TextFragment mFragment;
 	private int mWid;
 
 	// ____________________________________________________________________________________
@@ -24,7 +29,7 @@ public class NHW_Text implements NH_Window
 		mWid = wid;
 		mIO = io;
 		mBuilder = new SpannableStringBuilder();
-		setContext(context);
+		mContext = context;
 	}
 
 	// ____________________________________________________________________________________
@@ -38,11 +43,7 @@ public class NHW_Text implements NH_Window
 	@Override
 	public void setContext(AppCompatActivity context)
 	{
-		mUI = new UI(context);
-		if(mIsVisible)
-			mUI.showInternal();
-		else
-			mUI.hideInternal();
+		mContext = context;
 	}
 
 	// ____________________________________________________________________________________
@@ -50,17 +51,9 @@ public class NHW_Text implements NH_Window
 	public void clear()
 	{
 		mBuilder = new SpannableStringBuilder();
-		mUI.update();
+		if(mFragment != null && mFragment.isAdded())
+			mFragment.updateText();
 	}
-
-	// ____________________________________________________________________________________
-	/*public void printString(Spanned str)
-	{
-		if(mBuilder.length() > 0)
-			mBuilder.append('\n');
-		mBuilder.append(str);
-		mUI.update();
-	}*/
 
 	// ____________________________________________________________________________________
 	@Override
@@ -69,7 +62,8 @@ public class NHW_Text implements NH_Window
 		if(mBuilder.length() > 0)
 			mBuilder.append('\n');
 		mBuilder.append(TextAttr.style(str, attr));
-		mUI.update();
+		if(mFragment != null && mFragment.isAdded())
+			mFragment.updateText();
 	}
 
 	// ____________________________________________________________________________________
@@ -88,14 +82,22 @@ public class NHW_Text implements NH_Window
 	{
 		mIsBlocking = bBlocking;
 		mIsVisible = true;
-		mUI.showInternal();
+		if(mFragment == null)
+			mFragment = new NHW_TextFragment(this);
+		if(!mFragment.isAdded())
+		{
+			mContext.getSupportFragmentManager()
+				.beginTransaction()
+				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
+				.commitNow();
+		}
 	}
 
 	// ____________________________________________________________________________________
 	private void hide()
 	{
 		mIsVisible = false;
-		mUI.hideInternal();
+		removeFragment();
 	}
 
 	// ____________________________________________________________________________________
@@ -113,26 +115,41 @@ public class NHW_Text implements NH_Window
 	}
 
 	// ____________________________________________________________________________________
-	private void close()
+	void close()
 	{
 		if(mIsBlocking)
 			mIO.sendKeyCmd(' ');
 		mIsBlocking = false;
-		hide();
+		mIsVisible = false;
+		removeFragment();
+	}
+
+	// ____________________________________________________________________________________
+	private void removeFragment()
+	{
+		if(mFragment != null && mFragment.isAdded())
+		{
+			mContext.getSupportFragmentManager()
+				.beginTransaction()
+				.remove(mFragment)
+				.commitNow();
+		}
+		mFragment = null;
 	}
 
 	// ____________________________________________________________________________________
 	public void scrollToEnd()
 	{
-		mUI.scrollToEnd();
+		if(mFragment != null && mFragment.isAdded())
+			mFragment.scrollToEnd();
 	}
 
 	// ____________________________________________________________________________________
 	@Override
 	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
 	{
-		if(isVisible())
-			return mUI.handleKeyDown(ch, nhKey, keyCode, modifiers, bSoftInput);
+		if(isVisible() && mFragment != null && mFragment.isAdded())
+			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers, bSoftInput);
 		return KeyEventResult.IGNORED;
 	}
 
@@ -145,57 +162,157 @@ public class NHW_Text implements NH_Window
 	// ____________________________________________________________________________________ //
 	// 																						//
 	// ____________________________________________________________________________________ //
-	private class UI
+	public static class NHW_TextFragment extends Fragment
 	{
-		private final AppCompatActivity mContext;
-		private TextView mTextView;
-		private ScrollView mScroll;
-		private boolean mIsScrolling;
+		private final NHW_Text mParent;
 
-		public UI(AppCompatActivity context)
+		NHW_TextFragment(NHW_Text parent)
 		{
-			mContext = context;
-			mScroll = (ScrollView)Util.inflate(context, R.layout.textwindow, R.id.dlg_frame);
-			mTextView = (TextView)mScroll.findViewById(R.id.text_view);
-
-			mTextView.setOnTouchListener(mTouchListener);
-			mScroll.setOnTouchListener(mTouchListener);
-			hideInternal();
+			mParent = parent;
 		}
+
+		@Override
+		public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
+		{
+			ScrollView scroll = (ScrollView) inflater.inflate(R.layout.textwindow, container, false);
+			TextView textView = scroll.findViewById(R.id.text_view);
+
+			if(mParent.mBuilder.length() > 0)
+				textView.setText(mParent.mBuilder);
+
+			scroll.setOnTouchListener(mTouchListener);
+			textView.setOnTouchListener(mTouchListener);
+
+			return scroll;
+		}
+
 		// ____________________________________________________________________________________
-		private int getActionIndex(MotionEvent event)
+		void updateText()
 		{
-			return (event.getAction() & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
+			View view = getView();
+			if(view instanceof ScrollView)
+			{
+				ScrollView scroll = (ScrollView) view;
+				TextView tv = scroll.findViewById(R.id.text_view);
+				if(mParent.mBuilder.length() > 0)
+					tv.setText(mParent.mBuilder);
+				else
+					tv.setText(null);
+			}
 		}
 
 		// ____________________________________________________________________________________
-		private int getAction(MotionEvent event)
+		void scrollToEnd()
 		{
-			return event.getAction() & MotionEvent.ACTION_MASK;
+			View view = getView();
+			if(view instanceof ScrollView)
+			{
+				final ScrollView scroll = (ScrollView) view;
+				scroll.post(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						scroll.fullScroll(ScrollView.FOCUS_DOWN);
+					}
+				});
+			}
 		}
 
-		View.OnTouchListener mTouchListener = new View.OnTouchListener() {
+		// ____________________________________________________________________________________
+		KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, boolean bSoftInput)
+		{
+			if(ch == '<')
+				keyCode = KeyEvent.KEYCODE_PAGE_UP;
+			else if(ch == '>')
+				keyCode = KeyEvent.KEYCODE_PAGE_DOWN;
+
+			View view = getView();
+			ScrollView scroll = (view instanceof ScrollView) ? (ScrollView) view : null;
+			TextView textView = (scroll != null) ? scroll.findViewById(R.id.text_view) : null;
+
+			switch(keyCode)
+			{
+			case KeyEvent.KEYCODE_ENTER:
+			case KeyEvent.KEYCODE_BACK:
+			case KeyEvent.KEYCODE_ESCAPE:
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+				mParent.close();
+			break;
+
+			case KeyEvent.KEYCODE_DPAD_UP:
+			case KeyEvent.KEYCODE_VOLUME_UP:
+				if(scroll != null && textView != null)
+					scroll.scrollBy(0, -textView.getLineHeight());
+			break;
+
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+			case KeyEvent.KEYCODE_VOLUME_DOWN:
+				if(scroll != null && textView != null)
+					scroll.scrollBy(0, textView.getLineHeight());
+			break;
+
+			case KeyEvent.KEYCODE_DPAD_LEFT:
+			case KeyEvent.KEYCODE_PAGE_UP:
+				if(scroll != null)
+					scroll.pageScroll(View.FOCUS_UP);
+			break;
+
+			case KeyEvent.KEYCODE_SPACE:
+			case KeyEvent.KEYCODE_DPAD_RIGHT:
+			case KeyEvent.KEYCODE_PAGE_DOWN:
+				if(scroll != null)
+				{
+					if(isScrolledToBottom(scroll))
+						mParent.close();
+					else
+						scroll.pageScroll(View.FOCUS_DOWN);
+				}
+			break;
+			}
+			return KeyEventResult.HANDLED;
+		}
+
+		// ____________________________________________________________________________________
+		private boolean isScrolledToBottom(ScrollView scroll)
+		{
+			int count = scroll.getChildCount();
+			if(count > 0) {
+				View view = scroll.getChildAt(count - 1);
+				if(scroll.getScrollY() + scroll.getHeight() >= view.getBottom())
+					return true;
+			}
+			return false;
+		}
+
+		// ____________________________________________________________________________________
+		private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
 			Integer mPointerId;
 			float mPointerX, mPointerY;
+			boolean mIsScrolling;
+
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
-				switch(getAction(event)) {
+				int actionIndex = (event.getAction() & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
+				int action = event.getAction() & MotionEvent.ACTION_MASK;
+
+				switch(action) {
 					case MotionEvent.ACTION_DOWN:
-						mPointerId = event.getPointerId(getActionIndex(event));
+						mPointerId = event.getPointerId(actionIndex);
 						mPointerX = event.getRawX();
 						mPointerY = event.getRawY();
 					break;
 
 					case MotionEvent.ACTION_MOVE:
-						int pointerId = event.getPointerId(getActionIndex(event));
-						if(mPointerId == pointerId) {
+						int pointerId = event.getPointerId(actionIndex);
+						if(mPointerId != null && mPointerId == pointerId) {
 							float posX = event.getRawX();
 							float posY = event.getRawY();
 
 							float dx = posX - mPointerX;
 							float dy = posY - mPointerY;
 
-							float th = ViewConfiguration.get(mContext).getScaledTouchSlop();
+							float th = ViewConfiguration.get(requireContext()).getScaledTouchSlop();
 
 							if(Math.abs(dx) > th || Math.abs(dy) > th) {
 								mIsScrolling = true;
@@ -206,7 +323,7 @@ public class NHW_Text implements NH_Window
 					case MotionEvent.ACTION_UP:
 						mPointerId = null;
 						if(!mIsScrolling) {
-							close();
+							mParent.close();
 						}
 						mIsScrolling = false;
 					break;
@@ -214,101 +331,5 @@ public class NHW_Text implements NH_Window
 				return false;
 			}
 		};
-
-		// ____________________________________________________________________________________
-		public void update()
-		{
-			if(isVisible())
-			{
-				if(mBuilder.length() > 0)
-					mTextView.setText(mBuilder);
-				else
-					mTextView.setText(null);
-			}
-		}
-
-		// ____________________________________________________________________________________
-		public void showInternal()
-		{
-			update();
-			mScroll.setVisibility(View.VISIBLE);
-		}
-
-		// ____________________________________________________________________________________
-		public void hideInternal()
-		{
-			mScroll.setVisibility(View.GONE);
-		}
-
-		// ____________________________________________________________________________________
-		public void scrollToEnd()
-		{
-			if(isVisible())
-			{
-				mScroll.post(new Runnable() // gives the view a chance to update itself
-				{
-					@Override
-					public void run()
-					{
-						mScroll.fullScroll(ScrollView.FOCUS_DOWN);
-					}
-				});
-			}
-		}
-
-		// ____________________________________________________________________________________
-		public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, boolean bSoftInput)
-		{
-			if(ch == '<')
-				keyCode = KeyEvent.KEYCODE_PAGE_UP;
-			else if(ch == '>')
-				keyCode = KeyEvent.KEYCODE_PAGE_DOWN;
-
-			switch(keyCode)
-			{
-			case KeyEvent.KEYCODE_ENTER:
-			case KeyEvent.KEYCODE_BACK:
-			case KeyEvent.KEYCODE_ESCAPE:
-			case KeyEvent.KEYCODE_DPAD_CENTER:
-				close();
-			break;
-
-			case KeyEvent.KEYCODE_DPAD_UP:
-			case KeyEvent.KEYCODE_VOLUME_UP:
-				mScroll.scrollBy(0, -mTextView.getLineHeight());
-			break;
-
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-			case KeyEvent.KEYCODE_VOLUME_DOWN:
-				mScroll.scrollBy(0, mTextView.getLineHeight());
-			break;
-
-			case KeyEvent.KEYCODE_DPAD_LEFT:
-			case KeyEvent.KEYCODE_PAGE_UP:
-				mScroll.pageScroll(View.FOCUS_UP);
-			break;
-
-			case KeyEvent.KEYCODE_SPACE:
-			case KeyEvent.KEYCODE_DPAD_RIGHT:
-			case KeyEvent.KEYCODE_PAGE_DOWN:
-				if(isScrolledToBottom())
-					close();
-				else
-					mScroll.pageScroll(View.FOCUS_DOWN);
-			break;
-			}
-			return KeyEventResult.HANDLED;
-		}
-
-		public boolean isScrolledToBottom()
-		{
-			int count = mScroll.getChildCount();
-			if(count > 0) {
-				View view = mScroll.getChildAt(count - 1);
-				if(mScroll.getScrollY() + mScroll.getHeight() >= view.getBottom())
-					return true;
-			}
-			return false;
-		}
 	}
 }
