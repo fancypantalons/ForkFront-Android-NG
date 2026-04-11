@@ -598,10 +598,9 @@ public class NHW_Map implements NH_Window
 	{
 		if(mCursorPos.x != x || mCursorPos.y != y)
 		{
-			// InvalidateTile(m_cursorPos.x, m_cursorPos.y);
 			mCursorPos.x = clamp(x, 0, TileCols - 1);
 			mCursorPos.y = clamp(y, 0, TileRows - 1);
-			mUI.invalidateTile(mCursorPos.x, mCursorPos.y);
+			mUI.requestRedraw();
 		}
 	}
 
@@ -647,7 +646,7 @@ public class NHW_Map implements NH_Window
 		if(color != mHealthColor)
 		{
 			mHealthColor = color;
-			mUI.invalidateTile(mCursorPos.x, mCursorPos.y);
+			mUI.requestRedraw();
 		}
 	}
 
@@ -868,7 +867,6 @@ public class NHW_Map implements NH_Window
 								// Clear the canvas before drawing
 								canvas.drawColor(0xFF000000); // Black background
 
-								// Synchronized block will be added in next task
 								synchronized (mTiles)
 								{
 									drawBorder(canvas);
@@ -906,13 +904,6 @@ public class NHW_Map implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
-		public void invalidateTile(int tileX, int tileY)
-		{
-			// With SurfaceView, we just flag that a redraw is needed
-			mNeedsRedraw = true;
-		}
-
-		// ____________________________________________________________________________________
 		public void requestRedraw()
 		{
 			mNeedsRedraw = true;
@@ -929,22 +920,6 @@ public class NHW_Map implements NH_Window
 		public void hideInternal()
 		{
 			setVisibility(View.INVISIBLE);
-		}
-
-		// ____________________________________________________________________________________
-		@Override
-		protected void onDraw(Canvas canvas)
-		{
-			super.onDraw(canvas);
-
-			drawBorder(canvas);
-
-			if(isTTY())
-				drawAscii(canvas);
-			else
-				drawTiles(canvas);
-
-			//drawGuides(canvas);
 		}
 
 		// ____________________________________________________________________________________
@@ -1086,8 +1061,6 @@ public class NHW_Map implements NH_Window
 				dst.right = x + tileW;
 				dst.offset(0, tileH);
 			}
-
-			//drawCursor(canvas, tileW, tileH);
 		}
 
 		// ____________________________________________________________________________________
@@ -1191,7 +1164,6 @@ public class NHW_Map implements NH_Window
 		{
 			mCanvasRect.set(viewRect);
 			centerView(mCursorPos.x, mCursorPos.y);
-			//Log.print(Integer.toString(cmdW) + " " + Integer.toString(cmdH));
 		}
 		
 		// ____________________________________________________________________________________
@@ -1569,7 +1541,6 @@ public class NHW_Map implements NH_Window
 		{
 			if(mIsBlocking || mNHState.isMouseLocked() || mIsdPadCenterDown || mIsTrackBallDown)
 			{
-				// Log.print("pan with cursor");
 				mIsPannedSinceDown = true;
 				mIsViewPanned = true;
 				setCursorPos(mCursorPos.x + dxFromKey(c), mCursorPos.y + dyFromKey(c));
