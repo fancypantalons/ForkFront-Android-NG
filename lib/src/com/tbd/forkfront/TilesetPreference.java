@@ -21,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.*;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.radiobutton.MaterialRadioButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.tbd.forkfront.Tileset;
@@ -42,7 +43,7 @@ public class TilesetPreference extends Preference {
     private LinearLayout mRoot;
     private String mCustomTilesetPath;
     private Bitmap mCustomTileset;
-    private ImageButton mBrowse;
+    private MaterialButton mBrowse;
     private boolean mTileWFocus;
     private boolean mTileHFocus;
     private ImagePickerLauncher mImagePickerLauncher;
@@ -80,7 +81,7 @@ public class TilesetPreference extends Preference {
             });
         }
 
-        mBrowse = (ImageButton) mRoot.findViewById(R.id.browse);
+        mBrowse = (MaterialButton) mRoot.findViewById(R.id.browse);
         if (mBrowse != null) {
             mBrowse.setOnClickListener(new View.OnClickListener() {
                 @Override
