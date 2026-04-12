@@ -109,6 +109,7 @@ public class NH_State
 			}
 			if (mStatus == null) {
 				mStatus = new NHW_Status(activity, mIO);
+				mStatus.show(false); // Status is always visible with field-based updates
 			}
 			if (mKeyboard == null) {
 				mKeyboard = new SoftKeyboard(activity, this);
@@ -948,6 +949,41 @@ public class NH_State
 		public void setNumPadOption(boolean numPadOn) {
 			mNumPad = numPadOn;
 			mDPad.updateNumPadState();
+		}
+
+		// ____________________________________________________________________________________
+		// Field-based status methods
+		// ____________________________________________________________________________________
+		@Override
+		public void statusInit()
+		{
+			if (mStatus != null) {
+				mStatus.statusInit();
+			}
+		}
+
+		@Override
+		public void statusEnableField(int fieldIdx, String name, String fmt, boolean enable)
+		{
+			if (mStatus != null) {
+				mStatus.statusEnableField(fieldIdx, name, fmt, enable);
+			}
+		}
+
+		@Override
+		public void statusUpdate(int fieldIdx, String value, long conditionMask, int chg, int percent, int color, long[] colormasks)
+		{
+			if (mStatus != null) {
+				mStatus.statusUpdate(fieldIdx, value, conditionMask, chg, percent, color, colormasks);
+			}
+		}
+
+		@Override
+		public void statusFinish()
+		{
+			if (mStatus != null) {
+				mStatus.statusFinish();
+			}
 		}
 
 		// ____________________________________________________________________________________
