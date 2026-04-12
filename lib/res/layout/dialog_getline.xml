@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
-	xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="@android:drawable/screen_background_dark_transparent"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -13,10 +13,10 @@
 
     <LinearLayout
         style="@style/NH_Dialog"
-		android:orientation="vertical"
-		android:layout_centerInParent="true"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content">
+                android:orientation="vertical"
+                android:layout_centerInParent="true"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
         <TextView
             android:id="@+id/title"
@@ -50,8 +50,7 @@
                 android:imeOptions="actionSend|flagNoExtractUi|flagNoAccessoryAction"
                 android:inputType="textNoSuggestions|textLongMessage"
                 android:maxLength="200"
-                android:maxLines="1"
-                android:singleLine="true" />
+                android:maxLines="1" />
 
             <Button
                 android:id="@+id/history"
@@ -62,21 +61,21 @@
                 android:background="@android:drawable/ic_menu_more"/>
 
         </LinearLayout>
-		
-		<ListView
-			android:id="@+id/history_list"
-			android:cacheColorHint="#00000000"
-			android:layout_weight="1"
-			android:layout_width="match_parent"
-			android:layout_height="@dimen/padding_small"/>
 
-		<CheckBox
-		    android:id="@+id/wizard"
-		    android:layout_width="match_parent"
-		    android:layout_height="wrap_content"
-		    android:text="Wizard mode" />
+                <ListView
+                        android:id="@+id/history_list"
+                        android:cacheColorHint="#00000000"
+                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/padding_small"/>
+
+                <CheckBox
+                    android:id="@+id/wizard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Wizard mode" />
         
-		<LinearLayout
+                <LinearLayout
             style="@android:style/ButtonBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" >

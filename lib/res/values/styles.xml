@@ -39,6 +39,14 @@
         <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.ForkFront.LargeComponent</item>
 
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="android:windowAnimationStyle">@style/ForkFront.WindowAnimationStyle</item>
+    </style>
+
+    <style name="ForkFront.WindowAnimationStyle" parent="android:Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/slide_out_left</item>
+        <item name="android:activityCloseEnterAnimation">@anim/fade_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_bottom</item>
     </style>
 
     <style name="NH_Dialog" parent="Theme.Material3.DayNight.Dialog">
