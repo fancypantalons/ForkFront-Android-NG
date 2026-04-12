@@ -1,99 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
-			android:layout_width="match_parent"
-			  android:layout_height="match_parent">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/padding_medium">
 
-	<RadioButton
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:text="Custom"
-		android:checked="true"
-		android:id="@+id/custom_tiles"/>
-	<LinearLayout
-		android:orientation="vertical"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:id="@+id/customTilesUI"
-		android:layout_marginTop="@dimen/padding_medium"
-		android:layout_marginLeft="@dimen/padding_large">
+    <com.google.android.material.radiobutton.MaterialRadioButton
+        android:id="@+id/custom_tiles"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Custom"
+        android:textAppearance="?attr/textAppearanceTitleMedium" />
 
-		<LinearLayout
-			android:orientation="vertical"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content">
-			<TextView
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:textAppearance="?android:attr/textAppearanceMedium"
-				android:text="Tileset image"/>
+    <LinearLayout
+        android:id="@+id/customTilesUI"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/padding_large"
+        android:layout_marginTop="@dimen/padding_small"
+        android:orientation="vertical">
 
-			<LinearLayout
-				android:orientation="horizontal"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content">
-				<ImageButton
-					android:layout_width="@dimen/touch_target_min"
-					android:layout_height="@dimen/touch_target_min"
-					android:id="@+id/browse"
-					android:layout_weight="0"
-					android:scaleType="fitCenter"
-					android:src="@android:drawable/ic_menu_gallery"/>
-				<TextView
-					android:layout_width="wrap_content"
-					android:layout_height="match_parent"
-					android:textAppearance="?android:attr/textAppearanceSmall"
-					android:layout_weight="1"
-					android:id="@+id/image_path"
-					android:enabled="false"/>
-			</LinearLayout>
-		</LinearLayout>
+        <com.google.android.material.divider.MaterialDivider
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/padding_medium" />
 
-		<LinearLayout
-			android:orientation="vertical"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content">
-			<TextView
-				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:layout_marginTop="@dimen/padding_large"
-				android:textAppearance="?android:attr/textAppearanceMedium"
-				android:text="Individual tile dimensions"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tileset image"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorSecondary" />
 
-			<LinearLayout
-				android:orientation="horizontal"
-				android:layout_width="match_parent"
-				android:layout_marginTop="@dimen/padding_small"
-				android:layout_height="wrap_content">
-				<TextView
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_weight="0"
-					android:layout_marginLeft="@dimen/padding_large"
-					android:text="Width:"/>
-				<EditText
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:inputType="number"
-					android:ems="3"
-					android:text="32"
-					android:id="@+id/tileW"
-					android:layout_weight="0"/>
-				<TextView
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:layout_weight="0"
-					android:layout_marginLeft="@dimen/padding_large"
-					android:text="Height:"/>
-				<EditText
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:inputType="number"
-					android:ems="3"
-					android:text="32"
-					android:id="@+id/tileH"
-					android:layout_weight="0"/>
-			</LinearLayout>
-		</LinearLayout>
-	</LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/browse"
+                style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Browse"
+                app:icon="@android:drawable/ic_menu_gallery" />
+
+            <TextView
+                android:id="@+id/image_path"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/padding_medium"
+                android:layout_weight="1"
+                android:ellipsize="middle"
+                android:enabled="false"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/padding_large"
+            android:text="Individual tile dimensions"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorSecondary" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/padding_small"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Width">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/tileW"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="32" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/padding_medium"
+                android:layout_weight="1"
+                android:hint="Height">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/tileH"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="32" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
+    </LinearLayout>
 </RadioGroup>
