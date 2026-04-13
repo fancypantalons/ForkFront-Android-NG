@@ -561,13 +561,6 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
-	public boolean isDPadVisible()
-	{
-		// Old overlay system removed - always return false
-		return false;
-	}
-
-	// ____________________________________________________________________________________
 	public void showControls()
 	{
 		mControlsVisible = true;
