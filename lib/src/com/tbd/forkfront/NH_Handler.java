@@ -12,7 +12,7 @@ public interface NH_Handler
 	void statusFinish();
 	void redrawStatus();
 	void rawPrint(int attr, String msg);
-	void printTile(int wid, int x, int y, int tile, int ch, int col, int special);
+	void printTile(int wid, int x, int y, int tile, int bkglyph, int ch, int col, int special);
 	void ynFunction(String question, byte[] choices, int def);
 	void getLine(String msg, int nMaxChars, boolean b);
 	void createWindow(int wid, int type);
@@ -23,7 +23,7 @@ public interface NH_Handler
 	void addMenu(int wid, int tile, long id, int acc, int groupAcc, int attr, String msg, int bSelected, int color);
 	void endMenu(int wid, String msg);
 	void selectMenu(int wid, int how);
-	void cliparound(int x, int y, int playerX, int playerY);
+	void cliparound(int x, int y, int playerX, int playerY, int hasObject);
 	void showDPad();
 	void hideDPad();
 	void showLog(int bBlocking);

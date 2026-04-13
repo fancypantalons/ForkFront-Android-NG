@@ -78,6 +78,7 @@ public class CmdRegistry {
         add("f", "Fire", "Fire from your quiver", Category.COMBAT, false);
         add("a", "Apply", "Apply a tool (wands, etc.)", Category.COMBAT, false);
         add("z", "Zap Wand", "Zap a wand", Category.COMBAT, false);
+        add(String.valueOf((char)4), "Kick", "Kick something", Category.COMBAT, true);
 
         // --- INVENTORY ---
         add("i", "Inventory", "Show your full inventory", Category.INVENTORY, false);

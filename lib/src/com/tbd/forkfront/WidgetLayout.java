@@ -116,6 +116,7 @@ public class WidgetLayout extends FrameLayout {
             editor.putString("widget_" + i + "_type", data.type);
             editor.putString("widget_" + i + "_label", data.label);
             editor.putString("widget_" + i + "_command", data.command);
+            editor.putBoolean("widget_" + i + "_horizontal", data.horizontal);
             editor.putFloat("widget_" + i + "_x", data.x);
             editor.putFloat("widget_" + i + "_y", data.y);
             editor.putInt("widget_" + i + "_w", data.w);
@@ -139,6 +140,7 @@ public class WidgetLayout extends FrameLayout {
             data.type = prefs.getString("widget_" + i + "_type", "");
             data.label = prefs.getString("widget_" + i + "_label", "");
             data.command = prefs.getString("widget_" + i + "_command", "");
+            data.horizontal = prefs.getBoolean("widget_" + i + "_horizontal", true);
             data.x = prefs.getFloat("widget_" + i + "_x", 0);
             data.y = prefs.getFloat("widget_" + i + "_y", 0);
             data.w = prefs.getInt("widget_" + i + "_w", 200);
@@ -187,6 +189,25 @@ public class WidgetLayout extends FrameLayout {
             });
             ControlWidget w = new ControlWidget(getContext(), btn, "palette");
             w.getWidgetData().label = data.label;
+            return w;
+        } else if ("contextual".equals(data.type)) {
+            ContextualActionBarView contextualView = new ContextualActionBarView(getContext());
+            contextualView.setOrientation(data.horizontal);
+            if (mNHState != null) {
+                contextualView.setOnActionSelectedListener(cmd -> {
+                    if (!mNHState.isEditMode()) {
+                        if (cmd.getCommand().startsWith("#")) {
+                            mNHState.sendStringCmd(cmd.getCommand() + "\n");
+                        } else {
+                            mNHState.sendKeyCmd(cmd.getCommand().charAt(0));
+                        }
+                    }
+                });
+                // Initial update (will be GONE if no actions)
+                contextualView.updateActions(null);
+            }
+            ControlWidget w = new ControlWidget(getContext(), contextualView, "contextual");
+            w.getWidgetData().horizontal = data.horizontal;
             return w;
         }
         return null;

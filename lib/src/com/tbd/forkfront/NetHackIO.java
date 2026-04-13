@@ -609,14 +609,14 @@ public class NetHackIO
 
 	// ____________________________________________________________________________________
 	@SuppressWarnings("unused")
-	private void printTile(final int wid, final int x, final int y, final int tile, final int ch, final int col, final int special)
+	private void printTile(final int wid, final int x, final int y, final int tile, final int bkglyph, final int ch, final int col, final int special)
 	{
 		mHandler.post(new Runnable()
 		{
 			@Override
 			public void run()
 			{
-				mNhHandler.printTile(wid, x, y, tile, ch, col, special);
+				mNhHandler.printTile(wid, x, y, tile, bkglyph, ch, col, special);
 			}
 		});
 	}
@@ -837,14 +837,14 @@ public class NetHackIO
 
 	// ____________________________________________________________________________________
 	@SuppressWarnings("unused")
-	private void cliparound(final int x, final int y, final int playerX, final int playerY)
+	private void cliparound(final int x, final int y, final int playerX, final int playerY, final int hasObject)
 	{
 		mHandler.post(new Runnable()
 		{
 			@Override
 			public void run()
 			{
-				mNhHandler.cliparound(x, y, playerX, playerY);
+				mNhHandler.cliparound(x, y, playerX, playerY, hasObject);
 			}
 		});
 	}
