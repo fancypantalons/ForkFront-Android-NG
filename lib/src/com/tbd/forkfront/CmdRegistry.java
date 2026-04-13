@@ -149,4 +149,19 @@ public class CmdRegistry {
         }
         return result;
     }
+
+    /**
+     * Returns commands sorted by category, then alphabetically within each category.
+     */
+    public static List<CmdInfo> getAllSorted() {
+        List<CmdInfo> sorted = new ArrayList<>(ALL_COMMANDS);
+        Collections.sort(sorted, (a, b) -> {
+            // First sort by category
+            int catCompare = a.getCategory().compareTo(b.getCategory());
+            if (catCompare != 0) return catCompare;
+            // Then alphabetically by display name within category
+            return a.getDisplayName().compareToIgnoreCase(b.getDisplayName());
+        });
+        return sorted;
+    }
 }
