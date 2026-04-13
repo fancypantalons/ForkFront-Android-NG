@@ -691,7 +691,7 @@ public class NH_State
 	}
 
 	public void showAddWidgetDialog(AppCompatActivity activity) {
-		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Status Window", "Message Window"};
+		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Status Window", "Message Window", "Minimap"};
 		new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
 			.setTitle("Add Widget")
 			.setItems(options, (dialog, which) -> {
@@ -703,8 +703,10 @@ public class NH_State
 					addPaletteWidget(activity);
 				} else if (which == 3) {
 					addStatusWidget(activity);
-				} else {
+				} else if (which == 4) {
 					addMessageWidget(activity);
+				} else {
+					addMinimapWidget(activity);
 				}
 			})
 			.show();
@@ -782,6 +784,22 @@ public class NH_State
 		MessageWidget messageWidget = new MessageWidget(activity, mMessage);
 		messageWidget.setWidgetData(messageData);
 		mWidgetLayout.addWidget(messageWidget);
+		mWidgetLayout.saveLayout();
+	}
+
+	private void addMinimapWidget(AppCompatActivity activity) {
+		float density = activity.getResources().getDisplayMetrics().density;
+
+		ControlWidget.WidgetData minimapData = new ControlWidget.WidgetData();
+		minimapData.type = "minimap";
+		minimapData.x = 100;
+		minimapData.y = 100;
+		minimapData.w = (int)(240 * density); // 3:1 aspect ratio for 80x21 tiles
+		minimapData.h = (int)(80 * density);
+
+		MinimapWidget minimapWidget = new MinimapWidget(activity, mMap, mTileset);
+		minimapWidget.setWidgetData(minimapData);
+		mWidgetLayout.addWidget(minimapWidget);
 		mWidgetLayout.saveLayout();
 	}
 
@@ -1086,6 +1104,18 @@ public class NH_State
 	public NHW_Message getMessageWindow()
 	{
 		return mMessage;
+	}
+
+	// ____________________________________________________________________________________
+	public NHW_Map getMapWindow()
+	{
+		return mMap;
+	}
+
+	// ____________________________________________________________________________________
+	public Tileset getTileset()
+	{
+		return mTileset;
 	}
 
 	// ____________________________________________________________________________________

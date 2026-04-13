@@ -1,5 +1,6 @@
 package com.tbd.forkfront;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +29,14 @@ import android.widget.TextView;
 
 public class NHW_Map implements NH_Window
 {
+	// ____________________________________________________________________________________
+	// Listener interface for map updates
+	// ____________________________________________________________________________________
+	public interface MapUpdateListener
+	{
+		void onMapUpdated();
+		void onViewportChanged(PointF viewOffset, float scale, RectF canvasRect);
+	}
 	public static final int TileCols = 80;
 	public static final int TileRows = 21;
 	private static final double ZOOM_BASE = 1.005;
@@ -132,6 +141,9 @@ public class NHW_Map implements NH_Window
 	private int mSystemInsetsBottom;
 	private int mSystemInsetsLeft;
 	private int mSystemInsetsRight;
+
+	// Map update listeners
+	private final List<MapUpdateListener> mMapListeners = new ArrayList<>();
 
 	// ____________________________________________________________________________________
 	public NHW_Map(AppCompatActivity context, Tileset tileset, NHW_Status status, NH_State nhState, ByteDecoder decoder)
@@ -337,6 +349,78 @@ public class NHW_Map implements NH_Window
 		}
 	}
 
+	public short getTileOverlay(int x, int y)
+	{
+		if(x < 0 || x >= TileCols || y < 0 || y >= TileRows)
+			return 0;
+		synchronized (mTiles)
+		{
+			return mTiles[y][x].overlay;
+		}
+	}
+
+	// ____________________________________________________________________________________
+	// Listener management
+	// ____________________________________________________________________________________
+
+	public void addMapListener(MapUpdateListener listener)
+	{
+		if(listener != null && !mMapListeners.contains(listener))
+		{
+			mMapListeners.add(listener);
+		}
+	}
+
+	public void removeMapListener(MapUpdateListener listener)
+	{
+		mMapListeners.remove(listener);
+	}
+
+	private void notifyMapUpdated()
+	{
+		for(MapUpdateListener listener : mMapListeners)
+		{
+			listener.onMapUpdated();
+		}
+	}
+
+	private void notifyViewportChanged()
+	{
+		for(MapUpdateListener listener : mMapListeners)
+		{
+			listener.onViewportChanged(
+				new PointF(mViewOffset.x, mViewOffset.y),
+				mScale,
+				new RectF(mCanvasRect)
+			);
+		}
+	}
+
+	public PointF getViewOffset()
+	{
+		return new PointF(mViewOffset.x, mViewOffset.y);
+	}
+
+	public float getScale()
+	{
+		return mScale;
+	}
+
+	public RectF getCanvasRect()
+	{
+		return new RectF(mCanvasRect);
+	}
+
+	public float getScaledTileWidth()
+	{
+		return mUI != null ? mUI.getScaledTileWidth() : 0;
+	}
+
+	public float getScaledTileHeight()
+	{
+		return mUI != null ? mUI.getScaledTileHeight() : 0;
+	}
+
 	// ____________________________________________________________________________________
 	public void cliparound(final int tileX, final int tileY, final int playerX, final int playerY)
 	{
@@ -371,6 +455,7 @@ public class NHW_Map implements NH_Window
 		{
 			mViewOffset.set(ofsX, ofsY);
 			mUI.requestRedraw();
+			notifyViewportChanged();
 		}
 	}
 
@@ -468,6 +553,7 @@ public class NHW_Map implements NH_Window
 			centerView(0, 0);
 		}
 		mUI.requestRedraw();
+		notifyViewportChanged();
 	}
 
 	// ____________________________________________________________________________________
@@ -530,6 +616,7 @@ public class NHW_Map implements NH_Window
 		{
 			mViewOffset.offset(dx, dy);
 			mUI.requestRedraw();
+			notifyViewportChanged();
 		}
 	}
 
@@ -652,6 +739,7 @@ public class NHW_Map implements NH_Window
 			mTiles[y][x].overlay = (short)special;
 		}
 		mUI.requestRedraw();
+		notifyMapUpdated();
 	}
 
 	// ____________________________________________________________________________________
