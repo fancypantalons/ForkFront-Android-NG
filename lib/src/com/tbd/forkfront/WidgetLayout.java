@@ -217,14 +217,19 @@ public class WidgetLayout extends FrameLayout {
             }
             ControlWidget w = new ControlWidget(getContext(), contextualView, "contextual");
             w.getWidgetData().horizontal = data.horizontal;
+            w.setPlaceholderText("Contextual Bar");
             return w;
         } else if ("status".equals(data.type)) {
             if (mNHState != null && mNHState.getStatusWindow() != null) {
-                return new StatusWidget(getContext(), mNHState.getStatusWindow());
+                ControlWidget w = new StatusWidget(getContext(), mNHState.getStatusWindow());
+                w.setPlaceholderText("Status Window");
+                return w;
             }
         } else if ("message".equals(data.type)) {
             if (mNHState != null && mNHState.getMessageWindow() != null) {
-                return new MessageWidget(getContext(), mNHState.getMessageWindow());
+                ControlWidget w = new MessageWidget(getContext(), mNHState.getMessageWindow());
+                w.setPlaceholderText("Message Window");
+                return w;
             }
         }
         return null;
