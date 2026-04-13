@@ -209,6 +209,10 @@ public class WidgetLayout extends FrameLayout {
             ControlWidget w = new ControlWidget(getContext(), contextualView, "contextual");
             w.getWidgetData().horizontal = data.horizontal;
             return w;
+        } else if ("status".equals(data.type)) {
+            if (mNHState != null && mNHState.getStatusWindow() != null) {
+                return new StatusWidget(getContext(), mNHState.getStatusWindow());
+            }
         }
         return null;
     }

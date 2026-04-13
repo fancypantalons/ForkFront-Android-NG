@@ -1,6 +1,8 @@
 package com.tbd.forkfront;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,10 +13,19 @@ import android.view.View;
 
 public class NHW_Status implements NH_Window
 {
+	// Listener interface for status updates
+	public interface StatusUpdateListener {
+		void onFieldUpdated(int fieldIdx, StatusField field);
+		void onConditionsUpdated(long mask, long[] colorMasks);
+		void onFlush();
+		void onReset();
+	}
+
 	// Field-based status storage
 	private Map<Integer, StatusField> mFields;
 	private long mConditionMask;
 	private long[] mConditionColorMasks;
+	private List<StatusUpdateListener> mListeners;
 
 	private NetHackIO mIO;
 	private UI mUI;
@@ -22,18 +33,26 @@ public class NHW_Status implements NH_Window
 	private int mWid;
 	private int mOpacity;
 
-	// Status field container
-	private static class StatusField {
-		boolean enabled;
-		String name;
-		String value;
-		int color;
+	// Status field container - made public for listener access
+	public static class StatusField {
+		public boolean enabled;
+		public String name;
+		public String value;
+		public int color;
 
 		StatusField(String name) {
 			this.name = name;
 			this.enabled = false;
 			this.value = "";
 			this.color = 0;
+		}
+
+		// Copy constructor for immutable snapshots
+		StatusField(StatusField other) {
+			this.enabled = other.enabled;
+			this.name = other.name;
+			this.value = other.value;
+			this.color = other.color;
 		}
 	}
 
@@ -94,7 +113,45 @@ public class NHW_Status implements NH_Window
 		mFields = new HashMap<>();
 		mConditionMask = 0;
 		mConditionColorMasks = new long[20]; // BL_ATTCLR_MAX
+		mListeners = new ArrayList<>();
 		setContext(context);
+	}
+
+	// ____________________________________________________________________________________
+	public void addListener(StatusUpdateListener listener)
+	{
+		if (!mListeners.contains(listener)) {
+			mListeners.add(listener);
+			// Send current state snapshot to new listener
+			for (Map.Entry<Integer, StatusField> entry : mFields.entrySet()) {
+				listener.onFieldUpdated(entry.getKey(), new StatusField(entry.getValue()));
+			}
+			listener.onConditionsUpdated(mConditionMask, mConditionColorMasks.clone());
+		}
+	}
+
+	// ____________________________________________________________________________________
+	public void removeListener(StatusUpdateListener listener)
+	{
+		mListeners.remove(listener);
+	}
+
+	// ____________________________________________________________________________________
+	public Map<Integer, StatusField> getFields()
+	{
+		return new HashMap<>(mFields);
+	}
+
+	// ____________________________________________________________________________________
+	public long getConditionMask()
+	{
+		return mConditionMask;
+	}
+
+	// ____________________________________________________________________________________
+	public long[] getConditionColorMasks()
+	{
+		return mConditionColorMasks.clone();
 	}
 
 	// ____________________________________________________________________________________
@@ -199,11 +256,13 @@ public class NHW_Status implements NH_Window
 		if (fieldIdx == BL_FLUSH) {
 			android.util.Log.d("NHW_Status", "BL_FLUSH - rendering");
 			mUI.render();
+			notifyFlush();
 			return;
 		}
 
 		if (fieldIdx == BL_RESET) {
 			mUI.forceRedraw();
+			notifyReset();
 			return;
 		}
 
@@ -214,6 +273,7 @@ public class NHW_Status implements NH_Window
 				System.arraycopy(colormasks, 0, mConditionColorMasks, 0,
 					Math.min(colormasks.length, mConditionColorMasks.length));
 			}
+			notifyConditionsUpdated();
 			return;
 		}
 
@@ -232,6 +292,42 @@ public class NHW_Status implements NH_Window
 		}
 
 		field.color = color;
+		notifyFieldUpdated(fieldIdx, field);
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyFieldUpdated(int fieldIdx, StatusField field)
+	{
+		StatusField copy = new StatusField(field);
+		for (StatusUpdateListener listener : mListeners) {
+			listener.onFieldUpdated(fieldIdx, copy);
+		}
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyConditionsUpdated()
+	{
+		long maskCopy = mConditionMask;
+		long[] colorsCopy = mConditionColorMasks.clone();
+		for (StatusUpdateListener listener : mListeners) {
+			listener.onConditionsUpdated(maskCopy, colorsCopy);
+		}
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyFlush()
+	{
+		for (StatusUpdateListener listener : mListeners) {
+			listener.onFlush();
+		}
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyReset()
+	{
+		for (StatusUpdateListener listener : mListeners) {
+			listener.onReset();
+		}
 	}
 
 	public void statusFinish()

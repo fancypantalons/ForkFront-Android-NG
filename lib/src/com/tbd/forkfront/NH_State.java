@@ -186,6 +186,18 @@ public class NH_State
 				int btnW = (int)(100 * density);
 				int btnH = (int)(60 * density);
 
+				// Add Default Status Widget at top
+				ControlWidget.WidgetData statusData = new ControlWidget.WidgetData();
+				statusData.type = "status";
+				statusData.x = 0;
+				statusData.y = 0; // Top of screen
+				statusData.w = (int)(activity.getWindow().getDecorView().getWidth());
+				statusData.h = (int)(60 * density);
+
+				StatusWidget statusWidget = new StatusWidget(activity, mStatus);
+				statusWidget.setWidgetData(statusData);
+				mWidgetLayout.addWidget(statusWidget);
+
 				// Add Default D-Pad
 				ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
 				dpadData.type = "dpad";
@@ -193,11 +205,11 @@ public class NH_State
 				dpadData.y = 150 * density; // Higher up to ensure visibility in landscape
 				dpadData.w = dpadSize;
 				dpadData.h = dpadSize;
-				
+
 				ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
 				dpadWidget.setWidgetData(dpadData);
 				mWidgetLayout.addWidget(dpadWidget);
-				
+
 				// Add Default Search Button
 				ControlWidget.WidgetData searchData = new ControlWidget.WidgetData();
 				searchData.type = "button";
@@ -207,14 +219,14 @@ public class NH_State
 				searchData.y = 150 * density;
 				searchData.w = btnW;
 				searchData.h = btnH;
-				
+
 				MaterialButton searchBtn = new MaterialButton(activity);
 				searchBtn.setText("Search");
 				searchBtn.setOnClickListener(v -> sendKeyCmd('s'));
 				ControlWidget searchWidget = new ControlWidget(activity, searchBtn, "button");
 				searchWidget.setWidgetData(searchData);
 				mWidgetLayout.addWidget(searchWidget);
-				
+
 				ffPrefs.edit().putBoolean("initialized_v2", true).apply();
 				mWidgetLayout.saveLayout();
 			}
@@ -621,7 +633,7 @@ public class NH_State
 	}
 
 	public void showAddWidgetDialog(AppCompatActivity activity) {
-		String[] options = {"Directional Pad", "Custom Action Button", "Command List"};
+		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Status Window"};
 		new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
 			.setTitle("Add Widget")
 			.setItems(options, (dialog, which) -> {
@@ -629,8 +641,10 @@ public class NH_State
 					addDPadWidget(activity);
 				} else if (which == 1) {
 					showCommandPalette(activity);
-				} else {
+				} else if (which == 2) {
 					addPaletteWidget(activity);
+				} else {
+					addStatusWidget(activity);
 				}
 			})
 			.show();
@@ -665,17 +679,33 @@ public class NH_State
 	private void addDPadWidget(AppCompatActivity activity) {
 		float density = activity.getResources().getDisplayMetrics().density;
 		int dpadSize = (int)(180 * density);
-		
+
 		ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
 		dpadData.type = "dpad";
 		dpadData.x = 100;
 		dpadData.y = 100;
 		dpadData.w = dpadSize;
 		dpadData.h = dpadSize;
-		
+
 		ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
 		dpadWidget.setWidgetData(dpadData);
 		mWidgetLayout.addWidget(dpadWidget);
+		mWidgetLayout.saveLayout();
+	}
+
+	private void addStatusWidget(AppCompatActivity activity) {
+		float density = activity.getResources().getDisplayMetrics().density;
+
+		ControlWidget.WidgetData statusData = new ControlWidget.WidgetData();
+		statusData.type = "status";
+		statusData.x = 100;
+		statusData.y = 100;
+		statusData.w = (int)(400 * density); // Wide enough for status text
+		statusData.h = (int)(60 * density);  // Two lines of text
+
+		StatusWidget statusWidget = new StatusWidget(activity, mStatus);
+		statusWidget.setWidgetData(statusData);
+		mWidgetLayout.addWidget(statusWidget);
 		mWidgetLayout.saveLayout();
 	}
 
@@ -949,6 +979,12 @@ public class NH_State
 	public boolean isNumPadOn()
 	{
 		return mNumPad;
+	}
+
+	// ____________________________________________________________________________________
+	public NHW_Status getStatusWindow()
+	{
+		return mStatus;
 	}
 
 	// ____________________________________________________________________________________
