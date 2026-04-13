@@ -50,6 +50,9 @@ public class ControlWidget extends FrameLayout {
         public int w, h;
         public int opacity = 191; // Default to 75% opacity (191/255)
         public int fontSize = 15; // Default font size (matching StatusWidget/MessageWidget default)
+        public int rows = 3; // For command_palette widget
+        public int columns = 3; // For command_palette widget
+        public String category = null; // For command_palette widget (null = all categories)
     }
 
     private WidgetData mData = new WidgetData();
