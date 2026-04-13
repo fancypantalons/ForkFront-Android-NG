@@ -7,6 +7,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -86,6 +87,15 @@ public class WidgetLayout extends FrameLayout {
                     saveLayout();
                 }
             });
+
+            widget.setOnWidgetLongClickListener(new ControlWidget.OnWidgetLongClickListener() {
+                @Override
+                public void onWidgetLongClick(ControlWidget w) {
+                    if (mNHState != null && getContext() instanceof AppCompatActivity) {
+                        mNHState.showWidgetProperties((AppCompatActivity) getContext(), w);
+                    }
+                }
+            });
         }
     }
 
@@ -153,7 +163,14 @@ public class WidgetLayout extends FrameLayout {
             MaterialButton btn = new MaterialButton(getContext());
             btn.setText(data.label);
             if (mNHState != null && data.command != null && data.command.length() > 0) {
-                btn.setOnClickListener(v -> mNHState.handleKeyDown(data.command.charAt(0), (int)data.command.charAt(0), 0, java.util.EnumSet.noneOf(Input.Modifier.class), 0, false));
+                btn.setOnClickListener(v -> {
+                    if (mNHState.isEditMode()) return;
+                    if (data.command.startsWith("#")) {
+                        mNHState.sendStringCmd(data.command + "\n");
+                    } else {
+                        mNHState.sendKeyCmd(data.command.charAt(0));
+                    }
+                });
             }
             ControlWidget w = new ControlWidget(getContext(), btn, "button");
             w.getWidgetData().label = data.label;

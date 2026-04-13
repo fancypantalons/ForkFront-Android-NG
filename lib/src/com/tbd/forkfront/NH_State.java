@@ -146,10 +146,19 @@ public class NH_State
 			mWidgetLayout.setNHState(this);
 			mWidgetLayout.loadLayout();
 
-			// Ensure emergency button works
+			// Ensure emergency buttons work
 			View emergencySettings = activity.findViewById(R.id.emergency_settings);
 			if (emergencySettings != null) {
 				emergencySettings.setOnClickListener(v -> startPreferences());
+			}
+
+			View btnPalette = activity.findViewById(R.id.btn_command_palette);
+			if (btnPalette != null) {
+				btnPalette.setOnClickListener(v -> {
+					if (mActivity != null) {
+						showCommandPalette(mActivity);
+					}
+				});
 			}
 			
 			// Initialize default widgets if it's the first run of the new system
@@ -488,6 +497,11 @@ public class NH_State
 		mIO.waitReady();
 	}
 
+	public void sendStringCmd(String str)
+	{
+		mIO.sendLineCmd(str);
+	}
+
 	// ____________________________________________________________________________________
 	public boolean sendKeyCmd(int key)
 	{
@@ -594,12 +608,72 @@ public class NH_State
 	// ____________________________________________________________________________________
 	private void restoreRegularKeyboard()
 	{
-		if(mRegularKeyboard != null && mKeyboard != null) {
-			mKeyboard.setKeyboard(mRegularKeyboard);
-		}
-		mRegularKeyboard = null;
+	        if(mRegularKeyboard != null && mKeyboard != null) {
+	                mKeyboard.setKeyboard(mRegularKeyboard);
+	        }
+	        mRegularKeyboard = null;
 	}
 
+	public void showCommandPalette(AppCompatActivity activity) {
+	    CommandPaletteFragment palette = CommandPaletteFragment.newInstance();
+	    palette.setOnCommandListener(cmd -> {
+	        if (isEditMode()) {
+	            // Add a new button widget for this command
+	            ControlWidget.WidgetData data = new ControlWidget.WidgetData();
+	            data.type = "button";
+	            data.label = cmd.getDisplayName();
+	            data.command = cmd.getCommand();
+	            data.x = 100; // Default position
+	            data.y = 100;
+	            data.w = (int)(100 * activity.getResources().getDisplayMetrics().density);
+	            data.h = (int)(60 * activity.getResources().getDisplayMetrics().density);
+
+	            MaterialButton btn = new MaterialButton(activity);
+	            btn.setText(data.label);
+	            btn.setOnClickListener(v -> {
+	                if (cmd.getCommand().startsWith("#")) {
+	                    sendStringCmd(cmd.getCommand() + "\n");
+	                } else {
+	                    sendKeyCmd(cmd.getCommand().charAt(0));
+	                }
+	            });
+
+	            ControlWidget widget = new ControlWidget(activity, btn, "button");
+	            widget.setWidgetData(data);
+	            mWidgetLayout.addWidget(widget);
+	            mWidgetLayout.saveLayout();
+	        } else {
+	            if (cmd.getCommand().startsWith("#")) {
+	                sendStringCmd(cmd.getCommand() + "\n");
+	            } else {
+	                sendKeyCmd(cmd.getCommand().charAt(0));
+	            }
+	        }
+	    });
+	    palette.show(activity.getSupportFragmentManager(), "command_palette");
+	}
+
+	public void showWidgetProperties(AppCompatActivity activity, ControlWidget widget) {
+		ControlWidget.WidgetData data = widget.getWidgetData();
+		boolean isButton = "button".equals(data.type);
+		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton);
+		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
+			@Override
+			public void onLabelChanged(String newLabel) {
+				data.label = newLabel;
+				if (isButton && widget.getContentView() instanceof MaterialButton) {
+					((MaterialButton) widget.getContentView()).setText(newLabel);
+				}
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
+			public void onDelete() {
+				mWidgetLayout.removeWidget(widget);
+			}
+		});
+		fragment.show(activity.getSupportFragmentManager(), "widget_properties");
+	}
 	// ____________________________________________________________________________________
 	public void setCtrlKeyboard()
 	{

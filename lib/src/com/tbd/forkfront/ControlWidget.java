@@ -2,9 +2,11 @@ package com.tbd.forkfront;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -22,12 +24,21 @@ public class ControlWidget extends FrameLayout {
     
     private float mLastTouchX;
     private float mLastTouchY;
+    private boolean mIsDragging = false;
+    private boolean mIsResizing = false;
     
+    private GestureDetector mGestureDetector;
+
     public interface OnWidgetChangeListener {
         void onWidgetChanged(ControlWidget widget);
     }
+
+    public interface OnWidgetLongClickListener {
+        void onWidgetLongClick(ControlWidget widget);
+    }
     
     private OnWidgetChangeListener mChangeListener;
+    private OnWidgetLongClickListener mLongClickListener;
 
     public static class WidgetData {
         public String type;
@@ -57,14 +68,24 @@ public class ControlWidget extends FrameLayout {
         mResizeHandle = new ImageView(context);
         mResizeHandle.setBackgroundResource(R.drawable.ic_resize_handle);
         LayoutParams handleParams = new LayoutParams(
-                (int)(24 * context.getResources().getDisplayMetrics().density),
-                (int)(24 * context.getResources().getDisplayMetrics().density)
+                (int)(32 * context.getResources().getDisplayMetrics().density),
+                (int)(32 * context.getResources().getDisplayMetrics().density)
         );
         handleParams.gravity = Gravity.BOTTOM | Gravity.RIGHT;
         mResizeHandle.setLayoutParams(handleParams);
         mResizeHandle.setVisibility(GONE);
+        mResizeHandle.setPadding(8, 8, 0, 0); // Increase visual size / padding
         addView(mResizeHandle);
         
+        mGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public void onLongPress(MotionEvent e) {
+                if (mEditMode && mLongClickListener != null) {
+                    mLongClickListener.onWidgetLongClick(ControlWidget.this);
+                }
+            }
+        });
+
         setupTouchListeners();
     }
 
@@ -77,12 +98,7 @@ public class ControlWidget extends FrameLayout {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         if (mEditMode) {
-            float x = ev.getX();
-            float y = ev.getY();
-            if (x >= mResizeHandle.getLeft() && x <= mResizeHandle.getRight() &&
-                y >= mResizeHandle.getTop() && y <= mResizeHandle.getBottom()) {
-                return false;
-            }
+            // In edit mode, we want to see all touches first
             return true;
         }
         return super.onInterceptTouchEvent(ev);
@@ -94,6 +110,9 @@ public class ControlWidget extends FrameLayout {
             public boolean onTouch(View v, MotionEvent event) {
                 if (!mEditMode) return false;
 
+                // Pass to gesture detector for long press
+                mGestureDetector.onTouchEvent(event);
+
                 float x = event.getRawX();
                 float y = event.getRawY();
 
@@ -101,55 +120,40 @@ public class ControlWidget extends FrameLayout {
                     case MotionEvent.ACTION_DOWN:
                         mLastTouchX = x;
                         mLastTouchY = y;
-                        return true;
                         
-                    case MotionEvent.ACTION_MOVE:
-                        float dx = x - mLastTouchX;
-                        float dy = y - mLastTouchY;
-                        
-                        setX(getX() + dx);
-                        setY(getY() + dy);
-                        
-                        mLastTouchX = x;
-                        mLastTouchY = y;
-                        return true;
-                        
-                    case MotionEvent.ACTION_UP:
-                        if (mChangeListener != null) {
-                            mChangeListener.onWidgetChanged(ControlWidget.this);
+                        // Check if touch is on resize handle
+                        int[] location = new int[2];
+                        mResizeHandle.getLocationOnScreen(location);
+                        if (x >= location[0] && x <= location[0] + mResizeHandle.getWidth() &&
+                            y >= location[1] && y <= location[1] + mResizeHandle.getHeight()) {
+                            mIsResizing = true;
+                        } else {
+                            mIsDragging = true;
                         }
                         return true;
-                }
-                return false;
-            }
-        });
-
-        mResizeHandle.setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                float x = event.getRawX();
-                float y = event.getRawY();
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        mLastTouchX = x;
-                        mLastTouchY = y;
-                        return true;
                         
                     case MotionEvent.ACTION_MOVE:
                         float dx = x - mLastTouchX;
                         float dy = y - mLastTouchY;
                         
-                        LayoutParams params = (LayoutParams) getLayoutParams();
-                        params.width = (int) Math.max(100, getWidth() + dx);
-                        params.height = (int) Math.max(100, getHeight() + dy);
-                        setLayoutParams(params);
+                        if (mIsResizing) {
+                            LayoutParams params = (LayoutParams) getLayoutParams();
+                            params.width = (int) Math.max(100, getWidth() + dx);
+                            params.height = (int) Math.max(100, getHeight() + dy);
+                            setLayoutParams(params);
+                        } else if (mIsDragging) {
+                            setX(getX() + dx);
+                            setY(getY() + dy);
+                        }
                         
                         mLastTouchX = x;
                         mLastTouchY = y;
                         return true;
                         
                     case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        mIsDragging = false;
+                        mIsResizing = false;
                         if (mChangeListener != null) {
                             mChangeListener.onWidgetChanged(ControlWidget.this);
                         }
@@ -163,17 +167,20 @@ public class ControlWidget extends FrameLayout {
     public void setOnWidgetChangeListener(OnWidgetChangeListener listener) {
         mChangeListener = listener;
     }
+
+    public void setOnWidgetLongClickListener(OnWidgetLongClickListener listener) {
+        mLongClickListener = listener;
+    }
     
     public WidgetData getWidgetData() {
         mData.x = getX();
         mData.y = getY();
         
-        android.view.ViewGroup.LayoutParams params = getLayoutParams();
+        ViewGroup.LayoutParams params = getLayoutParams();
         if (params != null) {
             mData.w = params.width;
             mData.h = params.height;
         } else {
-            // Provide safe defaults if not yet attached to a layout
             if (mData.w <= 0) mData.w = 200;
             if (mData.h <= 0) mData.h = 200;
         }
