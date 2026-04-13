@@ -47,6 +47,7 @@ public class ControlWidget extends FrameLayout {
         public boolean horizontal = true;
         public float x, y;
         public int w, h;
+        public int opacity = 191; // Default to 75% opacity (191/255)
     }
 
     private WidgetData mData = new WidgetData();
@@ -197,6 +198,24 @@ public class ControlWidget extends FrameLayout {
         params.width = data.w;
         params.height = data.h;
         setLayoutParams(params);
+        applyOpacity();
+    }
+
+    public void applyOpacity() {
+        float alpha = mData.opacity / 255.0f;
+
+        if ("status".equals(mData.type) || "message".equals(mData.type)) {
+            // For text widgets, set background opacity but keep text opaque
+            if (mContentView != null) {
+                int backgroundColor = (mData.opacity << 24) | 0x001C1B1F; // Material surface color with alpha
+                mContentView.setBackgroundColor(backgroundColor);
+            }
+        } else {
+            // For button-style widgets, set view alpha
+            if (mContentView != null) {
+                mContentView.setAlpha(alpha);
+            }
+        }
     }
 
     public View getContentView() {

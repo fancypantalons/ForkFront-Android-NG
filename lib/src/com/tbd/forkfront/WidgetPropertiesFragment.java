@@ -18,6 +18,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
     public interface OnPropertiesListener {
         void onLabelChanged(String newLabel);
         void onOrientationChanged(boolean horizontal);
+        void onOpacityChanged(int opacity);
         void onDelete();
     }
 
@@ -26,14 +27,16 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private boolean mIsButton;
     private boolean mIsContextual;
     private boolean mIsHorizontal;
+    private int mOpacity;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isHorizontal) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isHorizontal, int opacity) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
         args.putBoolean("isButton", isButton);
         args.putBoolean("isContextual", isContextual);
         args.putBoolean("isHorizontal", isHorizontal);
+        args.putInt("opacity", opacity);
         f.setArguments(args);
         return f;
     }
@@ -50,6 +53,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
             mIsButton = getArguments().getBoolean("isButton");
             mIsContextual = getArguments().getBoolean("isContextual");
             mIsHorizontal = getArguments().getBoolean("isHorizontal");
+            mOpacity = getArguments().getInt("opacity", 191);
         }
     }
 
@@ -100,13 +104,26 @@ public class WidgetPropertiesFragment extends DialogFragment {
             orientationLayout.setVisibility(View.GONE);
         }
 
+        // Opacity slider
+        com.google.android.material.slider.Slider opacitySlider = view.findViewById(R.id.opacity_slider);
+        android.widget.TextView opacityValue = view.findViewById(R.id.opacity_value);
+        opacitySlider.setValue(mOpacity);
+        opacityValue.setText(String.format("%d%%", (int)((mOpacity / 255.0f) * 100)));
+        opacitySlider.addOnChangeListener((slider, value, fromUser) -> {
+            int opacity = (int) value;
+            opacityValue.setText(String.format("%d%%", (int)((opacity / 255.0f) * 100)));
+            if (mListener != null) {
+                mListener.onOpacityChanged(opacity);
+            }
+        });
+
         view.findViewById(R.id.btn_delete).setOnClickListener(v -> {
             if (mListener != null) {
                 mListener.onDelete();
             }
             dismiss();
         });
-        
+
         view.findViewById(R.id.btn_close).setOnClickListener(v -> dismiss());
     }
 
