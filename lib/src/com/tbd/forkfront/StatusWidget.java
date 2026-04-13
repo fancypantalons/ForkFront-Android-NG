@@ -144,6 +144,25 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 		render();
 	}
 
+	@Override
+	public void setFontSize(int size)
+	{
+		super.setFontSize(size);
+		if (mViews != null) {
+			for (AutoFitTextView v : mViews) {
+				if (v != null) {
+					v.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
+				}
+			}
+		}
+	}
+
+	@Override
+	public void setWidgetData(WidgetData data) {
+		super.setWidgetData(data);
+		setFontSize(data.fontSize);
+	}
+
 	// ____________________________________________________________________________________
 	private void render()
 	{
