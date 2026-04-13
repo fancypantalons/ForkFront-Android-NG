@@ -202,4 +202,24 @@ public class ControlWidget extends FrameLayout {
     public View getContentView() {
         return mContentView;
     }
+
+    public void pulseAttention() {
+        // Briefly show and pulse the border to draw attention
+        if (mBorderView != null && !mEditMode) {
+            mBorderView.setVisibility(VISIBLE);
+            mBorderView.setAlpha(0f);
+            mBorderView.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .withEndAction(() -> {
+                        mBorderView.animate()
+                                .alpha(0f)
+                                .setDuration(300)
+                                .setStartDelay(200)
+                                .withEndAction(() -> mBorderView.setVisibility(GONE))
+                                .start();
+                    })
+                    .start();
+        }
+    }
 }
