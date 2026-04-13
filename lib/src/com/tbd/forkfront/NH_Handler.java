@@ -23,7 +23,7 @@ public interface NH_Handler
 	void addMenu(int wid, int tile, long id, int acc, int groupAcc, int attr, String msg, int bSelected, int color);
 	void endMenu(int wid, String msg);
 	void selectMenu(int wid, int how);
-	void cliparound(int x, int y, int playerX, int playerY, int hasObject);
+	void cliparound(int x, int y, int playerX, int playerY, int objectFlags, int nearbyMonsters);
 	void showDPad();
 	void hideDPad();
 	void showLog(int bBlocking);

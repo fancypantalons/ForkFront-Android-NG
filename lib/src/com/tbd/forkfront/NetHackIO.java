@@ -837,14 +837,14 @@ public class NetHackIO
 
 	// ____________________________________________________________________________________
 	@SuppressWarnings("unused")
-	private void cliparound(final int x, final int y, final int playerX, final int playerY, final int hasObject)
+	private void cliparound(final int x, final int y, final int playerX, final int playerY, final int objectFlags, final int nearbyMonsters)
 	{
 		mHandler.post(new Runnable()
 		{
 			@Override
 			public void run()
 			{
-				mNhHandler.cliparound(x, y, playerX, playerY, hasObject);
+				mNhHandler.cliparound(x, y, playerX, playerY, objectFlags, nearbyMonsters);
 			}
 		});
 	}

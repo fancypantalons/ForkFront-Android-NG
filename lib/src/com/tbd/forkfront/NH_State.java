@@ -55,6 +55,7 @@ public class NH_State
 	private SoftKeyboard.KEYBOARD mRegularKeyboard;
 	private SoundPlayer mSoundPlayer;
 	private int mPlayerObjectFlags;
+	private int mNearbyMonstersMask;
 
 	// ____________________________________________________________________________________
 	/**
@@ -779,12 +780,12 @@ public class NH_State
 			}
 		}
 		
-		// 2. Check tile features at player's position
-		if (centerChar == '<') actionKeys.add("<");
-		if (centerChar == '>') actionKeys.add(">");
-		if (centerChar == '_') { actionKeys.add("#pray"); actionKeys.add("#offer"); }
-		if (centerChar == '{' || centerChar == '#') { actionKeys.add("q"); actionKeys.add("D"); }
-		if (centerChar == '\\') actionKeys.add("#sit");
+		// 2. Check tile features at player's position (using native flags)
+		if ((mPlayerObjectFlags & 8) != 0) actionKeys.add("<");
+		if ((mPlayerObjectFlags & 16) != 0) actionKeys.add(">");
+		if ((mPlayerObjectFlags & 32) != 0) { actionKeys.add("#pray"); actionKeys.add("#offer"); }
+		if ((mPlayerObjectFlags & 64) != 0) { actionKeys.add("q"); actionKeys.add("D"); }
+		if ((mPlayerObjectFlags & 128) != 0) actionKeys.add("#sit");
 
 		// 3. Check 8 surrounding tiles
 		for (int dx = -1; dx <= 1; dx++) {
@@ -805,13 +806,12 @@ public class NH_State
 						actionKeys.add("c");
 					}
 				}
-				
-				// Monsters
-				if ((glyph >= GLYPH_MON_OFF && glyph < GLYPH_INVIS_OFF) || 
-				    (glyph >= GLYPH_RIDDEN_OFF && glyph < GLYPH_OBJ_OFF)) {
-					actionKeys.add("#chat");
-				}
 			}
+		}
+
+		// 4. Check for nearby monsters (using native bitmask)
+		if (mNearbyMonstersMask != 0) {
+			actionKeys.add("#chat");
 		}
 
 		// Always show search
@@ -1211,9 +1211,10 @@ public class NH_State
 
 		// ____________________________________________________________________________________
 		@Override
-		public void cliparound(int x, int y, int playerX, int playerY, int objectFlags)
+		public void cliparound(int x, int y, int playerX, int playerY, int objectFlags, int nearbyMonsters)
 		{
 			mPlayerObjectFlags = objectFlags;
+			mNearbyMonstersMask = nearbyMonsters;
 			if(mMap != null)
 				mMap.cliparound(x, y, playerX, playerY);
 			updateContextualActions();
