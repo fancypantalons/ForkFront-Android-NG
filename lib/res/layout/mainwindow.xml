@@ -19,10 +19,23 @@
             android:layout_height="match_parent"
             android:descendantFocusability="blocksDescendants" >
 
-            <com.tbd.forkfront.CmdPanelLayout
-                android:id="@+id/cmdPanelLayout1"
+            <com.tbd.forkfront.WidgetLayout
+                android:id="@+id/widgetLayout1"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" >
+
+                <!-- Emergency Settings Access -->
+                <ImageButton
+                    android:id="@+id/emergency_settings"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="top|right"
+                    android:layout_marginTop="100dp"
+                    android:layout_marginRight="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_preferences"
+                    android:contentDescription="Settings"
+                    android:elevation="10dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -84,7 +97,7 @@
                      android:layout_height="match_parent"
                      android:orientation="horizontal"/>
 
-            </com.tbd.forkfront.CmdPanelLayout>
+            </com.tbd.forkfront.WidgetLayout>
         </FrameLayout>
 
         <androidx.fragment.app.FragmentContainerView
