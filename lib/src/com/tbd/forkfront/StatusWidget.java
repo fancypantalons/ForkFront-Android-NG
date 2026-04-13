@@ -55,6 +55,7 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 	public StatusWidget(Context context, NHW_Status statusWindow)
 	{
 		super(context, createStatusView(context), "status");
+		android.util.Log.d("StatusWidget", "Constructor called");
 		mStatusWindow = statusWindow;
 		mFieldCache = new HashMap<>();
 		mConditionColorMasks = new long[20];
@@ -62,8 +63,16 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 		mRows[0] = new SpannableStringBuilder();
 		mRows[1] = new SpannableStringBuilder();
 
+		// Initialize view references directly
+		LinearLayout container = (LinearLayout) getContentView();
+		mViews = new AutoFitTextView[2];
+		mViews[0] = (AutoFitTextView) container.getChildAt(0);
+		mViews[1] = (AutoFitTextView) container.getChildAt(1);
+		android.util.Log.d("StatusWidget", "Views initialized: view0=" + mViews[0] + ", view1=" + mViews[1]);
+
 		// Register as listener
 		statusWindow.addListener(this);
+		android.util.Log.d("StatusWidget", "Registered as listener");
 	}
 
 	// ____________________________________________________________________________________
@@ -97,17 +106,6 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 		container.addView(line2);
 
 		return container;
-	}
-
-	// ____________________________________________________________________________________
-	@Override
-	protected void onFinishInflate()
-	{
-		super.onFinishInflate();
-		LinearLayout container = (LinearLayout) getContentView();
-		mViews = new AutoFitTextView[2];
-		mViews[0] = (AutoFitTextView) container.getChildAt(0);
-		mViews[1] = (AutoFitTextView) container.getChildAt(1);
 	}
 
 	// ____________________________________________________________________________________

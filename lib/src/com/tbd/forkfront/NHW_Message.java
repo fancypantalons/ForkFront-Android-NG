@@ -1,5 +1,7 @@
 package com.tbd.forkfront;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
@@ -9,6 +11,13 @@ import android.widget.TextView;
 
 public class NHW_Message implements NH_Window
 {
+	// Listener interface for message updates
+	public interface MessageUpdateListener {
+		void onMessageAdded(String message);
+		void onMessagesCleared();
+		void onMoreCountChanged(int moreCount);
+	}
+
 	protected static final int SHOW_MAX_LINES = 3;
 
 	private NetHackIO mIO;
@@ -23,12 +32,36 @@ public class NHW_Message implements NH_Window
 	private boolean mIsVisible;
 	private int mWid;
 	private int mOpacity;
+	private List<MessageUpdateListener> mListeners;
 
 	// ____________________________________________________________________________________
 	public NHW_Message(AppCompatActivity context, NetHackIO io)
 	{
 		mIO = io;
+		mListeners = new ArrayList<>();
 		setContext(context);
+	}
+
+	// ____________________________________________________________________________________
+	public void addListener(MessageUpdateListener listener)
+	{
+		if (!mListeners.contains(listener)) {
+			mListeners.add(listener);
+			// Send current state to new listener
+			listener.onMoreCountChanged(Math.max(0, mDispCount - SHOW_MAX_LINES));
+		}
+	}
+
+	// ____________________________________________________________________________________
+	public void removeListener(MessageUpdateListener listener)
+	{
+		mListeners.remove(listener);
+	}
+
+	// ____________________________________________________________________________________
+	public String getRecentMessages(int maxLines)
+	{
+		return getLogLine(maxLines);
 	}
 
 	// ____________________________________________________________________________________
@@ -70,6 +103,7 @@ public class NHW_Message implements NH_Window
 	{
 		mDispCount = 0;
 		mUI.clear();
+		notifyMessagesCleared();
 	}
 
 	// ____________________________________________________________________________________
@@ -115,6 +149,33 @@ public class NHW_Message implements NH_Window
 		mLog[mCurrentIdx] = newMsg;
 		mDispCount++;
 		mLogCount++;
+		notifyMessageAdded(newMsg);
+		notifyMoreCountChanged();
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyMessageAdded(String message)
+	{
+		for (MessageUpdateListener listener : mListeners) {
+			listener.onMessageAdded(message);
+		}
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyMessagesCleared()
+	{
+		for (MessageUpdateListener listener : mListeners) {
+			listener.onMessagesCleared();
+		}
+	}
+
+	// ____________________________________________________________________________________
+	private void notifyMoreCountChanged()
+	{
+		int moreCount = Math.max(0, mDispCount - SHOW_MAX_LINES);
+		for (MessageUpdateListener listener : mListeners) {
+			listener.onMoreCountChanged(moreCount);
+		}
 	}
 
 	// ____________________________________________________________________________________
