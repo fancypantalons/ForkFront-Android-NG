@@ -282,9 +282,7 @@ public class NH_State
 		/*if (mWidgetLayout != null) {
 			mWidgetLayout.preferencesUpdated(prefs);
 		}*/
-		if (mWidgetLayout != null) {
-			mWidgetLayout.setEditMode(prefs.getBoolean("edit_mode", false));
-		}
+		setEditMode(prefs.getBoolean("edit_mode", false));
 		mMap.preferencesUpdated(prefs);
 		mStatus.preferencesUpdated(prefs);
 		mMessage.preferencesUpdated(prefs);
@@ -881,6 +879,12 @@ public class NH_State
 			if (btnSettings != null) {
 				btnSettings.setVisibility(enabled ? View.GONE : View.VISIBLE);
 			}
+		}
+		// Clear the edit_mode preference when disabling edit mode
+		if (!enabled) {
+			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(mApp).edit();
+			editor.putBoolean("edit_mode", false);
+			editor.apply();
 		}
 	}
 
