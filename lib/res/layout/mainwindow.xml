@@ -113,11 +113,6 @@
                     android:textSize="15sp"
                     android:visibility="gone" />
 
-                <include
-                    android:id="@+id/dpad"
-                    layout="@layout/dpad_ovl" />
-
-				
                 <LinearLayout
                      android:id="@+id/viewArea"
                      android:layout_width="match_parent"
