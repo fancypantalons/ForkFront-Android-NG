@@ -146,17 +146,17 @@ public class NH_State
 			mWidgetLayout.setNHState(this);
 			mWidgetLayout.loadLayout();
 
-			// Ensure emergency buttons work
 			View emergencySettings = activity.findViewById(R.id.emergency_settings);
 			if (emergencySettings != null) {
 				emergencySettings.setOnClickListener(v -> startPreferences());
 			}
 
-			View btnPalette = activity.findViewById(R.id.btn_command_palette);
-			if (btnPalette != null) {
-				btnPalette.setOnClickListener(v -> {
+			View btnAdd = activity.findViewById(R.id.btn_add_widget);
+			if (btnAdd != null) {
+				btnAdd.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
+				btnAdd.setOnClickListener(v -> {
 					if (mActivity != null) {
-						showCommandPalette(mActivity);
+						showAddWidgetDialog(mActivity);
 					}
 				});
 			}
@@ -614,6 +614,65 @@ public class NH_State
 	        mRegularKeyboard = null;
 	}
 
+	public void showAddWidgetDialog(AppCompatActivity activity) {
+		String[] options = {"Directional Pad", "Custom Action Button", "Command List"};
+		new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+			.setTitle("Add Widget")
+			.setItems(options, (dialog, which) -> {
+				if (which == 0) {
+					addDPadWidget(activity);
+				} else if (which == 1) {
+					showCommandPalette(activity);
+				} else {
+					addPaletteWidget(activity);
+				}
+			})
+			.show();
+	}
+
+	private void addPaletteWidget(AppCompatActivity activity) {
+		float density = activity.getResources().getDisplayMetrics().density;
+		
+		ControlWidget.WidgetData data = new ControlWidget.WidgetData();
+		data.type = "palette";
+		data.label = "Commands";
+		data.x = 100;
+		data.y = 100;
+		data.w = (int)(100 * density);
+		data.h = (int)(60 * density);
+		
+		MaterialButton btn = new MaterialButton(activity);
+		btn.setText("Commands");
+		btn.setIconResource(android.R.drawable.ic_menu_search);
+		btn.setOnClickListener(v -> {
+			if (!isEditMode()) {
+				showCommandPalette(activity);
+			}
+		});
+		
+		ControlWidget widget = new ControlWidget(activity, btn, "palette");
+		widget.setWidgetData(data);
+		mWidgetLayout.addWidget(widget);
+		mWidgetLayout.saveLayout();
+	}
+
+	private void addDPadWidget(AppCompatActivity activity) {
+		float density = activity.getResources().getDisplayMetrics().density;
+		int dpadSize = (int)(180 * density);
+		
+		ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
+		dpadData.type = "dpad";
+		dpadData.x = 100;
+		dpadData.y = 100;
+		dpadData.w = dpadSize;
+		dpadData.h = dpadSize;
+		
+		ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
+		dpadWidget.setWidgetData(dpadData);
+		mWidgetLayout.addWidget(dpadWidget);
+		mWidgetLayout.saveLayout();
+	}
+
 	public void showCommandPalette(AppCompatActivity activity) {
 	    CommandPaletteFragment palette = CommandPaletteFragment.newInstance();
 	    palette.setOnCommandListener(cmd -> {
@@ -693,6 +752,12 @@ public class NH_State
 	{
 		if (mWidgetLayout != null) {
 			mWidgetLayout.setEditMode(enabled);
+		}
+		if (mActivity != null) {
+			View btnAdd = mActivity.findViewById(R.id.btn_add_widget);
+			if (btnAdd != null) {
+				btnAdd.setVisibility(enabled ? View.VISIBLE : View.GONE);
+			}
 		}
 	}
 

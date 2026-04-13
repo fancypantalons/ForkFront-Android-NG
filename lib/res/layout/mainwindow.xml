@@ -34,12 +34,12 @@
                     android:orientation="horizontal">
 
                     <ImageButton
-                        android:id="@+id/btn_command_palette"
+                        android:id="@+id/btn_add_widget"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_search"
-                        android:contentDescription="Command Palette"
+                        android:src="@android:drawable/ic_menu_add"
+                        android:contentDescription="Add Widget"
                         android:elevation="10dp" />
 
                     <ImageButton

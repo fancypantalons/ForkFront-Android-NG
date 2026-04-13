@@ -176,6 +176,18 @@ public class WidgetLayout extends FrameLayout {
             w.getWidgetData().label = data.label;
             w.getWidgetData().command = data.command;
             return w;
+        } else if ("palette".equals(data.type)) {
+            MaterialButton btn = new MaterialButton(getContext());
+            btn.setText(data.label);
+            btn.setIconResource(android.R.drawable.ic_menu_search);
+            btn.setOnClickListener(v -> {
+                if (mNHState != null && !mNHState.isEditMode() && getContext() instanceof AppCompatActivity) {
+                    mNHState.showCommandPalette((AppCompatActivity) getContext());
+                }
+            });
+            ControlWidget w = new ControlWidget(getContext(), btn, "palette");
+            w.getWidgetData().label = data.label;
+            return w;
         }
         return null;
     }
