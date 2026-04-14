@@ -97,7 +97,18 @@
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_menu_add"
-                    android:contentDescription="Add Widget"
+                    android:contentDescription="@string/add_widget"
+                    android:elevation="10dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_reset_layout"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginLeft="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:contentDescription="@string/reset_layout"
+                    android:visibility="gone"
                     android:elevation="10dp" />
 
                 <ImageButton
@@ -107,7 +118,7 @@
                     android:layout_marginLeft="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_menu_save"
-                    android:contentDescription="Save Layout"
+                    android:contentDescription="@string/save_layout"
                     android:visibility="gone"
                     android:elevation="10dp" />
 
@@ -118,7 +129,7 @@
                     android:layout_marginLeft="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_menu_preferences"
-                    android:contentDescription="Settings"
+                    android:contentDescription="@string/settings"
                     android:elevation="10dp" />
             </LinearLayout>
 
