@@ -48,8 +48,6 @@ import java.util.regex.Pattern;
 public class ForkFront extends AppCompatActivity
 {
 	private NetHackViewModel mViewModel;
-	private boolean mCtrlDown;
-	private boolean mMetaDown;
 	private boolean mBackTracking;
 
 	private final int REQUEST_EXTERNAL_STORAGE = 43;
@@ -152,15 +150,6 @@ public class ForkFront extends AppCompatActivity
 						parentLayout.getPaddingBottom());
 				}
 
-				// Apply bottom padding to keyboard frame to avoid gesture bar
-				View kbdFrame = findViewById(R.id.kbd_frame);
-				if (kbdFrame != null) {
-					kbdFrame.setPadding(
-						leftInset,
-						kbdFrame.getPaddingTop(),
-						rightInset,
-						bottomInset);
-				}
 
 				return WindowInsetsCompat.CONSUMED;
 			});
@@ -337,8 +326,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onStart()
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print("onStart");
 		if(DEBUG.runTrace())
@@ -350,8 +337,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onResume()
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print("onResume");
 		// Reattach Activity to ViewModel when resuming
@@ -365,8 +350,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onPause()
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		// Detach Activity from ViewModel when pausing
 		if (mViewModel != null) {
@@ -379,8 +362,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onStop()
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print("onStop");
 		super.onStop();
@@ -390,8 +371,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onDestroy()
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print("onDestroy()");
 		// ViewModel's onCleared() will handle saveAndQuit() when Activity is truly finished
@@ -403,8 +382,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print("onCreateOptionsMenu");
 		menu.add(0, 1, 0, "Settings");
@@ -416,8 +393,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print(String.format("onOptionsItemSelected(item=%d)", item.getItemId()));
 		if(item.getItemId() == 1)
@@ -433,8 +408,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo)
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		super.onCreateContextMenu(menu, v, menuInfo);
 		mViewModel.getState().onCreateContextMenu(menu, v);
@@ -450,8 +423,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	public boolean onContextItemSelected(MenuItem item)
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		mViewModel.getState().onContextItemSelected(item);
 		return super.onContextItemSelected(item);
@@ -472,8 +443,6 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onSaveInstanceState(Bundle outState)
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
 
 		Log.print("onSaveInstanceState(Bundle outState)");
 		if(mViewModel != null && mViewModel.getState() != null)
@@ -530,16 +499,6 @@ public class ForkFront extends AppCompatActivity
 		if(fixedCode == KeyEvent.KEYCODE_VOLUME_DOWN || fixedCode == KeyEvent.KEYCODE_VOLUME_UP)
 			return false;
 
-		if(fixedCode == KeyAction.Control)
-			mCtrlDown = true;
-		else if(fixedCode == KeyAction.Meta)
-			mMetaDown = true;
-
-		if(mCtrlDown)
-			modifiers.add(Modifier.Control);
-		else if(mMetaDown)
-			modifiers.add(Modifier.Meta);
-
 		char ch = (char)unicodeChar;
 
 		int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, mViewModel.getState().isNumPadOn());
@@ -563,11 +522,6 @@ public class ForkFront extends AppCompatActivity
 
 		if(fixedCode == KeyEvent.KEYCODE_VOLUME_DOWN || fixedCode == KeyEvent.KEYCODE_VOLUME_UP)
 			return false;
-
-		if(fixedCode == KeyAction.Control)
-			mCtrlDown = false;
-		else if(fixedCode == KeyAction.Meta)
-			mMetaDown = false;
 
 		if(mViewModel.getState().handleKeyUp(Input.keyCodeToAction(keyCode, this)))
 			return true;

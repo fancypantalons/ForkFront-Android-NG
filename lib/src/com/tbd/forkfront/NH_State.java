@@ -23,12 +23,6 @@ import com.google.android.material.button.MaterialButton;
 
 public class NH_State
 {
-	private enum CmdMode
-	{
-		Panel,
-		Keyboard,
-	}
-
 	private Application mApp;  // Application context (never leaks, survives Activity)
 	private AppCompatActivity mActivity;  // Activity context (updated via setContext())
 	private NetHackViewModel mViewModel;  // Reference to ViewModel for deferred UI operations
@@ -43,15 +37,10 @@ public class NH_State
 	private Tileset mTileset;
 	private WidgetLayout mWidgetLayout;
 	private boolean mIsDPadActive;
-	private boolean mStickyKeyboard;
-	private boolean mHideQuickKeyboard;
-	private CmdMode mMode;
-	private SoftKeyboard mKeyboard;
 	private boolean mControlsVisible;
 	private boolean mNumPad;
 	private boolean mIsMouseLocked;
 	private Hearse mHearse;
-	private SoftKeyboard.KEYBOARD mRegularKeyboard;
 	private SoundPlayer mSoundPlayer;
 	private int mPlayerObjectFlags;
 	private int mNearbyMonstersMask;
@@ -94,10 +83,9 @@ public class NH_State
 		mGetLine = new NH_GetLine(mIO, this);
 		mQuestion = new NH_Question(mIO, this);
 		mSoundPlayer = new SoundPlayer();
-		mMode = CmdMode.Panel;
 
 		// Components requiring Activity context will be initialized in setContext()
-		// when an Activity is available: mMessage, mStatus, mMap, mKeyboard
+		// when an Activity is available: mMessage, mStatus, mMap
 	}
 
 	// ____________________________________________________________________________________
@@ -113,12 +101,6 @@ public class NH_State
 			if (mStatus == null) {
 				mStatus = new NHW_Status(activity, mIO);
 				mStatus.show(false); // Status is always visible with field-based updates
-			}
-			if (mKeyboard == null) {
-				mKeyboard = new SoftKeyboard(activity, this);
-			} else {
-				// Update keyboard with new Activity context when Activity is recreated
-				mKeyboard.setContext(activity);
 			}
 			if (mMap == null) {
 				mMap = new NHW_Map(activity, mTileset, mStatus, this, mDecoder);
@@ -232,14 +214,6 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void onConfigurationChanged(Configuration newConfig)
 	{
-		if(mMode == CmdMode.Keyboard && mKeyboard != null)
-		{
-			// Since the keyboard refuses to change its layout when the orientation changes
-			// we recreate a new keyboard every time
-			hideKeyboard();
-			showKeyboard();
-		}
-
 		// Reload widget layout for new orientation
 		if (mWidgetLayout != null) {
 			mWidgetLayout.reloadForNewOrientation(newConfig);
@@ -325,19 +299,7 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public boolean handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
 	{
-		if(keyCode == KeyEvent.KEYCODE_BACK && isKeyboardMode())
-		{
-			hideKeyboard();
-			restoreRegularKeyboard();
-			return true;
-		}
-
 		if(repeatCount > 0) switch(keyCode) {
-			case KeyAction.Keyboard:
-				if(mMode == CmdMode.Keyboard)
-					mStickyKeyboard = false;
-			case KeyAction.Control:
-			case KeyAction.Meta:
 			case KeyEvent.KEYCODE_ESCAPE:
 				// Ignore repeat on these actions
 				return true;
@@ -361,35 +323,8 @@ public class NH_State
 
 		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_HOME)
 		{
-			if(mMode == CmdMode.Keyboard)
-			{
-				hideKeyboard();
-				return true;
-			}
-
 			if(mIsDPadActive)
 				return sendKeyCmd('\033');
-		}
-		else if(keyCode == KeyAction.Keyboard)
-		{
-			mStickyKeyboard = true;
-			toggleKeyboard();
-			return true;
-		}
-		else if(keyCode == KeyAction.Control || keyCode == KeyAction.Meta)
-		{
-			if(!Util.hasPhysicalKeyboard(mApp))
-			{
-				saveRegularKeyboard();
-				if(mMode != CmdMode.Keyboard)
-					mHideQuickKeyboard = true;
-				showKeyboard();
-				if(keyCode == KeyAction.Control)
-					setCtrlKeyboard();
-				else
-					setMetaKeyboard();
-			}
-			return true;
 		}
 		if(DEBUG.runTrace() && keyCode == KeyEvent.KEYCODE_BACK)
 			Debug.stopMethodTracing();
@@ -435,25 +370,6 @@ public class NH_State
 		if(mMap != null && mMap.handleKeyUp(keyCode))
 			return true;
 
-		if(keyCode == KeyAction.Keyboard)
-		{
-			if(!mStickyKeyboard && mMode == CmdMode.Keyboard)
-				hideKeyboard();
-			mStickyKeyboard = false;
-			return true;
-		}
-		else if(keyCode == KeyAction.Control || keyCode == KeyAction.Meta)
-		{
-			if(mMode == CmdMode.Keyboard)
-			{
-				if(mHideQuickKeyboard)
-					hideKeyboard();
-				restoreRegularKeyboard();
-			}
-
-			mHideQuickKeyboard = false;
-			return true;
-		}
 		return false;
 	}
 
@@ -548,54 +464,6 @@ public class NH_State
 	{
 		mControlsVisible = false;
 		updateVisibleState();
-	}
-
-	// ____________________________________________________________________________________
-	public void showKeyboard()
-	{
-		mMode = CmdMode.Keyboard;
-		updateVisibleState();
-	}
-
-	// ____________________________________________________________________________________
-	public void hideKeyboard()
-	{
-		mMode = CmdMode.Panel;
-		updateVisibleState();
-	}
-
-	// ____________________________________________________________________________________
-	public void toggleKeyboard()
-	{
-		if(mMode == CmdMode.Panel)
-			showKeyboard();
-		else
-			hideKeyboard();
-	}
-
-	// ____________________________________________________________________________________
-	public void setMetaKeyboard()
-	{
-		if (mKeyboard != null) {
-			mKeyboard.setMetaKeyboard();
-		}
-	}
-
-	// ____________________________________________________________________________________
-	private void saveRegularKeyboard()
-	{
-		if (mKeyboard != null) {
-			mRegularKeyboard = mKeyboard.getKeyboard();
-		}
-	}
-
-	// ____________________________________________________________________________________
-	private void restoreRegularKeyboard()
-	{
-	        if(mRegularKeyboard != null && mKeyboard != null) {
-	                mKeyboard.setKeyboard(mRegularKeyboard);
-	        }
-	        mRegularKeyboard = null;
 	}
 
 	public void showAddWidgetDialog(AppCompatActivity activity) {
@@ -985,20 +853,6 @@ public class NH_State
 		}
 	}
 	// ____________________________________________________________________________________
-	public void setCtrlKeyboard()
-	{
-		if (mKeyboard != null) {
-			mKeyboard.setCtrlKeyboard();
-		}
-	}
-
-	// ____________________________________________________________________________________
-	private boolean isKeyboardMode()
-	{
-		return mMode == CmdMode.Keyboard && mControlsVisible;
-	}
-
-	// ____________________________________________________________________________________
 	public void setEditMode(boolean enabled)
 	{
 		if (mWidgetLayout != null) {
@@ -1038,45 +892,8 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void updateVisibleState()
 	{
-		if(mControlsVisible)
-		{
-			if(mMode == CmdMode.Panel)
-			{
-				if (mKeyboard != null) {
-					mKeyboard.hide();
-				}
-				if(mIsDPadActive)
-				{
-					/*if (mWidgetLayout != null) {
-						mWidgetLayout.hide();
-					}*/
-				}
-				else
-				{
-					/*if (mWidgetLayout != null) {
-						mWidgetLayout.show();
-					}*/
-				}
-			}
-			else
-			{
-				if (mKeyboard != null) {
-					mKeyboard.show();
-				}
-				/*if (mWidgetLayout != null) {
-					mWidgetLayout.hide();
-				}*/
-			}
-		}
-		else
-		{
-			/*if (mWidgetLayout != null) {
-				mWidgetLayout.hide();
-			}*/
-			if (mKeyboard != null) {
-				mKeyboard.hide();
-			}
-		}
+		// Controls visibility is now managed by WidgetLayout
+		// This method is kept for backward compatibility but no longer manages keyboard
 	}
 
 	// ____________________________________________________________________________________
