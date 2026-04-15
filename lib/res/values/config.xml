@@ -5,7 +5,6 @@
 	<string name="nativeDataDir"></string>
 	<string name="libraryName"></string>
 	<string name="defaultsFile"></string>
-	<string name="defaultCmdPanel"></string>
 	<bool name="useCP437Decoder">false</bool>
 	<bool name="hearseAvailable">false</bool>
 	<string name="hearseClientName"></string>

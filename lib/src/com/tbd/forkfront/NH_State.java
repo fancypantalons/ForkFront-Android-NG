@@ -97,7 +97,7 @@ public class NH_State
 		mMode = CmdMode.Panel;
 
 		// Components requiring Activity context will be initialized in setContext()
-		// when an Activity is available: mMessage, mStatus, mMap, mKeyboard, mCmdPanelLayout
+		// when an Activity is available: mMessage, mStatus, mMap, mKeyboard
 	}
 
 	// ____________________________________________________________________________________
