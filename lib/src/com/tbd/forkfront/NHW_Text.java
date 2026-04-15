@@ -146,10 +146,10 @@ public class NHW_Text implements NH_Window
 
 	// ____________________________________________________________________________________
 	@Override
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
 		if(isVisible() && mFragment != null && mFragment.isAdded())
-			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers, bSoftInput);
+			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers);
 		return KeyEventResult.IGNORED;
 	}
 
@@ -220,7 +220,7 @@ public class NHW_Text implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
-		KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, boolean bSoftInput)
+		KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers)
 		{
 			if(ch == '<')
 				keyCode = KeyEvent.KEYCODE_PAGE_UP;

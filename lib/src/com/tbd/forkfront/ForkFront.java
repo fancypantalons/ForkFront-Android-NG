@@ -502,8 +502,8 @@ public class ForkFront extends AppCompatActivity
 		char ch = (char)unicodeChar;
 
 		int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, mViewModel.getState().isNumPadOn());
-		
-		if(mViewModel.getState().handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount, false))
+
+		if(mViewModel.getState().handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount))
 			return true;
 
 		if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
