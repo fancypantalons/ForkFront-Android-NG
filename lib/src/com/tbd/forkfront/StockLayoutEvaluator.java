@@ -1,7 +1,7 @@
 package com.tbd.forkfront;
 
 import android.content.Context;
-import android.util.DisplayMetrics;
+import android.graphics.Rect;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.InputStream;
@@ -11,18 +11,18 @@ import java.util.List;
 /**
  * Evaluates stock widget layouts from JSON into absolute screen positions.
  * Converts anchor-based positioning (LEFT/RIGHT/CENTER + margins in DP)
- * to pixel coordinates based on actual screen metrics.
+ * to pixel coordinates based on actual window metrics.
  */
 public class StockLayoutEvaluator {
-    
+
     private final Context mContext;
-    private final DisplayMetrics mMetrics;
+    private final Rect mWindowBounds;
     private final float mDensity;
-    
+
     public StockLayoutEvaluator(Context context) {
         mContext = context;
-        mMetrics = context.getResources().getDisplayMetrics();
-        mDensity = mMetrics.density;
+        mWindowBounds = WindowMetricsHelper.getSafeBounds(context);
+        mDensity = context.getResources().getDisplayMetrics().density;
     }
     
     /**
@@ -88,33 +88,33 @@ public class StockLayoutEvaluator {
         int marginBottom = dpToPx(anchorObj.optString("marginBottom", "0dp"));
         
         // Calculate x position
+        // Safe bounds provides absolute screen coordinates, so use left/right edges
         switch (hAnchor) {
             case "LEFT":
-                data.x = marginLeft;
+                data.x = mWindowBounds.left + marginLeft;
                 break;
             case "RIGHT":
-                data.x = mMetrics.widthPixels - data.w - marginRight;
+                data.x = mWindowBounds.right - data.w - marginRight;
                 break;
             case "CENTER":
-                data.x = (mMetrics.widthPixels - data.w) / 2 + marginLeft - marginRight;
+                data.x = mWindowBounds.centerX() - data.w / 2 + marginLeft - marginRight;
                 break;
             default:
                 android.util.Log.w("StockLayoutEvaluator", "Unknown horizontal anchor: " + hAnchor);
                 data.x = 0;
         }
-        
-        // Calculate y position (account for status bar on TOP anchors)
-        int statusBarHeight = getStatusBarHeight();
-        
+
+        // Calculate y position
+        // Safe bounds provides absolute screen coordinates, so use top/bottom edges
         switch (vAnchor) {
             case "TOP":
-                data.y = marginTop + statusBarHeight;
+                data.y = mWindowBounds.top + marginTop;
                 break;
             case "BOTTOM":
-                data.y = mMetrics.heightPixels - data.h - marginBottom;
+                data.y = mWindowBounds.bottom - data.h - marginBottom;
                 break;
             case "CENTER":
-                data.y = (mMetrics.heightPixels - data.h) / 2 + marginTop - marginBottom;
+                data.y = mWindowBounds.centerY() - data.h / 2 + marginTop - marginBottom;
                 break;
             default:
                 android.util.Log.w("StockLayoutEvaluator", "Unknown vertical anchor: " + vAnchor);
@@ -140,23 +140,23 @@ public class StockLayoutEvaluator {
     
     /**
      * Evaluate a size specification to pixels.
-     * 
+     *
      * @param spec Size specification: "MATCH_PARENT", "XXdp", or "XX%" (percentage)
      * @param isWidth true for width, false for height
      * @return Size in pixels
      */
     private int evaluateSize(String spec, boolean isWidth) {
         if ("MATCH_PARENT".equals(spec)) {
-            return isWidth ? mMetrics.widthPixels : mMetrics.heightPixels;
+            return isWidth ? mWindowBounds.width() : mWindowBounds.height();
         } else if (spec.endsWith("dp")) {
             return dpToPx(spec);
         } else if (spec.endsWith("%")) {
-            // Percentage of screen dimension
+            // Percentage of window dimension
             int percent = Integer.parseInt(spec.substring(0, spec.length() - 1));
-            int screenSize = isWidth ? mMetrics.widthPixels : mMetrics.heightPixels;
-            return (screenSize * percent) / 100;
+            int windowSize = isWidth ? mWindowBounds.width() : mWindowBounds.height();
+            return (windowSize * percent) / 100;
         }
-        
+
         android.util.Log.w("StockLayoutEvaluator", "Unknown size spec: " + spec);
         return dpToPx("200dp"); // fallback
     }

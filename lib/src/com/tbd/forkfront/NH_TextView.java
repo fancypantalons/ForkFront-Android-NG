@@ -7,7 +7,6 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import androidx.preference.PreferenceManager;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.widget.TextView;
 
@@ -41,8 +40,11 @@ public class NH_TextView extends TextView {
 	private void init() {
 		mOriginalSizePx = getTextSize();
 		mOriginalTypeface = getTypeface();
-		if(REVISION == 0)
-			updateFontSize(getResources().getDisplayMetrics());
+		if(REVISION == 0) {
+			int windowWidth = WindowMetricsHelper.getWindowWidth(getContext());
+			float scaledDensity = getResources().getDisplayMetrics().scaledDensity;
+			updateFontSize(windowWidth, scaledDensity);
+		}
 //		update();
 	}
 
@@ -85,9 +87,10 @@ public class NH_TextView extends TextView {
 	protected void onConfigurationChanged(Configuration newConfig) {
 		super.onConfigurationChanged(newConfig);
 
-		DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-		if(DISPLAY_WIDTH_PX != displayMetrics.widthPixels) {
-			updateFontSize(displayMetrics);
+		int windowWidth = WindowMetricsHelper.getWindowWidth(getContext());
+		if(DISPLAY_WIDTH_PX != windowWidth) {
+			float scaledDensity = getResources().getDisplayMetrics().scaledDensity;
+			updateFontSize(windowWidth, scaledDensity);
 		}
 
 		if(mRevision != REVISION)
@@ -105,8 +108,8 @@ public class NH_TextView extends TextView {
 		mRevision = REVISION;
 	}
 
-	private static void updateFontSize(DisplayMetrics displayMetrics) {
-		DISPLAY_WIDTH_PX = displayMetrics.widthPixels;
+	private static void updateFontSize(int windowWidth, float scaledDensity) {
+		DISPLAY_WIDTH_PX = windowWidth;
 		REVISION++;
 
 		Paint paint = new Paint();
@@ -117,7 +120,7 @@ public class NH_TextView extends TextView {
 		float baseWidth = paint.measureText(max);
 		float fontScale = DISPLAY_WIDTH_PX / baseWidth;
 		FITTED_SIZE_PX = (float)Math.floor(baseSize * fontScale);
-		float maxSizePx = MAX_SIZE_SP * displayMetrics.scaledDensity;
+		float maxSizePx = MAX_SIZE_SP * scaledDensity;
 		if(FITTED_SIZE_PX > maxSizePx)
 			FITTED_SIZE_PX = maxSizePx;
 	}
