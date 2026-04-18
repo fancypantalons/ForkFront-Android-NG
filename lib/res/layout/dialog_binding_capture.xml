@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/capture_instruction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Hold modifier buttons (L1, R1), then press the action button, then release all."
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurface" />
+
+    <TextView
+        android:id="@+id/capture_preview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:minHeight="48dp"
+        android:gravity="center"
+        android:text="Waiting for input…"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
+        android:textColor="?attr/colorPrimary"
+        android:fontFamily="monospace" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/capture_clear_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Clear / Retry"
+        style="@style/Widget.Material3.Button.TextButton" />
+
+</LinearLayout>
