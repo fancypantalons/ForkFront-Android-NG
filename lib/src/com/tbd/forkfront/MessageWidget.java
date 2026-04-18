@@ -30,12 +30,6 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 
 		// Register as listener
 		messageWindow.addListener(this);
-
-		// Get initial messages
-		String recent = messageWindow.getRecentMessages(NHW_Message.SHOW_MAX_LINES);
-		if (recent != null && !recent.isEmpty()) {
-			mMessageView.setText(recent.trim());
-		}
 	}
 
 	// ____________________________________________________________________________________

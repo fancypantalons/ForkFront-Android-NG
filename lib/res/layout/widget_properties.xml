@@ -218,6 +218,16 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_move_to_other_screen"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Move to Other Screen"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:visibility="gone"
+            app:icon="@android:drawable/ic_menu_share" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_delete"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

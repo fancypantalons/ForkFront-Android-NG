@@ -23,6 +23,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         void onRowsChanged(int rows);
         void onColumnsChanged(int columns);
         void onCategoryChanged(String category);
+        void onMoveToOtherScreen();
         void onDelete();
     }
 
@@ -33,13 +34,14 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private boolean mIsCommandPalette;
     private boolean mIsHorizontal;
     private boolean mShowFontSize;
+    private boolean mShowMoveButton;
     private int mOpacity;
     private int mFontSize;
     private int mRows;
     private int mColumns;
     private String mCategory;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean showMoveButton) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
@@ -53,6 +55,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         args.putInt("rows", rows);
         args.putInt("columns", columns);
         args.putString("category", category);
+        args.putBoolean("showMoveButton", showMoveButton);
         f.setArguments(args);
         return f;
     }
@@ -76,6 +79,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
             mRows = getArguments().getInt("rows", 3);
             mColumns = getArguments().getInt("columns", 3);
             mCategory = getArguments().getString("category");
+            mShowMoveButton = getArguments().getBoolean("showMoveButton", false);
         }
     }
 
@@ -259,6 +263,17 @@ public class WidgetPropertiesFragment extends DialogFragment {
             rowsLayout.setVisibility(View.GONE);
             columnsLayout.setVisibility(View.GONE);
             categoryLayout.setVisibility(View.GONE);
+        }
+
+        View moveBtn = view.findViewById(R.id.btn_move_to_other_screen);
+        if (mShowMoveButton) {
+            moveBtn.setVisibility(View.VISIBLE);
+            moveBtn.setOnClickListener(v -> {
+                if (mListener != null) {
+                    mListener.onMoveToOtherScreen();
+                }
+                dismiss();
+            });
         }
 
         view.findViewById(R.id.btn_delete).setOnClickListener(v -> {

@@ -172,8 +172,13 @@ public class ControlWidget extends FrameLayout {
                             params.height = (int) Math.max(100, getHeight() + dy);
                             setLayoutParams(params);
                         } else if (mIsDragging) {
-                            setX(getX() + dx);
-                            setY(getY() + dy);
+                            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) getLayoutParams();
+                            params.leftMargin += (int) dx;
+                            params.topMargin += (int) dy;
+                            setLayoutParams(params);
+                            // Reset translations just in case
+                            setTranslationX(0);
+                            setTranslationY(0);
                         }
                         
                         mLastTouchX = x;
@@ -203,14 +208,15 @@ public class ControlWidget extends FrameLayout {
     }
     
     public WidgetData getWidgetData() {
-        mData.x = getX();
-        mData.y = getY();
-        
-        ViewGroup.LayoutParams params = getLayoutParams();
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) getLayoutParams();
         if (params != null) {
+            mData.x = params.leftMargin;
+            mData.y = params.topMargin;
             mData.w = params.width;
             mData.h = params.height;
         } else {
+            mData.x = getX();
+            mData.y = getY();
             if (mData.w <= 0) mData.w = 200;
             if (mData.h <= 0) mData.h = 200;
         }
@@ -219,16 +225,17 @@ public class ControlWidget extends FrameLayout {
 
     public void setWidgetData(WidgetData data) {
         this.mData = data;
-        setX(data.x);
-        setY(data.y);
-        LayoutParams params = (LayoutParams) getLayoutParams();
-        if (params == null) params = new LayoutParams(data.w, data.h);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) getLayoutParams();
+        if (params == null) params = new FrameLayout.LayoutParams(data.w, data.h);
         params.width = data.w;
         params.height = data.h;
+        params.leftMargin = (int) data.x;
+        params.topMargin = (int) data.y;
         setLayoutParams(params);
+        setTranslationX(0);
+        setTranslationY(0);
         applyOpacity();
     }
-
     public void applyOpacity() {
         float alpha = mData.opacity / 255.0f;
 

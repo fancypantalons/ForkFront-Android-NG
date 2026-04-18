@@ -48,6 +48,11 @@ public class NHW_Message implements NH_Window
 		if (!mListeners.contains(listener)) {
 			mListeners.add(listener);
 			// Send current state to new listener
+			int lineCount = Math.min(SHOW_MAX_LINES, mDispCount);
+			int iStart = mCurrentIdx - lineCount + 1;
+			for (int i = 0; i < lineCount; i++) {
+				listener.onMessageAdded(mLog[getIndex(iStart + i)]);
+			}
 			listener.onMoreCountChanged(Math.max(0, mDispCount - SHOW_MAX_LINES));
 		}
 	}

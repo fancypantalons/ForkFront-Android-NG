@@ -28,13 +28,18 @@ public class StockLayoutEvaluator {
     /**
      * Load and evaluate a stock layout JSON file.
      * 
+     * @param screenId Screen identifier ("primary", "secondary")
+     * @param deviceKey Device key (e.g. "thor") or null
      * @param layoutKey Layout configuration key (e.g., "portrait")
      * @return List of WidgetData with absolute pixel positions, or null on error
      */
-    public List<ControlWidget.WidgetData> evaluateStockLayout(String layoutKey) {
+    public List<ControlWidget.WidgetData> evaluateStockLayout(String screenId, String deviceKey, String layoutKey) {
         try {
-            // Load JSON from assets
-            InputStream is = mContext.getAssets().open("default_layouts/" + layoutKey + ".json");
+            // Load JSON from assets with priority resolution
+            InputStream is = openAsset(screenId, deviceKey, layoutKey);
+            if (is == null) {
+                return null;
+            }
             byte[] buffer = new byte[is.available()];
             is.read(buffer);
             is.close();
@@ -59,6 +64,29 @@ public class StockLayoutEvaluator {
             android.util.Log.e("StockLayoutEvaluator", "Failed to load stock layout: " + layoutKey, e);
             return null;
         }
+    }
+
+    private InputStream openAsset(String screenId, String deviceKey, String layoutKey) {
+        // 1. {screen}/{device}_{orientation}.json
+        if (deviceKey != null) {
+            try {
+                return mContext.getAssets().open("default_layouts/" + screenId + "/" + deviceKey + "_" + layoutKey + ".json");
+            } catch (Exception e) { /* ignore */ }
+        }
+
+        // 2. {screen}/{orientation}.json
+        try {
+            return mContext.getAssets().open("default_layouts/" + screenId + "/" + layoutKey + ".json");
+        } catch (Exception e) { /* ignore */ }
+
+        // 3. {orientation}.json (legacy fallback, primary only)
+        if ("primary".equals(screenId)) {
+            try {
+                return mContext.getAssets().open("default_layouts/" + layoutKey + ".json");
+            } catch (Exception e) { /* ignore */ }
+        }
+
+        return null;
     }
     
     /**
