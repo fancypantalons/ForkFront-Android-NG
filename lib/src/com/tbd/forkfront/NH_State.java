@@ -19,6 +19,8 @@ import androidx.preference.PreferenceManager;
 import android.view.*;
 import com.tbd.forkfront.*;
 import com.tbd.forkfront.Hearse.Hearse;
+import com.tbd.forkfront.gamepad.GamepadDispatcher;
+import com.tbd.forkfront.gamepad.UiCapture;
 import com.google.android.material.button.MaterialButton;
 
 public class NH_State
@@ -47,6 +49,25 @@ public class NH_State
 	private int mNearbyMonstersMask;
 	private ControlWidget mTemporaryDPad;
 	private String mDeviceKey;
+
+	// Single UiCapture that routes to whichever in-game window is currently active.
+	// Registered with GamepadDispatcher once at startup; stays registered for the activity lifetime.
+	private final UiCapture mGameUiCapture = new UiCapture() {
+		@Override
+		public boolean handleGamepadKey(android.view.KeyEvent ev) {
+			// TODO (in-game UI plan): walk mGetLine → mQuestion → top mWindows → mMap → mMessage
+			return false;
+		}
+		@Override
+		public boolean handleGamepadMotion(android.view.MotionEvent ev) {
+			return false;
+		}
+	};
+
+	// ____________________________________________________________________________________
+	public UiCapture getGameUiCapture() {
+		return mGameUiCapture;
+	}
 
 	// ____________________________________________________________________________________
 	/**
@@ -255,6 +276,10 @@ public class NH_State
 	public void preferencesUpdated()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
+
+		// Notify the gamepad dispatcher so it can rebuild the binding map
+		GamepadDispatcher gd = GamepadDispatcher.getInstance();
+		if (gd != null) gd.reloadFromPreferences();
 
 		/*if (mPrimaryWidgetLayout != null) {
 			mPrimaryWidgetLayout.preferencesUpdated(prefs);
@@ -468,6 +493,27 @@ public class NH_State
 	{
 		if (mMap != null) {
 			mMap.onCursorPosClicked();
+		}
+	}
+
+	// ____________________________________________________________________________________
+	public void zoomIn()
+	{
+		if (mMap != null) mMap.zoom(1.0f);
+	}
+
+	// ____________________________________________________________________________________
+	public void zoomOut()
+	{
+		if (mMap != null) mMap.zoom(-1.0f);
+	}
+
+	// ____________________________________________________________________________________
+	public void recenterMap()
+	{
+		if (mMap != null) {
+			android.graphics.Point p = mMap.getPlayerPos();
+			if (p != null) mMap.centerView(p.x, p.y);
 		}
 	}
 

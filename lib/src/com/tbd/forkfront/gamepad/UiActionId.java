@@ -1,0 +1,13 @@
+package com.tbd.forkfront.gamepad;
+
+public enum UiActionId {
+    OPEN_DRAWER,
+    OPEN_COMMAND_PALETTE,
+    OPEN_SETTINGS,
+    TOGGLE_KEYBOARD,
+    ZOOM_IN,
+    ZOOM_OUT,
+    TOGGLE_MAP_LOCK,
+    RECENTER_MAP,
+    RESEND_LAST_CMD
+}

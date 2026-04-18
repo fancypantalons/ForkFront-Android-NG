@@ -43,6 +43,11 @@ import android.widget.TextView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.tbd.forkfront.Input.Modifier;
+import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
+import com.tbd.forkfront.gamepad.GamepadDispatcher;
+import com.tbd.forkfront.gamepad.UiActionExecutor;
+import com.tbd.forkfront.gamepad.UiContext;
+import com.tbd.forkfront.gamepad.UiContextArbiter;
 
 import java.io.File;
 import java.util.Collections;
@@ -57,6 +62,11 @@ public class ForkFront extends AppCompatActivity
 	private DrawerLayout mDrawerLayout;
 	private SecondaryScreenPresentation mPresentation;
 	private DisplayManager mDisplayManager;
+
+	// Gamepad support
+	private GamepadDispatcher mGamepadDispatcher;
+	private UiContextArbiter mUiContextArbiter;
+	private GamepadDeviceWatcher mGamepadDeviceWatcher;
 
 	private final DisplayManager.DisplayListener mDisplayListener =
 		new DisplayManager.DisplayListener() {
@@ -180,6 +190,28 @@ public class ForkFront extends AppCompatActivity
 					// the drawer's translated pixels from being drawn.
 					mDrawerLayout.invalidate();
 				}
+
+				@Override
+				public void onDrawerOpened(@NonNull View drawerView) {
+					if (mUiContextArbiter != null) {
+						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
+					}
+					// Move keyboard focus to the first focusable NavigationView item
+					NavigationView nav = findViewById(R.id.nav_view);
+					if (nav != null) {
+						nav.post(() -> {
+							View first = findFirstFocusableChild(nav);
+							if (first != null) first.requestFocus();
+						});
+					}
+				}
+
+				@Override
+				public void onDrawerClosed(@NonNull View drawerView) {
+					if (mUiContextArbiter != null) {
+						mUiContextArbiter.pop(UiContext.DRAWER_OPEN);
+					}
+				}
 			});
 		}
 
@@ -260,6 +292,9 @@ public class ForkFront extends AppCompatActivity
 
 		// Attach current Activity context
 		mViewModel.attachActivity(this);
+
+		// Initialize gamepad support
+		initGamepad();
 
 		// Get progress UI elements
 		View loadingOverlay = findViewById(R.id.loading_overlay);
@@ -426,6 +461,9 @@ public class ForkFront extends AppCompatActivity
 			mPresentation = null;
 		}
 
+		// Reset chord tracker to clear any stuck modifier state
+		if (mGamepadDispatcher != null) mGamepadDispatcher.resetTracker();
+
 		// Detach Activity from ViewModel when pausing
 		if (mViewModel != null) {
 			mViewModel.detachActivity();
@@ -482,8 +520,11 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onDestroy()
 	{
-
 		Log.print("onDestroy()");
+
+		if (mGamepadDeviceWatcher != null) mGamepadDeviceWatcher.unregister();
+		if (mGamepadDispatcher != null) mGamepadDispatcher.destroy();
+
 		// ViewModel's onCleared() will handle saveAndQuit() when Activity is truly finished
 		// (not just being recreated for configuration change)
 		super.onDestroy();
@@ -561,6 +602,93 @@ public class ForkFront extends AppCompatActivity
 	}
 
 	// ____________________________________________________________________________________
+	private void initGamepad() {
+		NH_State state = mViewModel != null ? mViewModel.getState() : null;
+		if (state == null) {
+			android.util.Log.w("ForkFront", "initGamepad: NH_State not available yet");
+			return;
+		}
+
+		mUiContextArbiter = new UiContextArbiter(new UiContextArbiter.ContextOverrideQuery() {
+			@Override
+			public boolean expectsDirection() {
+				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				return s != null && s.expectsDirection();
+			}
+			@Override
+			public boolean isMouseLocked() {
+				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				return s != null && s.isMouseLocked();
+			}
+		});
+
+		final NH_State finalState = state;
+		GamepadDispatcher.NH_StateRef stateRef = new GamepadDispatcher.NH_StateRef() {
+			@Override public boolean sendKeyCmd(int nhKey)     { return finalState.sendKeyCmd(nhKey); }
+			@Override public boolean sendDirKeyCmd(int nhKey)  { return finalState.sendDirKeyCmd(nhKey); }
+			@Override public void sendStringCmd(String str)    { finalState.sendStringCmd(str); }
+			@Override public boolean expectsDirection()        { return finalState.expectsDirection(); }
+			@Override public boolean isMouseLocked()           { return finalState.isMouseLocked(); }
+		};
+
+		UiActionExecutor executor = new UiActionExecutor(new UiActionExecutor.ActionHost() {
+			@Override public void openDrawer() {
+				if (mDrawerLayout != null)
+					mDrawerLayout.openDrawer(androidx.core.view.GravityCompat.END);
+			}
+			@Override public void openSettings()       { launchSettings(); }
+			@Override public void openCommandPalette() { /* TODO: show command palette */ }
+			@Override public void toggleKeyboard() {
+				android.view.inputmethod.InputMethodManager imm =
+					(android.view.inputmethod.InputMethodManager)
+						getSystemService(INPUT_METHOD_SERVICE);
+				View focus = getCurrentFocus();
+				if (imm != null && focus != null) {
+					imm.toggleSoftInput(0, 0);
+				}
+			}
+			@Override public void zoomIn() {
+				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				if (s != null) s.zoomIn();
+			}
+			@Override public void zoomOut() {
+				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				if (s != null) s.zoomOut();
+			}
+			@Override public void toggleMapLock() { /* TODO */ }
+			@Override public void recenterMap() {
+				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				if (s != null) s.recenterMap();
+			}
+			@Override public void resendLastCmd() { /* TODO */ }
+		});
+
+		mGamepadDispatcher = new GamepadDispatcher(getApplicationContext(),
+			stateRef, mUiContextArbiter, executor);
+
+		// Register the game UiCapture so in-game windows get routed correctly
+		mGamepadDispatcher.enterUiCapture(state.getGameUiCapture());
+
+		mGamepadDeviceWatcher = new GamepadDeviceWatcher(this, mGamepadDispatcher);
+		mGamepadDeviceWatcher.register();
+	}
+
+	// ____________________________________________________________________________________
+	private View findFirstFocusableChild(android.view.ViewGroup group) {
+		for (int i = 0; i < group.getChildCount(); i++) {
+			View child = group.getChildAt(i);
+			if (child.isFocusable() && child.getVisibility() == View.VISIBLE) {
+				return child;
+			}
+			if (child instanceof android.view.ViewGroup) {
+				View found = findFirstFocusableChild((android.view.ViewGroup) child);
+				if (found != null) return found;
+			}
+		}
+		return null;
+	}
+
+	// ____________________________________________________________________________________
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent event)
 	{
@@ -591,6 +719,14 @@ public class ForkFront extends AppCompatActivity
 			return true;
 		}
 		mBackTracking = false;
+
+		// Gamepad pre-pass: intercept before the existing key-down chain
+		if (mGamepadDispatcher != null && mGamepadDispatcher.isGamepadEvent(event)) {
+			UiContext ctx = mUiContextArbiter.current();
+			if (mGamepadDispatcher.handleKeyEvent(event, ctx)) {
+				return true;
+			}
+		}
 
 		if(event.getAction() == KeyEvent.ACTION_DOWN)
 		{
@@ -623,6 +759,17 @@ public class ForkFront extends AppCompatActivity
 			return true;
 		}
 		return false;
+	}
+
+	// ____________________________________________________________________________________
+	@Override
+	public boolean onGenericMotionEvent(MotionEvent event)
+	{
+		if (mGamepadDispatcher != null && mGamepadDispatcher.isGamepadEvent(event)) {
+			UiContext ctx = mUiContextArbiter.current();
+			if (mGamepadDispatcher.handleGenericMotion(event, ctx)) return true;
+		}
+		return super.onGenericMotionEvent(event);
 	}
 
 	// ____________________________________________________________________________________

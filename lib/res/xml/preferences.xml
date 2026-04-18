@@ -87,6 +87,46 @@
 			android:entries="@array/travelNames"
 			android:entryValues="@array/travelValues"/>
 
+		<androidx.preference.PreferenceScreen
+			android:title="Gamepad"
+			android:key="gamepad_screen"
+			android:summary="Configure controller buttons">
+
+			<androidx.preference.SwitchPreferenceCompat
+				android:title="Enable gamepad"
+				android:key="gamepad_enabled"
+				android:defaultValue="true"
+				android:summary="Use a connected controller for input"/>
+
+			<androidx.preference.SwitchPreferenceCompat
+				android:title="Left stick movement"
+				android:key="gamepad_leftstick_movement"
+				android:defaultValue="true"
+				android:dependency="gamepad_enabled"
+				android:summary="Use the left stick for 8-directional movement"/>
+
+			<androidx.preference.SwitchPreferenceCompat
+				android:title="Synthesize diagonals from D-pad"
+				android:key="gamepad_synth_diagonals"
+				android:defaultValue="true"
+				android:dependency="gamepad_enabled"
+				android:summary="Hold two adjacent D-pad directions for diagonal movement"/>
+
+			<androidx.preference.Preference
+				android:title="Configure bindings…"
+				android:key="gamepad_configure"
+				android:fragment="com.tbd.forkfront.gamepad.GamepadBindingsFragment"
+				android:dependency="gamepad_enabled"
+				android:summary="Edit which buttons do what"/>
+
+			<androidx.preference.Preference
+				android:title="Reset to defaults"
+				android:key="gamepad_reset_defaults"
+				android:dependency="gamepad_enabled"
+				android:summary="Restore the factory button layout"/>
+
+		</androidx.preference.PreferenceScreen>
+
         <androidx.preference.CheckBoxPreference
                 android:title="Lock view"
                 android:summary="Do not move the view with the character when the entire map can fit the screen"
