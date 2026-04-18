@@ -1376,6 +1376,12 @@ public class NHW_Map implements NH_Window
 				setZoomPanMode(ZoomPanMode.Idle);
 			break;
 
+			case MotionEvent.ACTION_CANCEL:
+				if(mPressCountDown != null)
+					mPressCountDown.cancel();
+				setZoomPanMode(ZoomPanMode.Idle);
+			break;
+
 			case MotionEvent.ACTION_POINTER_DOWN:
 				if(mPointerId1 < 0 && (mZoomPanMode == ZoomPanMode.Pressed || mZoomPanMode == ZoomPanMode.Panning))
 				{

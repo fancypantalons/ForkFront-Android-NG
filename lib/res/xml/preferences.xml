@@ -121,12 +121,6 @@
 			android:text=""
 			android:max="255"/>
 
-
-		<androidx.preference.Preference
-			android:title="Edit on-screen overlay"
-			android:summary="Customize the layout of on-screen controls"
-			android:key="edit_overlay_action"/>
-				
 	</androidx.preference.PreferenceCategory>
 
 	<androidx.preference.PreferenceCategory

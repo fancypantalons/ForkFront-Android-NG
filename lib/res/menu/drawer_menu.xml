@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/group_regular" android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="@string/settings" />
+        <item
+            android:id="@+id/nav_edit_overlay"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="Edit Overlay" />
+        <item
+            android:id="@+id/nav_save_game"
+            android:icon="@android:drawable/ic_menu_save"
+            android:title="Save Game" />
+        <item
+            android:id="@+id/nav_quit"
+            android:icon="@android:drawable/ic_lock_power_off"
+            android:title="Save and Quit" />
+        <item
+            android:id="@+id/nav_quit_no_save"
+            android:icon="@android:drawable/ic_delete"
+            android:title="Quit without Saving" />
+    </group>
+</menu>

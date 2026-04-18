@@ -131,51 +131,6 @@ public class NH_State
 			// Load layout (will use stock layout if user hasn't customized)
 			mWidgetLayout.loadLayout();
 
-			// Setup UI buttons
-			View btnAdd = activity.findViewById(R.id.btn_add_widget);
-			if (btnAdd != null) {
-				btnAdd.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
-				btnAdd.setOnClickListener(v -> {
-					if (mActivity != null) {
-						showAddWidgetDialog(mActivity);
-					}
-				});
-			}
-
-			View btnReset = activity.findViewById(R.id.btn_reset_layout);
-			if (btnReset != null) {
-				btnReset.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
-				btnReset.setOnClickListener(v -> {
-					if (mWidgetLayout != null) {
-						// Show confirmation dialog
-						new androidx.appcompat.app.AlertDialog.Builder(mActivity)
-								.setTitle(R.string.reset_layout_confirm_title)
-								.setMessage(R.string.reset_layout_confirm_message)
-								.setPositiveButton(R.string.reset_layout_positive, (dialog, which) -> {
-									mWidgetLayout.resetToDefault();
-								})
-								.setNegativeButton(R.string.cancel, null)
-								.show();
-					}
-				});
-			}
-
-			View btnSave = activity.findViewById(R.id.btn_save_layout);
-			View btnSettings = activity.findViewById(R.id.emergency_settings);
-			if (btnSave != null) {
-				btnSave.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
-				btnSave.setOnClickListener(v -> {
-					// Save layout and exit edit mode
-					if (mWidgetLayout != null) {
-						mWidgetLayout.saveLayout();
-					}
-					setEditMode(false);
-				});
-			}
-			if (btnSettings != null) {
-				btnSettings.setVisibility(isEditMode() ? View.GONE : View.VISIBLE);
-				btnSettings.setOnClickListener(v -> startPreferences());
-			}
 		}
 		if (mMap != null) {
 			mMap.setContext(activity);
@@ -858,23 +813,8 @@ public class NH_State
 		if (mWidgetLayout != null) {
 			mWidgetLayout.setEditMode(enabled);
 		}
-		if (mActivity != null) {
-			View btnAdd = mActivity.findViewById(R.id.btn_add_widget);
-			if (btnAdd != null) {
-				btnAdd.setVisibility(enabled ? View.VISIBLE : View.GONE);
-			}
-			View btnReset = mActivity.findViewById(R.id.btn_reset_layout);
-			if (btnReset != null) {
-				btnReset.setVisibility(enabled ? View.VISIBLE : View.GONE);
-			}
-			View btnSave = mActivity.findViewById(R.id.btn_save_layout);
-			if (btnSave != null) {
-				btnSave.setVisibility(enabled ? View.VISIBLE : View.GONE);
-			}
-			View btnSettings = mActivity.findViewById(R.id.emergency_settings);
-			if (btnSettings != null) {
-				btnSettings.setVisibility(enabled ? View.GONE : View.VISIBLE);
-			}
+		if (mActivity instanceof ForkFront) {
+			((ForkFront) mActivity).setDrawerEditMode(enabled);
 		}
 		// Clear the edit_mode preference when disabling edit mode
 		if (!enabled) {
@@ -882,6 +822,22 @@ public class NH_State
 			editor.putBoolean("edit_mode", false);
 			editor.apply();
 		}
+	}
+
+	public void saveLayoutAndExitEditMode()
+	{
+		if (mWidgetLayout != null) {
+			mWidgetLayout.saveLayout();
+		}
+		setEditMode(false);
+	}
+
+	public void discardChangesAndExitEditMode()
+	{
+		if (mWidgetLayout != null) {
+			mWidgetLayout.loadLayout();
+		}
+		setEditMode(false);
 	}
 
 	public boolean isEditMode()

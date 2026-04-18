@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/group_edit" android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_add_widget"
+            android:icon="@android:drawable/ic_menu_add"
+            android:title="@string/add_widget" />
+        <item
+            android:id="@+id/nav_save_changes"
+            android:icon="@android:drawable/ic_menu_save"
+            android:title="Save Changes" />
+        <item
+            android:id="@+id/nav_discard_changes"
+            android:icon="@android:drawable/ic_menu_revert"
+            android:title="Discard Changes" />
+    </group>
+</menu>
