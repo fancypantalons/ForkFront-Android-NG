@@ -2,6 +2,8 @@ package com.tbd.forkfront.gamepad;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -25,6 +27,9 @@ public class GamepadDispatcher {
     /** Synthetic events injected by the dispatcher carry this source flag to prevent re-entry. */
     private static final int SOURCE_SYNTHETIC = InputDevice.SOURCE_UNKNOWN | 0x80000000;
 
+    private static final int REPEAT_INITIAL_MS  = 300;
+    private static final int REPEAT_INTERVAL_MS = 100;
+
     private static volatile GamepadDispatcher sInstance;
 
     private final Context mAppContext;
@@ -38,6 +43,9 @@ public class GamepadDispatcher {
     private AxisNormalizer mAxisNormalizer;
 
     private final Deque<UiCapture> mCaptureStack = new ArrayDeque<>();
+
+    private final Handler mRepeatHandler = new Handler(Looper.getMainLooper());
+    private Runnable mRepeatRunnable;
 
     private final SharedPreferences.OnSharedPreferenceChangeListener mPrefListener =
         (prefs, key) -> {
@@ -80,6 +88,7 @@ public class GamepadDispatcher {
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     public void destroy() {
+        cancelRepeat();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mAppContext);
         prefs.unregisterOnSharedPreferenceChangeListener(mPrefListener);
         if (sInstance == this) sInstance = null;
@@ -115,6 +124,7 @@ public class GamepadDispatcher {
     }
 
     public void resetTracker() {
+        cancelRepeat();
         if (mChordTracker != null) mChordTracker.reset();
         if (mAxisNormalizer != null) mAxisNormalizer.reset();
     }
@@ -240,22 +250,31 @@ public class GamepadDispatcher {
         if (ctx != UiContext.GAMEPLAY) return; // axis input only drives GAMEPLAY actions for now
 
         if (AxisNormalizer.isLStickPseudo(buttonCode) && mOptions.leftStickMovement) {
-            // Check for explicit binding first
             KeyBinding explicit = mBindingMap.find(Chord.single(buttonCode));
             if (explicit != null) {
                 onBindingFired(explicit, false);
+                startRepeat(() -> onBindingFired(explicit, true));
             } else {
                 char nhDir = AxisNormalizer.pseudoToNhDir(buttonCode);
-                if (nhDir != 0) mStateRef.sendDirKeyCmd(nhDir);
+                if (nhDir != 0) {
+                    mStateRef.sendDirKeyCmd(nhDir);
+                    final char dir = nhDir;
+                    startRepeat(() -> {
+                        if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(dir);
+                    });
+                }
             }
             return;
         }
 
-        // HAT axes → treat as equivalent D-pad keycodes
+        // HAT axes → treat as equivalent D-pad keycodes, with timer-based repeat
         if (AxisNormalizer.isHatPseudo(buttonCode)) {
             int dpadCode = AxisNormalizer.hatPseudoToDpad(buttonCode);
             if (dpadCode != -1) {
                 mChordTracker.onKeyDown(dpadCode, 0);
+                startRepeat(() -> {
+                    if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
+                });
             }
             return;
         }
@@ -267,9 +286,13 @@ public class GamepadDispatcher {
     private void handleSynthRelease(int buttonCode, UiContext ctx) {
         if (ctx != UiContext.GAMEPLAY) return;
 
-        if (AxisNormalizer.isLStickPseudo(buttonCode) && mOptions.leftStickMovement) return;
+        if (AxisNormalizer.isLStickPseudo(buttonCode) && mOptions.leftStickMovement) {
+            cancelRepeat();
+            return;
+        }
 
         if (AxisNormalizer.isHatPseudo(buttonCode)) {
+            cancelRepeat();
             int dpadCode = AxisNormalizer.hatPseudoToDpad(buttonCode);
             if (dpadCode != -1) mChordTracker.onKeyUp(dpadCode);
             return;
@@ -301,6 +324,26 @@ public class GamepadDispatcher {
                     mActionExecutor.execute(((BindingTarget.UiAction) target).id);
                 }
                 break;
+        }
+    }
+
+    // ─── Axis repeat timer ────────────────────────────────────────────────────
+
+    private void startRepeat(Runnable action) {
+        cancelRepeat();
+        mRepeatRunnable = new Runnable() {
+            @Override public void run() {
+                action.run();
+                mRepeatHandler.postDelayed(this, REPEAT_INTERVAL_MS);
+            }
+        };
+        mRepeatHandler.postDelayed(mRepeatRunnable, REPEAT_INITIAL_MS);
+    }
+
+    private void cancelRepeat() {
+        if (mRepeatRunnable != null) {
+            mRepeatHandler.removeCallbacks(mRepeatRunnable);
+            mRepeatRunnable = null;
         }
     }
 
