@@ -67,6 +67,22 @@ public class ForkFront extends AppCompatActivity
 	private GamepadDispatcher mGamepadDispatcher;
 	private UiContextArbiter mUiContextArbiter;
 	private GamepadDeviceWatcher mGamepadDeviceWatcher;
+	private final GamepadDispatcher.SyntheticDispatcher mSyntheticDispatcher =
+		new GamepadDispatcher.SyntheticDispatcher() {
+			@Override
+			public void dispatchKey(int keyCode) {
+				android.view.View decor = getWindow().getDecorView();
+				long now = android.os.SystemClock.uptimeMillis();
+				decor.dispatchKeyEvent(new android.view.KeyEvent(now, now,
+					android.view.KeyEvent.ACTION_DOWN, keyCode, 0));
+				decor.dispatchKeyEvent(new android.view.KeyEvent(now, now,
+					android.view.KeyEvent.ACTION_UP, keyCode, 0));
+			}
+			@Override
+			public void dispatchBack() {
+				onBackPressed();
+			}
+		};
 
 	private final DisplayManager.DisplayListener mDisplayListener =
 		new DisplayManager.DisplayListener() {
@@ -448,6 +464,10 @@ public class ForkFront extends AppCompatActivity
 		if (mViewModel != null) {
 			mViewModel.attachActivity(this);
 		}
+
+		if (mGamepadDispatcher != null) {
+			mGamepadDispatcher.setSyntheticDispatcher(mSyntheticDispatcher);
+		}
 		super.onResume();
 	}
 
@@ -462,7 +482,10 @@ public class ForkFront extends AppCompatActivity
 		}
 
 		// Reset chord tracker to clear any stuck modifier state
-		if (mGamepadDispatcher != null) mGamepadDispatcher.resetTracker();
+		if (mGamepadDispatcher != null) {
+			mGamepadDispatcher.resetTracker();
+			mGamepadDispatcher.setSyntheticDispatcher(null);
+		}
 
 		// Detach Activity from ViewModel when pausing
 		if (mViewModel != null) {
@@ -723,15 +746,27 @@ public class ForkFront extends AppCompatActivity
 		}
 		mBackTracking = false;
 
-		// Gamepad pre-pass: intercept before the existing key-down chain
+		// Gamepad pre-pass: intercept before the existing key-down chain.
+		// Track whether this was a gamepad event and its context so we can gate
+		// handleKeyDown below (gamepad events in non-gameplay contexts must not
+		// reach the game engine even when the dispatcher returns false).
+		boolean wasGamepadEvent = false;
+		UiContext gamepadCtx = UiContext.GAMEPLAY;
 		if (mGamepadDispatcher != null && mGamepadDispatcher.isGamepadEvent(event)) {
-			UiContext ctx = mUiContextArbiter.current();
-			if (mGamepadDispatcher.handleKeyEvent(event, ctx)) {
+			wasGamepadEvent = true;
+			gamepadCtx = mUiContextArbiter.current();
+			if (mGamepadDispatcher.handleKeyEvent(event, gamepadCtx)) {
 				return true;
 			}
 		}
 
-		if(event.getAction() == KeyEvent.ACTION_DOWN)
+		// For gamepad events in non-gameplay contexts (drawer open, settings, etc.),
+		// skip the game key handler and let super handle focus traversal instead.
+		boolean shouldHandleKey = !wasGamepadEvent ||
+		                          gamepadCtx == UiContext.GAMEPLAY ||
+		                          gamepadCtx == UiContext.DIRECTION_PROMPT;
+
+		if(event.getAction() == KeyEvent.ACTION_DOWN && shouldHandleKey)
 		{
 			EnumSet<Modifier> modifiers = Input.modifiersFromKeyEvent(event);
 			if(handleKeyDown(event.getKeyCode(), event.getUnicodeChar(), event.getRepeatCount(), modifiers))

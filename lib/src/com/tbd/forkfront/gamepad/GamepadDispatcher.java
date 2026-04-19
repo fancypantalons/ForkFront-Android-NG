@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -47,6 +48,17 @@ public class GamepadDispatcher {
     private final Handler mRepeatHandler = new Handler(Looper.getMainLooper());
     private Runnable mRepeatRunnable;
 
+    // ─── D-pad diagonal synthesis state ──────────────────────────────────────
+    private boolean mDiagonalActive = false;
+    /** The second D-pad key that completed the diagonal (not added to ChordTracker). */
+    private int mDiagonalSecondKey = -1;
+    private char mDiagonalChar = 0;
+    /** Timestamp of the most recent D-pad key-down (used to enforce diagonalWindowMs). */
+    private long mLastDpadDownMs = 0;
+
+    // ─── Baseline fallback dispatcher ─────────────────────────────────────────
+    private volatile SyntheticDispatcher mSyntheticDispatcher;
+
     private final SharedPreferences.OnSharedPreferenceChangeListener mPrefListener =
         (prefs, key) -> {
             if (key != null && key.startsWith("gamepad_")) {
@@ -63,6 +75,20 @@ public class GamepadDispatcher {
         void sendStringCmd(String str);
         boolean expectsDirection();
         boolean isMouseLocked();
+    }
+
+    /**
+     * Injected by the active Activity so the baseline fallback can synthesize key events
+     * into the view tree for focus navigation in non-GAMEPLAY contexts.
+     *
+     * Call setSyntheticDispatcher() from onResume / onPause; whichever activity is currently
+     * in the foreground owns it.
+     */
+    public interface SyntheticDispatcher {
+        /** Dispatch a synthetic DOWN+UP key pair to the activity's view tree. */
+        void dispatchKey(int keyCode);
+        /** Trigger back navigation (e.g. onBackPressed()). */
+        void dispatchBack();
     }
 
     public GamepadDispatcher(Context appContext,
@@ -109,7 +135,6 @@ public class GamepadDispatcher {
         }
 
         mBindingMap = new KeyBindingMap(bindings);
-        // Preserve the held-set across a reload (ChordTracker.reset not called here)
         if (mChordTracker == null) {
             mChordTracker = new ChordTracker(mBindingMap, this::onBindingFired);
         } else {
@@ -127,6 +152,14 @@ public class GamepadDispatcher {
         cancelRepeat();
         if (mChordTracker != null) mChordTracker.reset();
         if (mAxisNormalizer != null) mAxisNormalizer.reset();
+        mDiagonalActive = false;
+        mDiagonalSecondKey = -1;
+        mDiagonalChar = 0;
+        mLastDpadDownMs = 0;
+    }
+
+    public void setSyntheticDispatcher(SyntheticDispatcher dispatcher) {
+        mSyntheticDispatcher = dispatcher;
     }
 
     // ─── UiCapture stack ──────────────────────────────────────────────────────
@@ -180,14 +213,16 @@ public class GamepadDispatcher {
             }
         }
 
-        // Non-GAMEPLAY contexts → active UiCapture, then baseline fallback
+        // Non-GAMEPLAY contexts → active UiCapture, then baseline fallback.
+        // Returns the consumed result; D-pad returns false so the calling activity can
+        // let Android's focus system handle traversal via super.dispatchKeyEvent.
         if (ctx != UiContext.GAMEPLAY && ctx != UiContext.DIRECTION_PROMPT) {
             UiCapture cap = mCaptureStack.isEmpty() ? null : mCaptureStack.peek();
             boolean handled = (cap != null) && cap.handleGamepadKey(ev);
             if (!handled) {
                 handled = baselineFallback(ev);
             }
-            return true; // always consume; don't leak gamepad events into NH_State
+            return handled;
         }
 
         // DIRECTION_PROMPT
@@ -207,11 +242,17 @@ public class GamepadDispatcher {
             return true; // swallow all other events in direction prompt
         }
 
-        // GAMEPLAY → ChordTracker
+        // GAMEPLAY → ChordTracker (with D-pad diagonal synthesis)
         if (action == KeyEvent.ACTION_DOWN) {
+            if (isDpadKeycode(keycode)) {
+                return handleDpadDown(keycode, ev.getRepeatCount() > 0);
+            }
             ChordTracker.Result result = mChordTracker.onKeyDown(keycode, ev.getRepeatCount());
             return result == ChordTracker.Result.HANDLED;
         } else if (action == KeyEvent.ACTION_UP) {
+            if (isDpadKeycode(keycode)) {
+                return handleDpadUp(keycode);
+            }
             ChordTracker.Result result = mChordTracker.onKeyUp(keycode);
             return result == ChordTracker.Result.HANDLED;
         }
@@ -233,10 +274,7 @@ public class GamepadDispatcher {
             }
             @Override
             public void onRightStickMoved(float x, float y) {
-                // Deliver to active UiCapture if present (e.g. cursor mode panning)
                 if (!mCaptureStack.isEmpty()) {
-                    // Right-stick motion delivered as a MotionEvent to the capture.
-                    // The capture can inspect ev directly since we pass the original.
                     mCaptureStack.peek().handleGamepadMotion(ev);
                 }
             }
@@ -267,14 +305,18 @@ public class GamepadDispatcher {
             return;
         }
 
-        // HAT axes → treat as equivalent D-pad keycodes, with timer-based repeat
+        // HAT axes → route through D-pad diagonal detection
         if (AxisNormalizer.isHatPseudo(buttonCode)) {
             int dpadCode = AxisNormalizer.hatPseudoToDpad(buttonCode);
             if (dpadCode != -1) {
-                mChordTracker.onKeyDown(dpadCode, 0);
-                startRepeat(() -> {
-                    if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
-                });
+                handleDpadDown(dpadCode, false);
+                if (!mDiagonalActive) {
+                    // Non-diagonal: start HAT-based key repeat via our timer
+                    startRepeat(() -> {
+                        if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
+                    });
+                }
+                // If mDiagonalActive, handleDpadDown already started the diagonal repeat
             }
             return;
         }
@@ -294,10 +336,146 @@ public class GamepadDispatcher {
         if (AxisNormalizer.isHatPseudo(buttonCode)) {
             cancelRepeat();
             int dpadCode = AxisNormalizer.hatPseudoToDpad(buttonCode);
-            if (dpadCode != -1) mChordTracker.onKeyUp(dpadCode);
+            if (dpadCode != -1) handleDpadUp(dpadCode);
             return;
         }
         mChordTracker.onKeyUp(buttonCode);
+    }
+
+    // ─── D-pad diagonal synthesis ─────────────────────────────────────────────
+
+    /**
+     * Handles a D-pad key-down event, synthesizing a diagonal char when two adjacent
+     * cardinals are pressed within diagonalWindowMs and both are bound to movement.
+     *
+     * Returns true if the event was handled (including diagonal activation).
+     */
+    private boolean handleDpadDown(int dpadKeycode, boolean isRepeat) {
+        if (isRepeat) {
+            // While diagonal is active our own timer drives repeats; swallow Android repeats.
+            if (mDiagonalActive) return true;
+            return mChordTracker.onKeyDown(dpadKeycode, 1) == ChordTracker.Result.HANDLED;
+        }
+
+        if (mOptions.synthDiagonals && !mDiagonalActive) {
+            int heldDpad = getHeldDpadKeycode();
+            if (heldDpad != -1 && heldDpad != dpadKeycode) {
+                long now = SystemClock.uptimeMillis();
+                if (now - mLastDpadDownMs <= mOptions.diagonalWindowMs) {
+                    char diag = getDpadDiagonal(heldDpad, dpadKeycode);
+                    if (diag != 0 && isDpadMovementBinding(heldDpad) && isDpadMovementBinding(dpadKeycode)) {
+                        mDiagonalActive = true;
+                        mDiagonalSecondKey = dpadKeycode;
+                        mDiagonalChar = diag;
+                        cancelRepeat();
+                        mStateRef.sendDirKeyCmd(diag);
+                        final char diagChar = diag;
+                        startRepeat(() -> {
+                            if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(diagChar);
+                        });
+                        return true; // second key not passed to ChordTracker
+                    }
+                }
+            }
+            mLastDpadDownMs = SystemClock.uptimeMillis();
+        }
+
+        return mChordTracker.onKeyDown(dpadKeycode, 0) == ChordTracker.Result.HANDLED;
+    }
+
+    /**
+     * Handles a D-pad key-up event, deactivating diagonal mode if active.
+     */
+    private boolean handleDpadUp(int dpadKeycode) {
+        if (mDiagonalActive) {
+            if (dpadKeycode == mDiagonalSecondKey) {
+                // Second key released: clean up diagonal, don't pass to ChordTracker
+                mDiagonalActive = false;
+                mDiagonalSecondKey = -1;
+                mDiagonalChar = 0;
+                cancelRepeat();
+                return true;
+            }
+            // First key released: end diagonal, fall through to ChordTracker for UP
+            mDiagonalActive = false;
+            mDiagonalSecondKey = -1;
+            mDiagonalChar = 0;
+            cancelRepeat();
+        }
+        mLastDpadDownMs = 0;
+        return mChordTracker.onKeyUp(dpadKeycode) == ChordTracker.Result.HANDLED;
+    }
+
+    private int getHeldDpadKeycode() {
+        for (ButtonId b : mChordTracker.getHeld()) {
+            if (isDpadKeycode(b.code)) return b.code;
+        }
+        return -1;
+    }
+
+    private static boolean isDpadKeycode(int code) {
+        return code == KeyEvent.KEYCODE_DPAD_LEFT  || code == KeyEvent.KEYCODE_DPAD_RIGHT ||
+               code == KeyEvent.KEYCODE_DPAD_UP    || code == KeyEvent.KEYCODE_DPAD_DOWN;
+    }
+
+    private static char getDpadDiagonal(int code1, int code2) {
+        boolean up    = code1 == KeyEvent.KEYCODE_DPAD_UP    || code2 == KeyEvent.KEYCODE_DPAD_UP;
+        boolean down  = code1 == KeyEvent.KEYCODE_DPAD_DOWN  || code2 == KeyEvent.KEYCODE_DPAD_DOWN;
+        boolean left  = code1 == KeyEvent.KEYCODE_DPAD_LEFT  || code2 == KeyEvent.KEYCODE_DPAD_LEFT;
+        boolean right = code1 == KeyEvent.KEYCODE_DPAD_RIGHT || code2 == KeyEvent.KEYCODE_DPAD_RIGHT;
+        if (up   && left)  return 'y';
+        if (up   && right) return 'u';
+        if (down && left)  return 'b';
+        if (down && right) return 'n';
+        return 0;
+    }
+
+    /** Returns true if the D-pad key is bound to its expected NetHack movement char. */
+    private boolean isDpadMovementBinding(int dpadCode) {
+        char expected = directionFromKeyCode(dpadCode);
+        if (expected == 0) return false;
+        KeyBinding kb = mBindingMap.find(Chord.single(dpadCode));
+        if (kb == null || kb.target.kind() != BindingTarget.Kind.NH_KEY) return false;
+        return ((BindingTarget.NhKey) kb.target).ch == expected;
+    }
+
+    // ─── Baseline fallback for non-GAMEPLAY contexts ──────────────────────────
+
+    /**
+     * Maps A→DPAD_CENTER, B→BACK, L1→PAGE_UP, R1→PAGE_DOWN for contexts without a
+     * registered UiCapture (e.g. drawer open, settings navigation).
+     *
+     * D-pad events return false so the caller can let Android focus traversal handle them
+     * via super.dispatchKeyEvent. The caller is responsible for ensuring such events do
+     * not reach the game engine (see ForkFront.dispatchKeyEvent).
+     */
+    private boolean baselineFallback(KeyEvent ev) {
+        if (ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+
+        int keycode = ev.getKeyCode();
+
+        // D-pad: pass through — returning false lets Android focus-search handle it.
+        if (isDpadKeycode(keycode)) return false;
+
+        SyntheticDispatcher sd = mSyntheticDispatcher;
+        if (sd == null) return false;
+
+        switch (keycode) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                sd.dispatchKey(KeyEvent.KEYCODE_DPAD_CENTER);
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:
+                sd.dispatchBack();
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_L1:
+                sd.dispatchKey(KeyEvent.KEYCODE_PAGE_UP);
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_R1:
+                sd.dispatchKey(KeyEvent.KEYCODE_PAGE_DOWN);
+                return true;
+            default:
+                return false;
+        }
     }
 
     // ─── Binding dispatch ─────────────────────────────────────────────────────
@@ -357,17 +535,6 @@ public class GamepadDispatcher {
         KeyBinding kb = mBindingMap.find(Chord.single(keycode));
         if (kb != null && kb.target.kind() == BindingTarget.Kind.UI_ACTION) return kb;
         return null;
-    }
-
-    /**
-     * Baseline fallback for non-GAMEPLAY contexts without a UiCapture.
-     * Synthesizes standard key events so Android's focus traversal still works.
-     * For now this is a no-op stub; real synthesis would require dispatching
-     * new KeyEvents through the Activity view tree.
-     */
-    private boolean baselineFallback(KeyEvent ev) {
-        // TODO: synthesize DPAD_CENTER / BACK / PAGE_UP / PAGE_DOWN for focus-traversable UIs
-        return false;
     }
 
     private static char directionFromKeyCode(int keycode) {
