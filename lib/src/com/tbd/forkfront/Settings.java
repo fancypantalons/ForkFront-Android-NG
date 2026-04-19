@@ -57,7 +57,9 @@ public class Settings extends AppCompatActivity
             if (mSettingsUiCapture == null) {
                 mSettingsUiCapture = new SettingsUiCapture(this);
             }
-            gd.pushContext(UiContext.SETTINGS_OPEN);
+            if (gd.getArbiter().current() != UiContext.SETTINGS_OPEN) {
+                gd.pushContext(UiContext.SETTINGS_OPEN);
+            }
             gd.enterUiCapture(mSettingsUiCapture);
         }
     }
