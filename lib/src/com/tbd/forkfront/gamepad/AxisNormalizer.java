@@ -11,11 +11,20 @@ public class AxisNormalizer {
     private static final float TRIGGER_RELEASE_THRESHOLD = 0.3f;
     private static final float STICK_DEADZONE   = 0.3f;
 
+    // Left-stick magnitude hysteresis: different enter/exit thresholds.
+    private static final float LSTICK_ENTER_MAG = 0.40f;
+    private static final float LSTICK_EXIT_MAG  = 0.25f;
+
+    // Left-stick octant hysteresis: must push this many radians (7.5°) past the
+    // nearest octant boundary before the current octant changes.
+    private static final double LSTICK_OCTANT_HYSTERESIS = Math.PI / 24.0;
+
     private boolean mLTriggerDown = false;
     private boolean mRTriggerDown = false;
 
     // Left stick: -1 = center/deadzone; 0..7 = N, NE, E, SE, S, SW, W, NW
     private int mLStickOctant = -1;
+    private boolean mLStickMagActive = false;
 
     // HAT axis state
     private float mLastHatX = 0;
@@ -93,15 +102,45 @@ public class AxisNormalizer {
         float y = ev.getAxisValue(MotionEvent.AXIS_Y);
         float mag = (float) Math.sqrt(x * x + y * y);
 
+        // Magnitude hysteresis: different enter/exit thresholds to prevent deadzone-edge toggling.
+        if (!mLStickMagActive) {
+            if (mag < LSTICK_ENTER_MAG) {
+                // Still in deadzone — emit release if we somehow had an octant.
+                if (mLStickOctant >= 0) {
+                    sink.onSynthRelease(lStickOctantToPseudo(mLStickOctant));
+                    mLStickOctant = -1;
+                }
+                return;
+            }
+            mLStickMagActive = true;
+        } else if (mag < LSTICK_EXIT_MAG) {
+            mLStickMagActive = false;
+            if (mLStickOctant >= 0) {
+                sink.onSynthRelease(lStickOctantToPseudo(mLStickOctant));
+                mLStickOctant = -1;
+            }
+            return;
+        }
+
+        // atan2(x, -y) gives angle from North (0), clockwise to East (PI/2), etc.
+        double angle = Math.atan2(x, -y);
+        if (angle < 0) angle += 2 * Math.PI;
+
+        // Octant with angular hysteresis: the current octant is sticky — we only leave it
+        // when the angle has moved LSTICK_OCTANT_HYSTERESIS past the nearest boundary.
         int newOctant;
-        if (mag < STICK_DEADZONE) {
-            newOctant = -1;
-        } else {
-            // atan2(x, -y) gives angle from North (0), clockwise to East (PI/2), etc.
-            double angle = Math.atan2(x, -y);
-            if (angle < 0) angle += 2 * Math.PI;
-            // Map to 8 octants: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
+        if (mLStickOctant < 0) {
+            // No current octant: snap to nearest.
             newOctant = (int) Math.round(angle / (Math.PI / 4)) % 8;
+        } else {
+            double currentCenter = mLStickOctant * (Math.PI / 4);
+            double distFromCenter = angleDiff(angle, currentCenter);
+            // Standard boundary is at PI/8 (22.5°); with hysteresis we require PI/8 + H.
+            if (distFromCenter > (Math.PI / 8) + LSTICK_OCTANT_HYSTERESIS) {
+                newOctant = (int) Math.round(angle / (Math.PI / 4)) % 8;
+            } else {
+                newOctant = mLStickOctant; // stay
+            }
         }
 
         if (newOctant == mLStickOctant) return;
@@ -113,6 +152,11 @@ public class AxisNormalizer {
         if (mLStickOctant >= 0) {
             sink.onSynthPress(lStickOctantToPseudo(mLStickOctant));
         }
+    }
+
+    private static double angleDiff(double a, double b) {
+        double d = Math.abs(a - b);
+        return d > Math.PI ? 2 * Math.PI - d : d;
     }
 
     private void processRightStick(MotionEvent ev, EventSink sink) {
@@ -179,6 +223,7 @@ public class AxisNormalizer {
         if (mLTriggerDown) { sink.onSynthRelease(ButtonId.AXIS_LTRIGGER_PSEUDO); mLTriggerDown = false; }
         if (mRTriggerDown) { sink.onSynthRelease(ButtonId.AXIS_RTRIGGER_PSEUDO); mRTriggerDown = false; }
         if (mLStickOctant >= 0) { sink.onSynthRelease(lStickOctantToPseudo(mLStickOctant)); mLStickOctant = -1; }
+        mLStickMagActive = false;
         mLastHatX = 0;
         mLastHatY = 0;
     }
@@ -187,6 +232,7 @@ public class AxisNormalizer {
         mLTriggerDown = false;
         mRTriggerDown = false;
         mLStickOctant = -1;
+        mLStickMagActive = false;
         mLastHatX = 0;
         mLastHatY = 0;
     }
