@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.View;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -14,6 +15,7 @@ import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.recyclerview.widget.RecyclerView;
 import com.tbd.forkfront.gamepad.KeyBindingDefaultsLoader;
 import com.tbd.forkfront.gamepad.KeyBindingStore;
 
@@ -94,6 +96,13 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 settingsCategory.removePreference(fullscreenPref);
             }
         }
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        RecyclerView list = getListView();
+        list.post(() -> list.requestFocus());
     }
 
     @Override
