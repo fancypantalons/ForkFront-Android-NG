@@ -22,9 +22,20 @@ public class DrawerUiCapture implements UiCapture {
         if (ev.getAction() != KeyEvent.ACTION_DOWN) return true; // swallow UPs
         switch (ev.getKeyCode()) {
             case KeyEvent.KEYCODE_BUTTON_B:
-            case KeyEvent.KEYCODE_BACK:
+            case KeyEvent.KEYCODE_BACK: {
+                // Clear focus first; otherwise the focused item's translucent amber
+                // background composites over the SurfaceView through the close animation,
+                // tinting the map. Swipe-close doesn't hit this because touch already
+                // moves focus away.
+                View focused = mNav.findFocus();
+                if (focused != null) {
+                    focused.clearFocus();
+                    // Move focus to the container which we've configured to have no highlight
+                    mNav.requestFocus();
+                }
                 mDrawer.closeDrawer(GravityCompat.END);
                 return true;
+            }
             case KeyEvent.KEYCODE_BUTTON_A:
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER: {

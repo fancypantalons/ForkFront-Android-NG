@@ -25,7 +25,7 @@ public class GamepadDispatcher {
     private static final String TAG = "GamepadDispatcher";
 
     /** Synthetic events injected by the dispatcher carry this source flag to prevent re-entry. */
-    private static final int SOURCE_SYNTHETIC = InputDevice.SOURCE_UNKNOWN | 0x80000000;
+    public static final int SOURCE_SYNTHETIC = InputDevice.SOURCE_UNKNOWN | 0x80000000;
 
     private static final int REPEAT_INITIAL_MS  = 300;
     private static final int REPEAT_INTERVAL_MS = 100;
@@ -280,6 +280,11 @@ public class GamepadDispatcher {
 
     public boolean handleGenericMotion(MotionEvent ev, UiContext ctx) {
         if (!mOptions.enabled || mAxisNormalizer == null) return false;
+        // In non-gameplay contexts (drawer, settings, dialogs), don't consume motion
+        // events. Letting them fall through to ViewRootImpl's SyntheticInputStage gives
+        // us free HAT→DPAD synthesis, which drives normal focus navigation. This is
+        // why Settings (which doesn't override onGenericMotionEvent) "just works."
+        if (ctx != UiContext.GAMEPLAY) return false;
 
         final UiContext capturedCtx = ctx;
         mAxisNormalizer.handleGenericMotion(ev, new AxisNormalizer.EventSink() {
@@ -304,7 +309,7 @@ public class GamepadDispatcher {
     // ─── Synthetic press/release from AxisNormalizer ──────────────────────────
 
     private void handleSynthPress(int buttonCode, UiContext ctx) {
-        if (ctx != UiContext.GAMEPLAY) return; // axis input only drives GAMEPLAY actions for now
+        if (ctx != UiContext.GAMEPLAY) return; // motion events fall through in non-gameplay
 
         if (AxisNormalizer.isLStickPseudo(buttonCode) && mOptions.leftStickMovement) {
             if (mStickActivePseudo != -1 || mStickWasActive) {
