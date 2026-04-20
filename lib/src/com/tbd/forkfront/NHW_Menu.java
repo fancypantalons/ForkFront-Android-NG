@@ -934,8 +934,6 @@ public class NHW_Menu implements NH_Window
 			if(pos == ListView.INVALID_POSITION)
 				pos = mListView.getFirstVisiblePosition();
 
-			android.util.Log.d("NHW_Menu", "navigateListView: Key=" + keyCode + " Current Selection=" + pos + " HasFocus=" + mListView.hasFocus());
-
 			switch(keyCode)
 			{
 			case KeyEvent.KEYCODE_DPAD_UP:
@@ -985,7 +983,6 @@ public class NHW_Menu implements NH_Window
 				mListView.invalidateViews();
 				((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
 			}
-		}
-	}
-
+                }
+        }
 }
