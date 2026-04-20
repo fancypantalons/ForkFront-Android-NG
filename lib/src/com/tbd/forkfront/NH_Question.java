@@ -235,21 +235,7 @@ public class NH_Question
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
 			case KeyEvent.KEYCODE_DPAD_UP:
 			case KeyEvent.KEYCODE_DPAD_DOWN:
-			{
-				View f = mRoot.findFocus();
-				if(f != null)
-				{
-					int direction = View.FOCUS_RIGHT;
-					if(keyCode == KeyEvent.KEYCODE_DPAD_LEFT) direction = View.FOCUS_LEFT;
-					else if(keyCode == KeyEvent.KEYCODE_DPAD_UP) direction = View.FOCUS_UP;
-					else if(keyCode == KeyEvent.KEYCODE_DPAD_DOWN) direction = View.FOCUS_DOWN;
-
-					View n = f.focusSearch(direction);
-					if(n != null)
-						n.requestFocus();
-				}
-				return KeyEventResult.HANDLED;
-			}
+				return KeyEventResult.RETURN_TO_SYSTEM;
 			case KeyEvent.KEYCODE_DPAD_CENTER:
 			case KeyEvent.KEYCODE_ENTER:
 			{

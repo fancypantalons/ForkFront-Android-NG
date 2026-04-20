@@ -469,7 +469,7 @@ public class NHW_Menu implements NH_Window
 				case KeyEvent.KEYCODE_DPAD_DOWN:
 				case KeyEvent.KEYCODE_DPAD_LEFT:
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
-					return KeyEventResult.IGNORED;
+					return KeyEventResult.RETURN_TO_SYSTEM;
 
 				case KeyEvent.KEYCODE_DPAD_CENTER:
 					if(mListView != null && !mListView.hasFocus()) return KeyEventResult.RETURN_TO_SYSTEM;
