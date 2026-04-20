@@ -327,15 +327,31 @@ public class NHW_Menu implements NH_Window
 					sendSelectChecked();
 					return true;
 				}
+				if (mMenu.mType == Type.Text)
+					return navigateScrollView(KeyEvent.KEYCODE_DPAD_LEFT) == KeyEventResult.HANDLED;
 				return navigateListView(KeyEvent.KEYCODE_PAGE_UP) == KeyEventResult.HANDLED;
 			case KeyEvent.KEYCODE_BUTTON_R1:
+				if (mMenu.mType == Type.Text)
+					return navigateScrollView(KeyEvent.KEYCODE_DPAD_RIGHT) == KeyEventResult.HANDLED;
 				return navigateListView(KeyEvent.KEYCODE_PAGE_DOWN) == KeyEventResult.HANDLED;
 			case KeyEvent.KEYCODE_BUTTON_L2:
-				mListView.setSelection(0);
-				return true;
+				if (mMenu.mType == Type.Text)
+					return navigateScrollView(KeyEvent.KEYCODE_MOVE_HOME) == KeyEventResult.HANDLED;
+				if (mListView != null)
+				{
+					mListView.setSelection(0);
+					return true;
+				}
+				return false;
 			case KeyEvent.KEYCODE_BUTTON_R2:
-				mListView.setSelection(mListView.getCount() - 1);
-				return true;
+				if (mMenu.mType == Type.Text)
+					return navigateScrollView(KeyEvent.KEYCODE_MOVE_END) == KeyEventResult.HANDLED;
+				if (mListView != null)
+				{
+					mListView.setSelection(mListView.getCount() - 1);
+					return true;
+				}
+				return false;
 			}
 			return false;
 		}
@@ -929,6 +945,14 @@ public class NHW_Menu implements NH_Window
 			case KeyEvent.KEYCODE_DPAD_CENTER:
 				mMenu.close();
 				break;
+			case KeyEvent.KEYCODE_MOVE_HOME:
+				sv.fullScroll(View.FOCUS_UP);
+				break;
+			case KeyEvent.KEYCODE_MOVE_END:
+				sv.fullScroll(View.FOCUS_DOWN);
+				break;
+			default:
+				return KeyEventResult.IGNORED;
 			}
 			return KeyEventResult.HANDLED;
 		}
@@ -975,6 +999,14 @@ public class NHW_Menu implements NH_Window
 						toggleItemOrGroupAt(pos);
 				}
 				break;
+			case KeyEvent.KEYCODE_PAGE_UP:
+				mListView.smoothScrollBy(-mListView.getHeight() * 3 / 4, 100);
+				break;
+			case KeyEvent.KEYCODE_PAGE_DOWN:
+				mListView.smoothScrollBy(mListView.getHeight() * 3 / 4, 100);
+				break;
+			default:
+				return KeyEventResult.IGNORED;
 			}
 			return KeyEventResult.HANDLED;
 		}
