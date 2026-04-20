@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnKeyListener;
@@ -19,7 +20,7 @@ import android.view.ViewGroup;
 import android.widget.*;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
-
+import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.Input.Modifier;
 
 public class NHW_Menu implements NH_Window
@@ -33,6 +34,7 @@ public class NHW_Menu implements NH_Window
 	private NHW_MenuFragment mFragment;
 	private boolean mIsVisible;
 	private AppCompatActivity mContext;
+	private NH_State mState;
 
 	private enum Type
 	{
@@ -55,6 +57,7 @@ public class NHW_Menu implements NH_Window
 		mType = Type.None;
 		mKeyboardCount = -1;
 		mContext = context;
+		mState = new androidx.lifecycle.ViewModelProvider(context).get(NetHackViewModel.class).getState();
 	}
 
 	// ____________________________________________________________________________________
@@ -100,11 +103,15 @@ public class NHW_Menu implements NH_Window
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
 				.commit();
 		}
+		mState.pushContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 	}
 
 	// ____________________________________________________________________________________
 	private void hide()
 	{
+		if (mIsVisible) {
+			mState.popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+		}
 		mIsVisible = false;
 		removeFragment();
 	}
@@ -124,9 +131,24 @@ public class NHW_Menu implements NH_Window
 		return mWid;
 	}
 
+	@Override
+	public boolean handleGamepadKey(KeyEvent ev)
+	{
+		return mFragment != null && mFragment.isAdded() && mFragment.handleGamepadKey(ev);
+	}
+
+	@Override
+	public boolean handleGamepadMotion(MotionEvent ev)
+	{
+		return mFragment != null && mFragment.isAdded() && mFragment.handleGamepadMotion(ev);
+	}
+
 	// ____________________________________________________________________________________
 	private void close()
 	{
+		if (mIsVisible) {
+			mState.popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+		}
 		if(mIsBlocking)
 			mIO.sendKeyCmd(' ');
 		removeFragment();
@@ -173,6 +195,11 @@ public class NHW_Menu implements NH_Window
 	public void setCursorPos(int x, int y) {
 	}
 
+	@Override
+	public boolean isVisible() {
+		return mIsVisible;
+	}
+
 	// ____________________________________________________________________________________
 	public void startMenu()
 	{
@@ -183,6 +210,7 @@ public class NHW_Menu implements NH_Window
 	// ____________________________________________________________________________________
 	public void addMenu(int tile, long ident, int accelerator, int groupacc, int attr, String str, int preselected, int color)
 	{
+		android.util.Log.d("NHW_Menu", "addMenu: " + str + " ident=" + ident + " acc=" + (char)accelerator);
 		if(str.length() == 0 && tile < 0)
 			return;
 		// start_menu is not always called
@@ -201,8 +229,11 @@ public class NHW_Menu implements NH_Window
 	@Override
 	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
-		if(mFragment != null && mFragment.isAdded())
+		if(mFragment != null && mFragment.isAdded()) {
+			android.util.Log.d("NHW_Menu", "Delegating handleKeyDown to fragment");
 			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
+		}
+		android.util.Log.d("NHW_Menu", "Fragment not ready for handleKeyDown");
 		return KeyEventResult.IGNORED;
 	}
 
@@ -255,6 +286,70 @@ public class NHW_Menu implements NH_Window
 		private AmountSelector mAmountSelector;
 		private Button mSelectAllBtn;
 
+		public boolean handleGamepadKey(KeyEvent ev)
+		{
+			if(mAmountSelector != null) return mAmountSelector.handleGamepadKey(ev);
+			if(ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+
+			android.util.Log.d("NHW_Menu", "Fragment handleGamepadKey: " + ev.getKeyCode());
+			switch(ev.getKeyCode())
+			{
+			case KeyEvent.KEYCODE_BUTTON_A:
+				if(mMenu.mType == Type.Text) { mMenu.close(); return true; }
+				return handleA();
+			case KeyEvent.KEYCODE_BUTTON_B:
+			case KeyEvent.KEYCODE_BUTTON_SELECT:
+				if(mMenu.mType == Type.Text) { mMenu.close(); return true; }
+				mMenu.mKeyboardCount = -1;
+				sendCancelSelect();
+				return true;
+			case KeyEvent.KEYCODE_BUTTON_X:
+				if(mMenu.mType == Type.Menu) {
+					if(mMenu.mHow == MenuSelectMode.PickMany) {
+						if(mSelectAllBtn != null) mSelectAllBtn.performClick();
+						else selectAll();
+					}
+					else mMenu.mKeyboardCount = -1;
+					return true;
+				}
+				break;
+			case KeyEvent.KEYCODE_BUTTON_L1:
+				if(mMenu.mType == Type.Menu && mMenu.mHow == MenuSelectMode.PickMany) {
+					sendSelectChecked();
+					return true;
+				}
+				return navigateListView(KeyEvent.KEYCODE_PAGE_UP) == KeyEventResult.HANDLED;
+			case KeyEvent.KEYCODE_BUTTON_R1:
+				return navigateListView(KeyEvent.KEYCODE_PAGE_DOWN) == KeyEventResult.HANDLED;
+			case KeyEvent.KEYCODE_BUTTON_L2:
+				mListView.setSelection(0);
+				return true;
+			case KeyEvent.KEYCODE_BUTTON_R2:
+				mListView.setSelection(mListView.getCount() - 1);
+				return true;
+			}
+			return false;
+		}
+
+		private boolean handleA()
+		{
+			int pos = mListView.getSelectedItemPosition();
+			if(pos == ListView.INVALID_POSITION) pos = mListView.getFirstVisiblePosition();
+			if(pos != ListView.INVALID_POSITION)
+			{
+				MenuItem item = (MenuItem)mListView.getItemAtPosition(pos);
+				if(mMenu.mHow == MenuSelectMode.PickOne) sendSelectOne(item, mMenu.mKeyboardCount);
+				else toggleItemOrGroupAt(pos);
+				return true;
+			}
+			return false;
+		}
+
+		public boolean handleGamepadMotion(MotionEvent ev)
+		{
+			return false;
+		}
+
 		public NHW_MenuFragment(NHW_Menu menu)
 		{
 			mMenu = menu;
@@ -275,8 +370,9 @@ public class NHW_Menu implements NH_Window
 			else if(mMenu.mType == Type.Menu)
 				mRoot = createMenu(inflater, container);
 
-			if(mRoot != null)
+			if(mRoot != null) {
 				mRoot.requestFocus();
+			}
 
 			return mRoot;
 		}
@@ -295,6 +391,7 @@ public class NHW_Menu implements NH_Window
 		// ____________________________________________________________________________________
 		public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Modifier> modifiers, int repeatCount)
 		{
+			android.util.Log.d("NHW_Menu", "Fragment handleKeyDown: Key=" + keyCode + " Showing=" + isShowing());
 			if(mAmountSelector != null)
 				return mAmountSelector.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 
@@ -303,13 +400,20 @@ public class NHW_Menu implements NH_Window
 			else if(ch == '>')
 				keyCode = KeyEvent.KEYCODE_PAGE_DOWN;
 
-			if(!isShowing() || keyCode < 0)
+			if(keyCode < 0)
 				return KeyEventResult.IGNORED;
 
 			if(mMenu.mType == Type.Text)
 			{
 				switch(keyCode)
 				{
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					return navigateScrollView(keyCode);
+
 				case KeyEvent.KEYCODE_ESCAPE:
 				case KeyEvent.KEYCODE_ENTER:
 				case KeyEvent.KEYCODE_BACK:
@@ -335,6 +439,13 @@ public class NHW_Menu implements NH_Window
 			{
 				switch(keyCode)
 				{
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					return navigateListView(keyCode);
+
 				case KeyEvent.KEYCODE_ESCAPE:
 				case KeyEvent.KEYCODE_BACK:
 					mMenu.mKeyboardCount = -1;
@@ -423,269 +534,17 @@ public class NHW_Menu implements NH_Window
 			}
 			else
 			{
-				item.setCount(amount);
-				((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
-			}
-		}
-
-		// ____________________________________________________________________________________
-		public boolean isShowing()
-		{
-			return mRoot != null && mRoot.getVisibility() == View.VISIBLE;
-		}
-
-		// ____________________________________________________________________________________
-		private void sendSelectNone()
-		{
-			if(isShowing())
-			{
-				mMenu.mIO.sendSelectNoneCmd();
-				mMenu.hide();
-			}
-		}
-
-		// ____________________________________________________________________________________
-		private void sendSelectOne(MenuItem item, int count)
-		{
-			if(isShowing())
-			{
-				long id = item.getId();
-				if(count > 0)
-					count = Math.min(count, item.getMaxCount());
-				mMenu.mIO.sendSelectCmd(id, count);
-				mMenu.hide();
-			}
-		}
-
-		// ____________________________________________________________________________________
-		private void sendSelectChecked()
-		{
-			if(isShowing())
-			{
-				ArrayList<MenuItem> items = new ArrayList<MenuItem>();
-				for(MenuItem i : mMenu.mItems)
-					if(i.isSelected())
-						items.add(i);
-				mMenu.mIO.sendSelectCmd(items);
-				mMenu.hide();
-			}
-		}
-
-		// ____________________________________________________________________________________
-		private void sendCancelSelect()
-		{
-			if(isShowing())
-			{
-				mMenu.mIO.sendCancelSelectCmd();
-				mMenu.hide();
-			}
-		}
-
-		// ____________________________________________________________________________________
-		private void toggleItemOrGroupAt(int itemPos)
-		{
-			if(mMenu.mHow != MenuSelectMode.PickMany)
-				return;
-
-			if(itemPos < 0 || itemPos >= mMenu.mItems.size())
-				return;
-
-			MenuItem item = mMenu.mItems.get(itemPos);
-			if(item.isHeader())
-				toggleGroupAt(itemPos);
-			else
-				toggleItem(item, true);
-		}
-
-		// ____________________________________________________________________________________
-		private void toggleGroupAt(int itemPos)
-		{
-			mMenu.mKeyboardCount = -1;
-
-			boolean select = false;
-
-			MenuItem item;
-
-			itemPos++;
-			int lastItemPos = itemPos;
-			for(; lastItemPos < mMenu.mItems.size(); lastItemPos++)
-			{
-				item = mMenu.mItems.get(lastItemPos);
-				if(item.isHeader())
-					break;
-				if(item.isSelectable() && !item.isSelected())
-					select = true;
-			}
-
-			for(; itemPos < lastItemPos; itemPos++)
-			{
-				item = mMenu.mItems.get(itemPos);
-
-				if(item.isHeader() || !item.isSelectable())
-					continue;
-
-				item.setCount(select ? -1 : 0);
-			}
-
-			((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
-		}
-
-		// ____________________________________________________________________________________
-		private int getAccelerator(char acc)
-		{
-			for(int i = 0; i < mMenu.mItems.size(); i++)
-			{
-				MenuItem item = mMenu.mItems.get(i);
-				if(item.getAcc() == acc && !item.isHeader() && item.isSelectable())
-					return i;
-			}
-			return -1;
-		}
-
-		// ____________________________________________________________________________________
-		private boolean menuSelect(char acc)
-		{
-			if(acc == 0)
-				return false;
-			if(isShowing() && mMenu.mHow != MenuSelectMode.PickNone)
-			{
-				boolean bRet = false;
-				int i = getAccelerator(acc);
-				if(i >= 0)
+				if(amount >= 0)
 				{
-					MenuItem item = mMenu.mItems.get(i);
-					if(mMenu.mHow == MenuSelectMode.PickOne)
-						sendSelectOne(item, mMenu.mKeyboardCount);
-					else
-						toggleItem(item, false);
-					bRet = true;
-				}
-				else if(mMenu.mHow == MenuSelectMode.PickMany)
-				{
-					mMenu.mKeyboardCount = -1;
-					for(MenuItem item : mMenu.mItems)
-					{
-						if(item.getGroupAcc() == acc && !item.isHeader() && item.isSelectable())
-						{
-							toggleItem(item, false);
-							bRet = true;
-						}
-					}
-				}
-
-				if(bRet)
+					item.setCount(amount);
+					item.setSelected(amount > 0);
 					((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
-
-				return bRet;
-			}
-			return false;
-		}
-
-		// ____________________________________________________________________________________
-		private void toggleItem(MenuItem item, boolean notifyAdapter)
-		{
-			if(!item.isHeader() && item.isSelectable())
-			{
-				if(mMenu.mKeyboardCount >= 0)
-					item.setCount(mMenu.mKeyboardCount);
-				else
-					item.setCount(item.isSelected() ? 0 : -1);
-				if(notifyAdapter)
-					((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
-			}
-			mMenu.mKeyboardCount = -1;
-		}
-
-		// ____________________________________________________________________________________
-		private void selectAll()
-		{
-			if(isShowing() && mMenu.mHow == MenuSelectMode.PickMany)
-			{
-				for(int i = 0; i < mMenu.mItems.size(); i++)
-				{
-					MenuItem item = mMenu.mItems.get(i);
-					if(!item.isHeader() && item.isSelectable())
-						item.setCount(-1);
 				}
-				((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
-				mMenu.mKeyboardCount = -1;
-				if(mSelectAllBtn != null)
-					mSelectAllBtn.setText("Clear all");
 			}
 		}
 
 		// ____________________________________________________________________________________
-		private void clearAll()
-		{
-			if(isShowing() && mMenu.mHow == MenuSelectMode.PickMany)
-			{
-				for(int i = 0; i < mMenu.mItems.size(); i++)
-				{
-					MenuItem item = mMenu.mItems.get(i);
-					if(!item.isHeader() && item.isSelectable())
-						item.setCount(0);
-				}
-				((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
-				mMenu.mKeyboardCount = -1;
-				if(mSelectAllBtn != null)
-					mSelectAllBtn.setText("Select all");
-			}
-		}
-
-		// ____________________________________________________________________________________
-		public View createTextDlg(LayoutInflater inflater, ViewGroup container)
-		{
-			View root = inflater.inflate(R.layout.dialog_text, container, false);
-			((TextView)root.findViewById(R.id.text_view)).setText(mMenu.mBuilder);
-
-			View btn = root.findViewById(R.id.btn_ok);
-			btn.setOnClickListener(new View.OnClickListener()
-			{
-				@Override
-				public void onClick(View v)
-				{
-					mMenu.close();
-				}
-			});
-
-			root.setOnKeyListener(new OnKeyListener()
-			{
-				@Override
-				public boolean onKey(View v, int keyCode, KeyEvent event)
-				{
-					Log.print("MENU ONKEY");
-					return false;
-				}
-			});
-
-			btn.requestFocus();
-			btn.requestFocusFromTouch();
-
-			return root;
-		}
-
-		// ____________________________________________________________________________________
-		public View createMenu(LayoutInflater inflater, ViewGroup container)
-		{
-			View root = inflateLayout(mMenu.mHow, inflater, container);
-
-			mListView.setAdapter(new MenuItemAdapter((AppCompatActivity)requireActivity(), R.layout.menu_item, mMenu.mItems, mMenu.mTileset, mMenu.mHow));
-
-			root.requestFocus();
-
-			if(mMenu.mTitle.length() > 0)
-			{
-				((TextView)root.findViewById(R.id.title)).setVisibility(View.VISIBLE);
-				((TextView)root.findViewById(R.id.title)).setText(mMenu.mTitle);
-			}
-			else
-				((TextView)root.findViewById(R.id.title)).setVisibility(View.GONE);
-
-			return root;
-		}
-
-		// ____________________________________________________________________________________
-		private View inflateLayout(MenuSelectMode how, LayoutInflater inflater, ViewGroup container)
+		public View inflateLayout(MenuSelectMode how, LayoutInflater inflater, ViewGroup container)
 		{
 			View root;
 			switch(how)
@@ -798,6 +657,62 @@ public class NHW_Menu implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
+		public View createTextDlg(LayoutInflater inflater, ViewGroup container)
+		{
+			View root = inflater.inflate(R.layout.textwindow, container, false);
+			root.findViewById(R.id.btn_close).setOnClickListener(new OnClickListener()
+			{
+				@Override
+				public void onClick(View view)
+				{
+					mMenu.close();
+				}
+			});
+			updateText(root);
+			return root;
+		}
+
+		// ____________________________________________________________________________________
+		private void updateText(View root)
+		{
+			if(mMenu.mBuilder != null)
+				((TextView)root.findViewById(R.id.text_view)).setText(mMenu.mBuilder);
+		}
+
+		// ____________________________________________________________________________________
+		public View createMenu(LayoutInflater inflater, ViewGroup container) {
+			View root = inflateLayout(mMenu.mHow, inflater, container);
+
+			mListView.setAdapter(new MenuItemAdapter((AppCompatActivity) requireActivity(), R.layout.menu_item, mMenu.mItems, mMenu.mTileset, mMenu.mHow));
+			mListView.setSelector(R.drawable.nh_gamepad_list_selector);
+			mListView.setDrawSelectorOnTop(true);
+			mListView.setItemsCanFocus(false);
+			mListView.setChoiceMode(mMenu.mHow == MenuSelectMode.PickMany ? ListView.CHOICE_MODE_MULTIPLE : ListView.CHOICE_MODE_SINGLE);
+			mListView.setFocusable(true);
+			mListView.setFocusableInTouchMode(true);
+
+			if (mMenu.mHow != MenuSelectMode.PickNone) {
+				mListView.requestFocus();
+				// Initial selection for gamepad
+				for (int i = 0; i < mListView.getCount(); i++) {
+					if (mListView.getAdapter().isEnabled(i)) {
+						mListView.setSelection(i);
+						break;
+					}
+				}
+			} else {
+				root.requestFocus();
+			}
+
+			if (mMenu.mTitle.length() > 0) {
+				((TextView) root.findViewById(R.id.title)).setVisibility(View.VISIBLE);
+				((TextView) root.findViewById(R.id.title)).setText(mMenu.mTitle);
+			}
+
+			return root;
+		}
+
+		// ____________________________________________________________________________________
 		private void menuOk()
 		{
 			switch(mMenu.mHow)
@@ -813,6 +728,255 @@ public class NHW_Menu implements NH_Window
 			case PickMany:
 				sendSelectChecked();
 			break;
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private void toggleItemOrGroupAt(int pos)
+		{
+			if(pos < 0 || pos >= mMenu.mItems.size())
+				return;
+			MenuItem item = mMenu.mItems.get(pos);
+			if(item.isHeader())
+			{
+				boolean allSelected = true;
+				for(int i = pos + 1; i < mMenu.mItems.size(); i++)
+				{
+					MenuItem sub = mMenu.mItems.get(i);
+					if(sub.isHeader())
+						break;
+					if(sub.isSelectable() && !sub.isSelected())
+					{
+						allSelected = false;
+						break;
+					}
+				}
+				for(int i = pos + 1; i < mMenu.mItems.size(); i++)
+				{
+					MenuItem sub = mMenu.mItems.get(i);
+					if(sub.isHeader())
+						break;
+					if(sub.isSelectable())
+					{
+						sub.setSelected(!allSelected);
+						sub.setCount(sub.isSelected() ? sub.getMaxCount() : 0);
+					}
+				}
+			}
+			else if(item.isSelectable())
+			{
+				item.setSelected(!item.isSelected());
+				item.setCount(item.isSelected() ? item.getMaxCount() : 0);
+			}
+			((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
+			updateSelectAllBtn();
+		}
+
+		// ____________________________________________________________________________________
+		private void selectAll()
+		{
+			for(MenuItem item : mMenu.mItems)
+			{
+				if(item.isSelectable())
+				{
+					item.setSelected(true);
+					item.setCount(item.getMaxCount());
+				}
+			}
+			((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
+			updateSelectAllBtn();
+		}
+
+		// ____________________________________________________________________________________
+		private void clearAll()
+		{
+			if(isShowing() && mMenu.mHow == MenuSelectMode.PickMany)
+			{
+				for(MenuItem item : mMenu.mItems)
+				{
+					if(item.isSelectable())
+					{
+						item.setSelected(false);
+						item.setCount(0);
+					}
+				}
+				((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
+				updateSelectAllBtn();
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private void updateSelectAllBtn()
+		{
+			if(mSelectAllBtn == null)
+				return;
+			boolean any = false;
+			for(MenuItem item : mMenu.mItems)
+			{
+				if(item.isSelectable() && item.isSelected())
+				{
+					any = true;
+					break;
+				}
+			}
+			mSelectAllBtn.setText(any ? "Clear all" : "Select all");
+		}
+
+		// ____________________________________________________________________________________
+		private void sendSelectChecked()
+		{
+			if(isShowing())
+			{
+				mMenu.mIO.sendSelectCmd(mMenu.mItems);
+				mMenu.hide();
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private void sendCancelSelect()
+		{
+			if(isShowing())
+			{
+				mMenu.mIO.sendCancelSelectCmd();
+				mMenu.hide();
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private void sendSelectOne(MenuItem item, int count)
+		{
+			if(isShowing())
+			{
+				if(!item.isHeader() && item.isSelectable())
+				{
+					mMenu.mIO.sendSelectCmd(item.getId(), count);
+					mMenu.hide();
+				}
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private boolean isShowing()
+		{
+			return mRoot != null && mRoot.getVisibility() == View.VISIBLE;
+		}
+
+		// ____________________________________________________________________________________
+		private int getAccelerator(char ch)
+		{
+			for(int i = 0; i < mMenu.mItems.size(); i++)
+			{
+				MenuItem item = mMenu.mItems.get(i);
+				if(item.getAcc() == ch)
+					return i;
+			}
+			return -1;
+		}
+
+		// ____________________________________________________________________________________
+		private boolean menuSelect(char ch)
+		{
+			if(mMenu.mHow == MenuSelectMode.PickNone)
+				return false;
+
+			int pos = getAccelerator(ch);
+			if(pos >= 0)
+			{
+				MenuItem item = mMenu.mItems.get(pos);
+				if(!item.isHeader() && item.isSelectable())
+				{
+					if(mMenu.mHow == MenuSelectMode.PickOne)
+						sendSelectOne(item, mMenu.mKeyboardCount);
+					else
+						toggleItemOrGroupAt(pos);
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// ____________________________________________________________________________________
+		private KeyEventResult navigateScrollView(int keyCode)
+		{
+			ScrollView sv = mRoot.findViewById(R.id.scrollview);
+			if(sv == null) return KeyEventResult.IGNORED;
+
+			switch(keyCode)
+			{
+			case KeyEvent.KEYCODE_DPAD_UP:
+				sv.smoothScrollBy(0, -sv.getHeight() / 4);
+				break;
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+				sv.smoothScrollBy(0, sv.getHeight() / 4);
+				break;
+			case KeyEvent.KEYCODE_DPAD_LEFT:
+				sv.pageScroll(View.FOCUS_UP);
+				break;
+			case KeyEvent.KEYCODE_DPAD_RIGHT:
+				sv.pageScroll(View.FOCUS_DOWN);
+				break;
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+				mMenu.close();
+				break;
+			}
+			return KeyEventResult.HANDLED;
+		}
+
+		private KeyEventResult navigateListView(int keyCode)
+		{
+			if(mListView == null) return KeyEventResult.IGNORED;
+
+			if (!mListView.hasFocus()) {
+				mListView.requestFocus();
+			}
+
+			int pos = mListView.getSelectedItemPosition();
+			if(pos == ListView.INVALID_POSITION)
+				pos = mListView.getFirstVisiblePosition();
+
+			android.util.Log.d("NHW_Menu", "navigateListView: Key=" + keyCode + " Current Selection=" + pos + " HasFocus=" + mListView.hasFocus());
+
+			switch(keyCode)
+			{
+			case KeyEvent.KEYCODE_DPAD_UP:
+				pos--;
+				while(pos >= 0 && !mListView.getAdapter().isEnabled(pos))
+					pos--;
+				if(pos >= 0)
+				{
+					mListView.setSelection(pos);
+				}
+				break;
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+				pos++;
+				while(pos < mListView.getCount() && !mListView.getAdapter().isEnabled(pos))
+					pos++;
+				if(pos < mListView.getCount())
+				{
+					mListView.setSelection(pos);
+				}
+				break;
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+				if(pos != ListView.INVALID_POSITION)
+				{
+					MenuItem item = (MenuItem)mListView.getItemAtPosition(pos);
+					if(mMenu.mHow == MenuSelectMode.PickOne)
+						sendSelectOne(item, mMenu.mKeyboardCount);
+					else
+						toggleItemOrGroupAt(pos);
+				}
+				break;
+			}
+			return KeyEventResult.HANDLED;
+		}
+
+		// ____________________________________________________________________________________
+		private void sendSelectNone()
+		{
+			if(isShowing())
+			{
+				mMenu.mIO.sendSelectNoneCmd();
+				mMenu.hide();
 			}
 		}
 

@@ -162,6 +162,11 @@ public class MenuItem
 		return mCount != 0;
 	}
 
+	public void setSelected(boolean selected)
+	{
+		mCount = selected ? -1 : 0;
+	}
+
 	// ____________________________________________________________________________________
 	public boolean hasAcc()
 	{

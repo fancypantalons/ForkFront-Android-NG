@@ -193,7 +193,7 @@ public class GamepadDispatcher {
 
     public UiContextArbiter getArbiter() { return mArbiter; }
     public void pushContext(UiContext ctx) { mArbiter.push(ctx); }
-    public void popContext(UiContext ctx) { mArbiter.pop(ctx); }
+    public void popContext(UiContext ctx) { mArbiter.remove(ctx); }
 
     // ─── Event source detection ───────────────────────────────────────────────
 
@@ -217,6 +217,11 @@ public class GamepadDispatcher {
 
     public boolean handleKeyEvent(KeyEvent ev, UiContext ctx) {
         if (!mOptions.enabled) return false;
+        
+        if (ev.getAction() == KeyEvent.ACTION_DOWN && ev.getRepeatCount() == 0) {
+            android.util.Log.d("GamepadDispatch", "Key: " + ev.getKeyCode() + " Context: " + ctx);
+        }
+
         if (ctx == UiContext.OTHER) return false;
         if (ctx == UiContext.BINDING_CAPTURE) return false; // dialog reads raw events
 

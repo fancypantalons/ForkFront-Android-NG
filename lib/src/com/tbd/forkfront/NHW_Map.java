@@ -136,6 +136,9 @@ public class NHW_Map implements NH_Window
 	private int mBorderColor;
 	private int mScreenSizeClass;
 
+	private volatile boolean mIsGamepadCursorMode;
+	private long mLastCursorMoveMs;
+
 	// System insets for edge-to-edge support
 	private int mSystemInsetsTop;
 	private int mSystemInsetsBottom;
@@ -357,6 +360,82 @@ public class NHW_Map implements NH_Window
 		{
 			return mTiles[y][x].overlay;
 		}
+	}
+
+	public void beginGamepadCursor()
+	{
+		mIsGamepadCursorMode = true;
+		if(mCursorPos.x < 0 || mCursorPos.y < 0)
+		{
+			setCursorPos(mPlayerPos.x, mPlayerPos.y);
+		}
+		centerView(mCursorPos.x, mCursorPos.y);
+		if(mUI != null)
+			mUI.invalidate();
+	}
+
+	public void endGamepadCursor()
+	{
+		mIsGamepadCursorMode = false;
+		if(mUI != null)
+			mUI.invalidate();
+	}
+
+	public boolean handleGamepadKey(KeyEvent ev)
+	{
+		if(!mIsGamepadCursorMode) return false;
+		if(ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+
+		long now = System.currentTimeMillis();
+		switch(ev.getKeyCode())
+		{
+		case KeyEvent.KEYCODE_DPAD_UP:
+			return moveCursor(0, -1, now);
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+			return moveCursor(0, 1, now);
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+			return moveCursor(-1, 0, now);
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+			return moveCursor(1, 0, now);
+		case KeyEvent.KEYCODE_BUTTON_A:
+			mNHState.sendPosCmd(mCursorPos.x, mCursorPos.y);
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_B:
+		case KeyEvent.KEYCODE_BUTTON_SELECT:
+			mNHState.sendDirKeyCmd('\033');
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_X:
+			setCursorPos(mPlayerPos.x, mPlayerPos.y);
+			centerView(mCursorPos.x, mCursorPos.y);
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_L1:
+			return moveCursor(-5, 0, now);
+		case KeyEvent.KEYCODE_BUTTON_R1:
+			return moveCursor(5, 0, now);
+		}
+		return false;
+	}
+
+	private boolean moveCursor(int dx, int dy, long now)
+	{
+		if(now - mLastCursorMoveMs < 100) return true;
+		setCursorPos(Math.max(0, Math.min(TileCols - 1, mCursorPos.x + dx)),
+					 Math.max(0, Math.min(TileRows - 1, mCursorPos.y + dy)));
+		centerView(mCursorPos.x, mCursorPos.y);
+		mLastCursorMoveMs = now;
+		return true;
+	}
+
+	@Override
+	public boolean handleGamepadMotion(MotionEvent ev)
+	{
+		return false;
+	}
+
+	@Override
+	public boolean isVisible()
+	{
+		return mIsVisible;
 	}
 
 	// ____________________________________________________________________________________
@@ -1109,11 +1188,32 @@ public class NHW_Map implements NH_Window
 			float x = (float)Math.floor(mViewOffset.x);
 			float y = (float)Math.floor(mViewOffset.y);
 
-			if(mCursorPos.x >= 0 && mHealthColor != 0)
+			if(mCursorPos.x >= 0 && (mHealthColor != 0 || mIsGamepadCursorMode))
 			{
-				mPaint.setColor(mHealthColor);
+				int color = mHealthColor != 0 ? mHealthColor : 0xFFFFFFFF;
+				float strokeWidth = 2;
+
+				if (mIsGamepadCursorMode) {
+					color = 0xFFFFFFFF;
+					strokeWidth = 4;
+
+					// Pulse effect based on time
+					long now = System.currentTimeMillis();
+					int alpha = 128 + (int)(127 * Math.sin(now / 150.0));
+					mPaint.setColor((alpha << 24) | 0xFFC855); // Amber pulse
+					mPaint.setStyle(Style.STROKE);
+					mPaint.setStrokeWidth(strokeWidth + 4);
+					RectF pulseRect = new RectF();
+					pulseRect.left = x + mCursorPos.x * tileW - 2.0f;
+					pulseRect.top = y + mCursorPos.y * tileH - 2.0f;
+					pulseRect.right = pulseRect.left + tileW + 4.0f;
+					pulseRect.bottom = pulseRect.top + tileH + 4.0f;
+					canvas.drawRect(pulseRect, mPaint);
+				}
+
+				mPaint.setColor(color);
 				mPaint.setStyle(Style.STROKE);
-				mPaint.setStrokeWidth(2);
+				mPaint.setStrokeWidth(strokeWidth);
 				mPaint.setAntiAlias(false);
 				RectF dst = new RectF();
 				dst.left = x + mCursorPos.x * tileW + 0.5f;
@@ -1122,6 +1222,10 @@ public class NHW_Map implements NH_Window
 				dst.bottom = dst.top + tileH - 2.0f;
 				canvas.drawRect(dst, mPaint);
 				mPaint.setStyle(Style.FILL);
+
+				if (mIsGamepadCursorMode) {
+					mUI.invalidate(); // Keep pulsing
+				}
 			}
 		}
 

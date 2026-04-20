@@ -139,7 +139,7 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 			else
 				cb.setVisibility(View.GONE);
 
-			boolean enabled = item.isHeader() || item.isSelectable();
+			boolean enabled = isEnabled(position);
 			tt.setEnabled(enabled);
 			at.setEnabled(enabled);
 			st.setEnabled(enabled);
@@ -156,5 +156,20 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 	public void notifyDataSetChanged() {
 		super.notifyDataSetChanged();
 		updateMonospaceFlag();
+	}
+
+	@Override
+	public boolean areAllItemsEnabled()
+	{
+		return false;
+	}
+
+	@Override
+	public boolean isEnabled(int position)
+	{
+		MenuItem item = mItems.get(position);
+		if(item.isHeader())
+			return mHow == MenuSelectMode.PickMany;
+		return item.isSelectable();
 	}
 }
