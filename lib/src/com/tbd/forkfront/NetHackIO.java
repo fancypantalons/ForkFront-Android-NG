@@ -831,6 +831,16 @@ public class NetHackIO
 		else
 			items = new long[1];
 
+		if (items != null) {
+			StringBuilder sb = new StringBuilder("waitForSelect returned: [");
+			for (int i = 0; i < items.length; i++) {
+				sb.append(Long.toHexString(items[i]));
+				if (i < items.length - 1) sb.append(", ");
+			}
+			sb.append("]");
+			Log.print(sb.toString());
+		}
+
 		decReady();
 		return items;
 	}

@@ -861,7 +861,20 @@ public class NHW_Menu implements NH_Window
 		{
 			if(isShowing())
 			{
-				mMenu.mIO.sendSelectCmd(mMenu.mItems);
+				ArrayList<MenuItem> items = new ArrayList<>();
+				StringBuilder sb = new StringBuilder("sendSelectChecked: [");
+				for(MenuItem item : mMenu.mItems)
+				{
+					if(item.isSelected()) {
+						items.add(item);
+						sb.append(Long.toHexString(item.getId())).append("(").append(item.getCount()).append("), ");
+					}
+				}
+				if (items.size() > 0) sb.setLength(sb.length() - 2);
+				sb.append("]");
+				Log.print(sb.toString());
+
+				mMenu.mIO.sendSelectCmd(items);
 				mMenu.hide();
 			}
 		}
@@ -871,6 +884,7 @@ public class NHW_Menu implements NH_Window
 		{
 			if(isShowing())
 			{
+				Log.print("sendCancelSelect");
 				mMenu.mIO.sendCancelSelectCmd();
 				mMenu.hide();
 			}
@@ -883,6 +897,7 @@ public class NHW_Menu implements NH_Window
 			{
 				if(!item.isHeader() && item.isSelectable())
 				{
+					Log.print("sendSelectOne: id=" + Long.toHexString(item.getId()) + " count=" + count);
 					mMenu.mIO.sendSelectCmd(item.getId(), count);
 					mMenu.hide();
 				}
