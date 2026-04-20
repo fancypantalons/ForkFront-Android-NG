@@ -296,6 +296,7 @@ public class NHW_Menu implements NH_Window
 			{
 			case KeyEvent.KEYCODE_BUTTON_A:
 				if(mMenu.mType == Type.Text) { mMenu.close(); return true; }
+				if(mListView != null && !mListView.hasFocus()) return false;
 				return handleA();
 			case KeyEvent.KEYCODE_BUTTON_B:
 			case KeyEvent.KEYCODE_BUTTON_SELECT:
@@ -471,6 +472,7 @@ public class NHW_Menu implements NH_Window
 					return KeyEventResult.IGNORED;
 
 				case KeyEvent.KEYCODE_DPAD_CENTER:
+					if(mListView != null && !mListView.hasFocus()) return KeyEventResult.RETURN_TO_SYSTEM;
 					return navigateListView(keyCode);
 
 				case KeyEvent.KEYCODE_ESCAPE:
