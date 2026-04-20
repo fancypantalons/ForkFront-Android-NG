@@ -552,6 +552,9 @@ public class NHW_Menu implements NH_Window
 		public void onDismissCount(MenuItem item, int amount)
 		{
 			mAmountSelector = null;
+			if(mListView != null)
+				mListView.requestFocus();
+
 			if(mMenu.mHow == MenuSelectMode.PickOne)
 			{
 				if(amount > 0)
