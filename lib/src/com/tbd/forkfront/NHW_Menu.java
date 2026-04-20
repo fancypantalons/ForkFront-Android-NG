@@ -304,7 +304,16 @@ public class NHW_Menu implements NH_Window
 				sendCancelSelect();
 				return true;
 			case KeyEvent.KEYCODE_BUTTON_X:
-				if(mMenu.mType == Type.Menu) {
+				if(mMenu.mType == Type.Menu && mMenu.mHow != MenuSelectMode.PickNone) {
+					int pos = mListView.getSelectedItemPosition();
+					if(pos == ListView.INVALID_POSITION) pos = mListView.getFirstVisiblePosition();
+					if(pos != ListView.INVALID_POSITION && pos < mMenu.mItems.size()) {
+						MenuItem item = mMenu.mItems.get(pos);
+						if(item.isSelectable() && item.getMaxCount() > 1) {
+							mAmountSelector = new AmountSelector(this, (AppCompatActivity)requireActivity(), mMenu.mTileset, item);
+							return true;
+						}
+					}
 					if(mMenu.mHow == MenuSelectMode.PickMany) {
 						if(mSelectAllBtn != null) mSelectAllBtn.performClick();
 						else selectAll();
