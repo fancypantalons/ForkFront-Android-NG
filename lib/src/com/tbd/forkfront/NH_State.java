@@ -520,7 +520,13 @@ public class NH_State
 
 	public void sendStringCmd(String str)
 	{
-		mIO.sendLineCmd(str);
+		if (str.startsWith("#")) {
+			String cmd = str.substring(1).trim();
+			mIO.pushInput(cmd);
+			mIO.sendKeyCmd('#');
+		} else {
+			mIO.sendLineCmd(str);
+		}
 	}
 
 	// ____________________________________________________________________________________
