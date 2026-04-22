@@ -3,7 +3,6 @@ package com.tbd.forkfront;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
@@ -86,14 +85,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             Preference hearsePref = findPreference("hearse");
             if(advancedParent != null && hearsePref != null) {
                 advancedParent.removePreference(hearsePref);
-            }
-        }
-
-        PreferenceCategory settingsCategory = findPreference("settings");
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-            Preference fullscreenPref = findPreference("immersive");
-            if(settingsCategory != null && fullscreenPref != null) {
-                settingsCategory.removePreference(fullscreenPref);
             }
         }
     }

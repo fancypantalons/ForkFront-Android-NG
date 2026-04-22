@@ -133,6 +133,7 @@ public class AmountSelector
 		seek.setProgress(mMax);
 
 		mRoot.findViewById(R.id.btn_inc).setFocusable(true);
+		mRoot.findViewById(R.id.btn_inc).setFocusableInTouchMode(true);
 		mRoot.findViewById(R.id.btn_inc).setOnTouchListener(new OnTouchListener()
 		{
 			@Override
@@ -151,6 +152,7 @@ public class AmountSelector
 		});
 
 		mRoot.findViewById(R.id.btn_dec).setFocusable(true);
+		mRoot.findViewById(R.id.btn_dec).setFocusableInTouchMode(true);
 		mRoot.findViewById(R.id.btn_dec).setOnTouchListener(new OnTouchListener()
 		{
 			@Override
@@ -169,6 +171,7 @@ public class AmountSelector
 		});
 
 		mRoot.findViewById(R.id.btn_0).setFocusable(true);
+		mRoot.findViewById(R.id.btn_0).setFocusableInTouchMode(true);
 		mRoot.findViewById(R.id.btn_0).setOnClickListener(new OnClickListener()
 		{
 			public void onClick(View v)
@@ -180,6 +183,7 @@ public class AmountSelector
 			}
 		});
 		mRoot.findViewById(R.id.btn_1).setFocusable(true);
+		mRoot.findViewById(R.id.btn_1).setFocusableInTouchMode(true);
 		mRoot.findViewById(R.id.btn_1).setOnClickListener(new OnClickListener()
 		{
 			public void onClick(View v)

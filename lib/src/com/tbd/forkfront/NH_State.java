@@ -12,7 +12,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Debug;
 import android.os.Handler;
 import androidx.preference.PreferenceManager;
@@ -337,7 +336,6 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
-	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 	public void preferencesUpdated()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
@@ -365,7 +363,7 @@ public class NH_State
 
 		mTileset.updateTileset(prefs, mApp.getResources());
 		mMap.updateZoomLimits();
-		updateSystemUiVisibilityFlags(prefs);
+		updateSystemUiVisibilityFlags();
 	}
 
 	// ____________________________________________________________________________________
@@ -381,26 +379,18 @@ public class NH_State
 		/*if (mPrimaryWidgetLayout != null) {
 			mPrimaryWidgetLayout.onContextMenuClosed();
 		}*/
-		updateSystemUiVisibilityFlags(PreferenceManager.getDefaultSharedPreferences(mApp));
+		updateSystemUiVisibilityFlags();
 	}
 
 	// ____________________________________________________________________________________
-	private void updateSystemUiVisibilityFlags(SharedPreferences prefs)
+	private void updateSystemUiVisibilityFlags()
 	{
 		// Window operations require Activity context
 		if (mActivity == null) return;
 
-		boolean isFullscreen = prefs.getBoolean("fullscreen", false);
-		int fullscreenFlag = isFullscreen ? WindowManager.LayoutParams.FLAG_FULLSCREEN : 0;
-		mActivity.getWindow().setFlags(fullscreenFlag, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-		{
-			boolean isImmersive = prefs.getBoolean("immersive", false);
-			int uiVisibilityFlags = isImmersive ?
-					(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
-					: 0;
-			mActivity.getWindow().getDecorView().setSystemUiVisibility(uiVisibilityFlags);
-		}
+		mActivity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		int uiVisibilityFlags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN;
+		mActivity.getWindow().getDecorView().setSystemUiVisibility(uiVisibilityFlags);
 	}
 
 	// ____________________________________________________________________________________
