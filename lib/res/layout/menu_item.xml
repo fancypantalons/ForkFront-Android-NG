@@ -1,63 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
-	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="match_parent"
-	android:layout_height="?android:attr/listPreferredItemHeight"
-	android:paddingLeft="@dimen/padding_small"
-	android:paddingRight="@dimen/padding_small">
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/listPreferredItemHeightSmall"
+        android:paddingLeft="@dimen/padding_small"
+        android:paddingRight="@dimen/padding_small"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground">
 
-	<com.tbd.forkfront.NH_TextView
-		android:id="@+id/item_acc"
-		style="@style/ListText1"
-		android:text="t"
-		android:layout_gravity="center_vertical"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"/>
+        <com.tbd.forkfront.NH_TextView
+                android:id="@+id/item_acc"
+                style="@style/ListText1"
+                android:text="t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
 
-	<ImageView
-		android:id="@+id/item_tile"
-		android:layout_gravity="center_vertical"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:minWidth="@dimen/padding_large"
-		android:minHeight="@dimen/padding_large"
-		android:layout_marginRight="@dimen/padding_small"/>
+        <ImageView
+                android:id="@+id/item_tile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="@dimen/padding_large"
+                android:minHeight="@dimen/padding_large"
+                android:layout_marginEnd="@dimen/padding_small"/>
 
-	<LinearLayout 
-		android:orientation="vertical"
-		android:layout_weight="1"
-		android:layout_gravity="center_vertical"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content">
+        <LinearLayout 
+                android:orientation="vertical"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
 
-		<com.tbd.forkfront.NH_TextView
-			android:id="@+id/item_text"
-			style="@style/ListText1"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="item_text"/>
+                <com.tbd.forkfront.NH_TextView
+                        android:id="@+id/item_text"
+                        style="@style/ListText1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="item_text"/>
 
-		<com.tbd.forkfront.NH_TextView
-			android:id="@+id/item_sub"
-			style="@style/ListText2"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="item_sub"/>
-	</LinearLayout>
-	<com.tbd.forkfront.NH_TextView
-		android:id="@+id/item_count"
-		style="@style/ListText1"
-		android:text="1234"
-		android:layout_gravity="center_vertical"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"/>
+                <com.tbd.forkfront.NH_TextView
+                        android:id="@+id/item_sub"
+                        style="@style/ListText2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="item_sub"/>
+        </LinearLayout>
+        <com.tbd.forkfront.NH_TextView
+                android:id="@+id/item_count"
+                style="@style/ListText1"
+                android:text="1234"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
 
-	<CheckBox
-		android:id="@+id/item_check"
-		android:layout_gravity="center_vertical"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:focusable="false"
-		android:clickable="false"/>
+        <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/item_check"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="false"/>
 
 </LinearLayout>

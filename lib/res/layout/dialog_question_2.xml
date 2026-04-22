@@ -6,36 +6,42 @@
 	android:clickable="true"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
-	<LinearLayout
-		style="@style/NH_Dialog"
-		android:orientation="vertical"
+	<com.google.android.material.card.MaterialCardView
+		style="?attr/materialCardViewStyle"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_centerInParent="true">
-
-		<TextView
-			android:id="@+id/title"
-			style="@style/DialogText"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:padding="@dimen/padding_medium"/>
-
+		android:layout_centerInParent="true"
+		android:layout_margin="@dimen/padding_medium">
 		<LinearLayout
-			style="@android:style/ButtonBar"
+			android:orientation="vertical"
+			android:padding="@dimen/padding_medium"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content">
-			<Button
-			    style="@style/ButtonText"
-				android:id="@+id/btn_0"
-				android:layout_weight="1"
-				android:layout_width="@dimen/padding_small"
-				android:layout_height="wrap_content"/>
-			<Button
-			    style="@style/ButtonText"
-				android:id="@+id/btn_1"
-				android:layout_weight="1"
-				android:layout_width="@dimen/padding_small"
-				android:layout_height="wrap_content"/>
+
+			<TextView
+				android:id="@+id/title"
+				style="@style/DialogText"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:padding="@dimen/padding_medium"/>
+
+			<LinearLayout
+				style="?attr/buttonBarStyle"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content">
+				<Button
+					style="@style/ButtonText"
+					android:id="@+id/btn_0"
+					android:layout_weight="1"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"/>
+				<Button
+					style="@style/ButtonText"
+					android:id="@+id/btn_1"
+					android:layout_weight="1"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"/>
+			</LinearLayout>
 		</LinearLayout>
-	</LinearLayout>
+	</com.google.android.material.card.MaterialCardView>
 </RelativeLayout>

@@ -68,7 +68,6 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 		{
 			if(item.isHeader())
 			{
-				v.setBackgroundColor(Color.WHITE);
 				if(mHow == MenuSelectMode.PickMany)
 					v.setMinimumHeight(clickableHeaderMinH);
 				else
@@ -76,7 +75,6 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 			}
 			else
 			{
-				v.setBackgroundColor(Color.TRANSPARENT);
 				if(mHow == MenuSelectMode.PickNone)
 					v.setMinimumHeight(0);
 				else

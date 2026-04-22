@@ -6,44 +6,50 @@
 	android:clickable="true"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
-	<LinearLayout
-		style="@style/NH_Dialog"
-		android:orientation="vertical"
-		android:minWidth="@dimen/touch_target_min"
-		android:layout_centerInParent="true"
+	<com.google.android.material.card.MaterialCardView
+		style="?attr/materialCardViewStyle"
 		android:layout_width="wrap_content"
-		android:layout_height="wrap_content">
-
-		<ScrollView
-			android:id="@+id/scrollview"
-			android:layout_gravity="center"
-			android:cacheColorHint="#00000000"
-			android:layout_weight="1"
+		android:layout_height="wrap_content"
+		android:layout_centerInParent="true"
+		android:layout_margin="@dimen/padding_medium">
+		<LinearLayout
+			android:orientation="vertical"
+			android:padding="@dimen/padding_medium"
+			android:minWidth="@dimen/touch_target_min"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content">
 
-			<com.tbd.forkfront.NH_TextView
-				android:id="@+id/text_view"
-				style="@style/DialogText"
-				android:padding="@dimen/padding_medium"
-				android:maxLength="999999"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"/>
-		</ScrollView>
-
-		<LinearLayout
-			style="@android:style/ButtonBar"
-			android:orientation="vertical"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content">
-			<Button
-			    style="@style/ButtonText"
-				android:text="Ok"
+			<ScrollView
+				android:id="@+id/scrollview"
 				android:layout_gravity="center"
-				android:id="@+id/btn_ok"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"/>
-		</LinearLayout>
+				android:cacheColorHint="#00000000"
+				android:layout_weight="1"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content">
 
-	</LinearLayout>
+				<com.tbd.forkfront.NH_TextView
+					android:id="@+id/text_view"
+					style="@style/DialogText"
+					android:padding="@dimen/padding_medium"
+					android:maxLength="999999"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"/>
+			</ScrollView>
+
+			<LinearLayout
+				style="?attr/buttonBarStyle"
+				android:orientation="vertical"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content">
+				<Button
+					style="@style/ButtonText"
+					android:text="Ok"
+					android:layout_gravity="center"
+					android:id="@+id/btn_ok"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"/>
+			</LinearLayout>
+
+		</LinearLayout>
+	</com.google.android.material.card.MaterialCardView>
 </RelativeLayout>

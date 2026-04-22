@@ -6,54 +6,60 @@
 	android:clickable="true"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
-	<LinearLayout
-		style="@style/NH_Dialog"
-		android:orientation="vertical"
-		android:layout_centerInParent="true"
+	<com.google.android.material.card.MaterialCardView
+		style="?attr/materialCardViewStyle"
 		android:layout_width="wrap_content"
-		android:layout_height="wrap_content">
-
-		<com.tbd.forkfront.NH_TextView
-			android:id="@+id/title"
-			style="@style/DialogTitle"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:padding="@dimen/padding_medium"/>
-
-		<ListView
-			android:id="@+id/menu_list"
-			android:cacheColorHint="#00000000"
-			android:layout_weight="1"
-			android:layout_margin="@dimen/padding_small"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"/>
-
+		android:layout_height="wrap_content"
+		android:layout_centerInParent="true"
+		android:layout_margin="@dimen/padding_medium">
 		<LinearLayout
-			style="@android:style/ButtonBar"
-			android:layout_width="match_parent"
+			android:orientation="vertical"
+			android:padding="@dimen/padding_medium"
+			android:layout_width="wrap_content"
 			android:layout_height="wrap_content">
-			<Button
-				android:id="@+id/btn_all"
-				style="@style/ButtonText"
-				android:text="Select all"
-				android:layout_weight="1"
-				android:layout_width="@dimen/padding_small"
-				android:layout_height="wrap_content"/>
-			<Button
-				android:id="@+id/btn_ok"
-				style="@style/ButtonText"
-				android:text="Ok"
-				android:layout_weight="1"
-				android:layout_width="@dimen/padding_small"
-				android:layout_height="wrap_content"/>
-			<Button
-				android:id="@+id/btn_cancel"
-				style="@style/ButtonText"
-				android:text="Cancel"
-				android:layout_weight="1"
-				android:layout_width="@dimen/padding_small"
-				android:layout_height="wrap_content"/>
-		</LinearLayout>
 
-	</LinearLayout>
+			<com.tbd.forkfront.NH_TextView
+				android:id="@+id/title"
+				style="@style/DialogTitle"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="@dimen/padding_medium"/>
+
+			<ListView
+				android:id="@+id/menu_list"
+				android:cacheColorHint="#00000000"
+				android:layout_weight="1"
+				android:layout_margin="@dimen/padding_small"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"/>
+
+			<LinearLayout
+				style="?attr/buttonBarStyle"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content">
+				<Button
+					android:id="@+id/btn_all"
+					style="@style/ButtonText"
+					android:text="Select all"
+					android:layout_weight="1"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"/>
+				<Button
+					android:id="@+id/btn_ok"
+					style="@style/ButtonText"
+					android:text="Ok"
+					android:layout_weight="1"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"/>
+				<Button
+					android:id="@+id/btn_cancel"
+					style="@style/ButtonText"
+					android:text="Cancel"
+					android:layout_weight="1"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"/>
+			</LinearLayout>
+
+		</LinearLayout>
+	</com.google.android.material.card.MaterialCardView>
 </RelativeLayout>
