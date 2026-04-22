@@ -861,14 +861,14 @@ public class NetHackIO
 
 	// ____________________________________________________________________________________
 	@SuppressWarnings("unused")
-	private void askDirection()
+	private void highlightDPad()
 	{
 		mHandler.post(new Runnable()
 		{
 			@Override
 			public void run()
 			{
-				mNhHandler.showDPad();
+				mNhHandler.highlightDPad();
 			}
 		});
 	}
