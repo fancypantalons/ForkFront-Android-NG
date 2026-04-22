@@ -68,6 +68,7 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 		{
 			if(item.isHeader())
 			{
+				v.setBackgroundResource(R.color.md_theme_dark_surfaceVariant);
 				if(mHow == MenuSelectMode.PickMany)
 					v.setMinimumHeight(clickableHeaderMinH);
 				else
@@ -75,6 +76,7 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 			}
 			else
 			{
+				v.setBackgroundResource(0);
 				if(mHow == MenuSelectMode.PickNone)
 					v.setMinimumHeight(0);
 				else
