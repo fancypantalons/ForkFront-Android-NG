@@ -2,7 +2,9 @@ package com.tbd.forkfront;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.AttributeSet;
 import android.view.GestureDetector;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -66,13 +68,32 @@ public class ControlWidget extends FrameLayout {
         // Subclasses will override to apply to their text views
     }
 
+    public ControlWidget(Context context) {
+        this(context, null, null);
+    }
+
+    public ControlWidget(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public ControlWidget(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init(context, null, null);
+    }
+
     public ControlWidget(@NonNull Context context, View contentView, String type) {
         super(context);
+        init(context, contentView, type);
+    }
+
+    private void init(@NonNull Context context, View contentView, String type) {
         mContentView = contentView;
         mData.type = type;
         
         // Add content view
-        addView(mContentView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        if (mContentView != null) {
+            addView(mContentView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        }
         
         // Add border for edit mode
         mBorderView = new View(context);
@@ -95,7 +116,8 @@ public class ControlWidget extends FrameLayout {
 
         // Add placeholder for edit mode
         mEditPlaceholder = new android.widget.TextView(context);
-        mEditPlaceholder.setTextColor(0x80FFFFFF); // Semi-transparent white
+        mEditPlaceholder.setTextColor(ThemeUtils.resolveColor(context,
+                R.attr.colorOnSurfaceVariant, R.color.md_theme_onSurfaceVariant));
         mEditPlaceholder.setGravity(Gravity.CENTER);
         mEditPlaceholder.setTextSize(14);
         mEditPlaceholder.setVisibility(GONE);
@@ -256,7 +278,9 @@ public class ControlWidget extends FrameLayout {
         if ("status".equals(mData.type) || "message".equals(mData.type)) {
             // For text widgets, set background opacity but keep text opaque
             if (mContentView != null) {
-                int backgroundColor = (mData.opacity << 24) | 0x001C1B1F; // Material surface color with alpha
+                int surfaceColor = ThemeUtils.resolveColor(getContext(),
+                        R.attr.colorSurface, R.color.md_theme_surface) & 0x00FFFFFF;
+                int backgroundColor = (mData.opacity << 24) | surfaceColor;
                 mContentView.setBackgroundColor(backgroundColor);
             }
         } else {

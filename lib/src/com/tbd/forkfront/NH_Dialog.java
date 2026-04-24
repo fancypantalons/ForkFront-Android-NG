@@ -13,10 +13,9 @@ public class NH_Dialog extends AlertDialog
 
 	public NH_Dialog(Context context, View tag)
 	{
-		super(context);
-		mTag = tag;
+	        super(context, R.style.NH_Dialog);
+	        mTag = tag;
 	}
-
 	public View getTag() {
 		return mTag;
 	}

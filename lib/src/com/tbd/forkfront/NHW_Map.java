@@ -3,6 +3,7 @@ package com.tbd.forkfront;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,6 +12,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.util.TypedValue;
 import android.graphics.*;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.FontMetrics;
@@ -563,8 +565,7 @@ public class NHW_Map implements NH_Window
 			return;
 		}
 
-		Log.print(String.format("cursor pos clicked: %dx%d", mCursorPos.x, mCursorPos.y));
-		mNHState.sendPosCmd(mCursorPos.x, mCursorPos.y);
+		Log.print(String.format(Locale.ROOT, "cursor pos clicked: %dx%d", mCursorPos.x, mCursorPos.y));		mNHState.sendPosCmd(mCursorPos.x, mCursorPos.y);
 	}
 
 	// ____________________________________________________________________________________
@@ -680,7 +681,19 @@ public class NHW_Map implements NH_Window
 	@Override
 	public void preferencesUpdated(SharedPreferences prefs) {
 		int borderOpacity = prefs.getInt("borderOpacity", 50);
-		int borderColor = Color.rgb(0xc9*borderOpacity/256, 0xc9*borderOpacity/256, 0xf9*borderOpacity/256);
+		
+		int red = 0xc9;
+		int green = 0xc9;
+		int blue = 0xf9;
+		
+		TypedValue typedValue = new TypedValue();
+		if (mContext.getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true)) {
+			red = Color.red(typedValue.data);
+			green = Color.green(typedValue.data);
+			blue = Color.blue(typedValue.data);
+		}
+
+		int borderColor = Color.rgb(red*borderOpacity/256, green*borderOpacity/256, blue*borderOpacity/256);
 		if(borderColor != mBorderColor)
 		{
 			mBorderColor = borderColor;
@@ -730,7 +743,7 @@ public class NHW_Map implements NH_Window
 			SharedPreferences.Editor editor = prefs.edit();
 			editor.remove("travelAfterPan");
 			editor.putString("travelOnClick", oldValue ? "1" : "0");
-			editor.commit();
+			editor.apply();
 		}
 		int setting = Util.parseInt(prefs.getString("travelOnClick", "1"), 1);
 		if(setting == 0)
@@ -863,7 +876,7 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________
 	public void saveZoomLevel() {
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-		prefs.edit().putFloat("zoomLevel", mScaleCount).commit();
+		prefs.edit().putFloat("zoomLevel", mScaleCount).apply();
 	}
 	
 	// ____________________________________________________________________________________
@@ -1072,7 +1085,12 @@ public class NHW_Map implements NH_Window
 							if (canvas != null)
 							{
 								// Clear the canvas before drawing
-								canvas.drawColor(0xFF000000); // Black background
+								int surfaceColor = 0xFF000000;
+								TypedValue typedValue = new TypedValue();
+								if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
+									surfaceColor = typedValue.data;
+								}
+								canvas.drawColor(surfaceColor);
 
 								synchronized (mTiles)
 								{
@@ -1169,7 +1187,12 @@ public class NHW_Map implements NH_Window
 					}
 					else
 					{
-						mPaint.setColor(0xff000000);
+						int surfaceColor = 0xFF000000;
+						TypedValue typedValue = new TypedValue();
+						if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
+							surfaceColor = typedValue.data;
+						}
+						mPaint.setColor(surfaceColor);
 						canvas.drawRect(dst, mPaint);
 					}
 
@@ -1190,11 +1213,12 @@ public class NHW_Map implements NH_Window
 
 			if(mCursorPos.x >= 0 && (mHealthColor != 0 || mIsGamepadCursorMode))
 			{
-				int color = mHealthColor != 0 ? mHealthColor : 0xFFFFFFFF;
+				int[] palette = TextAttr.getPalette(mContext);
+				int color = mHealthColor != 0 ? palette[mHealthColor & 0xF] : palette[15];
 				float strokeWidth = 2;
 
 				if (mIsGamepadCursorMode) {
-					color = 0xFFFFFFFF;
+					color = palette[15];
 					strokeWidth = 4;
 
 					// Pulse effect based on time
@@ -1260,26 +1284,36 @@ public class NHW_Map implements NH_Window
 				for(int tileX = minTileX; tileX <= maxTileX; tileX++)
 				{
 					Tile tile = mTiles[tileY][tileX];
-					int fgColor = tile.color;
-					int bgColor = 0xff000000;
+					int fgColor = TextAttr.getPalette(mContext)[tile.color];
+					int bgColor = 0; // Transparent
+					
+					TypedValue typedValue = new TypedValue();
+					int surfaceColor = 0xFF000000;
+					if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
+						surfaceColor = typedValue.data;
+					}
+
 					if(tileX == mCursorPos.x && tileY == mCursorPos.y)
 					{
+						int[] palette = TextAttr.getPalette(mContext);
 						if(mHealthColor != 0) {
-							bgColor = mHealthColor;
-							fgColor = 0xff000000;
+							bgColor = palette[mHealthColor & 0xF];
+							fgColor = surfaceColor;
 						} else {
 							bgColor = 0x00000000;
-							fgColor = 0xffffffff;
+							fgColor = palette[15]; // Cursor white
 						}
 					}
 					else if(tile.overlay != 0 && tile.glyph >= 0)
 					{
 						bgColor = fgColor;
-						fgColor = 0xff000000;
+						fgColor = surfaceColor;
 					}
 					
-					mPaint.setColor(bgColor);
-					canvas.drawRect(dst, mPaint);
+					if (bgColor != 0) {
+						mPaint.setColor(bgColor);
+						canvas.drawRect(dst, mPaint);
+					}
 
 					if(tile.glyph >= 0)
 					{
@@ -1441,6 +1475,13 @@ public class NHW_Map implements NH_Window
 
 		// ____________________________________________________________________________________
 		@Override
+		public boolean performClick()
+		{
+			return super.performClick();
+		}
+
+		// ____________________________________________________________________________________
+		@Override
 		public boolean onTouchEvent(MotionEvent event)
 		{
 			boolean bHandled = true;
@@ -1479,6 +1520,7 @@ public class NHW_Map implements NH_Window
 				{
 					mPressCountDown.cancel();
 					onTouched(mPointer0.x, mPointer0.y, false);
+					performClick();
 				}
 				setZoomPanMode(ZoomPanMode.Idle);
 			break;

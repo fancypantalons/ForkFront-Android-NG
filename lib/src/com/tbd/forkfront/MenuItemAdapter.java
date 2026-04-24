@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import androidx.preference.PreferenceManager;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,14 +62,19 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 		if(v == null)
 		{
 			LayoutInflater vi = (LayoutInflater)mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			v = vi.inflate(R.layout.menu_item, null);
+			v = vi.inflate(R.layout.menu_item, parent, false);
 		}
 		MenuItem item = mItems.get(position);
 		if(item != null)
 		{
 			if(item.isHeader())
 			{
-				v.setBackgroundResource(R.color.md_theme_dark_surfaceVariant);
+				TypedValue typedValue = new TypedValue();
+				if (mContext.getTheme().resolveAttribute(R.attr.colorSurfaceVariant, typedValue, true)) {
+					v.setBackgroundColor(typedValue.data);
+				} else {
+					v.setBackgroundResource(R.color.md_theme_surfaceVariant);
+				}
 				if(mHow == MenuSelectMode.PickMany)
 					v.setMinimumHeight(clickableHeaderMinH);
 				else
@@ -140,12 +146,20 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 				cb.setVisibility(View.GONE);
 
 			boolean enabled = isEnabled(position);
-			tt.setEnabled(enabled);
-			at.setEnabled(enabled);
-			st.setEnabled(enabled);
-			ic.setEnabled(enabled);
-			tile.setEnabled(enabled);
+			// We don't call setEnabled(enabled) on the text views/tiles here because it causes 
+			// them to be rendered with 'disabled' alpha which is invisible in light mode.
+			// The ListView itself handles the interaction semantics via isEnabled(position).
 			cb.setEnabled(enabled);
+
+			// Propagate multi-select state to the row background selector so
+			// state_activated fires (see nh_gamepad_list_selector.xml). Must run
+			// on EVERY getView call, not just on inflate, so recycled rows pick
+			// up the correct activation state.
+			if (mHow == MenuSelectMode.PickMany && !item.isHeader()) {
+				v.setActivated(item.isSelected());
+			} else {
+				v.setActivated(false);
+			}
 
 			item.setView(v);
 		}

@@ -2,6 +2,7 @@ package com.tbd.forkfront;
 
 import android.app.Dialog;
 import android.os.Bundle;
+import java.util.Locale;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -149,10 +150,10 @@ public class WidgetPropertiesFragment extends DialogFragment {
         com.google.android.material.slider.Slider opacitySlider = view.findViewById(R.id.opacity_slider);
         android.widget.TextView opacityValue = view.findViewById(R.id.opacity_value);
         opacitySlider.setValue(mOpacity);
-        opacityValue.setText(String.format("%d%%", (int)((mOpacity / 255.0f) * 100)));
+        opacityValue.setText(String.format(Locale.ROOT, "%d%%", (int)((mOpacity / 255.0f) * 100)));
         opacitySlider.addOnChangeListener((slider, value, fromUser) -> {
             int opacity = (int) value;
-            opacityValue.setText(String.format("%d%%", (int)((opacity / 255.0f) * 100)));
+            opacityValue.setText(String.format(Locale.ROOT, "%d%%", (int)((opacity / 255.0f) * 100)));
             if (mListener != null) {
                 mListener.onOpacityChanged(opacity);
             }
@@ -166,10 +167,10 @@ public class WidgetPropertiesFragment extends DialogFragment {
         if (mShowFontSize) {
             fontSizeLayout.setVisibility(View.VISIBLE);
             fontSizeSlider.setValue(mFontSize);
-            fontSizeValueText.setText(String.format("%dsp", mFontSize));
+            fontSizeValueText.setText(String.format(Locale.ROOT, "%dsp", mFontSize));
             fontSizeSlider.addOnChangeListener((slider, value, fromUser) -> {
                 int size = (int) value;
-                fontSizeValueText.setText(String.format("%dsp", size));
+                fontSizeValueText.setText(String.format(Locale.ROOT, "%dsp", size));
                 if (mListener != null) {
                     mListener.onFontSizeChanged(size);
                 }
@@ -290,7 +291,8 @@ public class WidgetPropertiesFragment extends DialogFragment {
     public void onStart() {
         super.onStart();
         Dialog dialog = getDialog();
-        if (dialog != null) {
+        if (dialog != null && dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
             int width = ViewGroup.LayoutParams.MATCH_PARENT;
             if (getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
                 width = (int)(400 * getResources().getDisplayMetrics().density);

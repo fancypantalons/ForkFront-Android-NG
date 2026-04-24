@@ -138,6 +138,7 @@ public class AmountSelector
 				else if(event.getAction() == MotionEvent.ACTION_UP)
 				{
 					mAmountTuner.stop(v);
+					v.performClick();
 				}
 				return true;
 			}
@@ -157,6 +158,7 @@ public class AmountSelector
 				else if(event.getAction() == MotionEvent.ACTION_UP)
 				{
 					mAmountTuner.stop(v);
+					v.performClick();
 				}
 				return true;
 			}

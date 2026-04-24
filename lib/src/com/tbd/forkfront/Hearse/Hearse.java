@@ -257,7 +257,7 @@ public class Hearse {
 				}
 
 				if(prefs.contains(PREFS_HEARSE_UPDATE_USER))
-					prefs.edit().remove(PREFS_HEARSE_UPDATE_USER).commit();
+					prefs.edit().remove(PREFS_HEARSE_UPDATE_USER).apply();
 
 				if(userToken.length() > 0) {
 					int nUp = uploadBones();
@@ -285,7 +285,7 @@ public class Hearse {
 			if(lastModified > lastUpload)
 				lastUpload = lastModified;
 		}
-		prefs.edit().putLong(PREFS_HEARSE_LAST_UPLOAD, lastUpload).commit();
+		prefs.edit().putLong(PREFS_HEARSE_LAST_UPLOAD, lastUpload).apply();
 	}
 
 	private void showEmailRequired() {
@@ -325,7 +325,7 @@ public class Hearse {
 		String tokenValue = resp.getFirstHeader(HEADER_TOKEN);
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.putString(PREFS_HEARSE_ID, tokenValue);
-		ed.commit();
+		ed.apply();
 		return tokenValue;
 	}
 
@@ -519,7 +519,7 @@ public class Hearse {
 	
 		}
 
-		ed.commit();
+		ed.apply();
 
 		return nUploaded;
 	}
@@ -690,7 +690,7 @@ public class Hearse {
 			boolean nickChange = PREFS_HEARSE_NAME.equals(key);
 
 			if(emailChange || nickChange) {
-				sharedPreferences.edit().putBoolean(PREFS_HEARSE_UPDATE_USER, true).commit();
+				sharedPreferences.edit().putBoolean(PREFS_HEARSE_UPDATE_USER, true).apply();
 			}
 
 			if(enabled && (emailChange || enableChange)) {

@@ -1,6 +1,7 @@
 package com.tbd.forkfront;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Point;
@@ -91,14 +92,14 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 		private RectF mCanvasRect = new RectF();
 
 		// Brighter colors for minimap elements (opacity controlled by widget setting)
-		private static final int COLOR_UNEXPLORED = 0xFF1A1A1A;  // Very dark gray instead of black
-		private static final int COLOR_FLOOR = 0xFF888888;       // Medium gray
-		private static final int COLOR_WALL = 0xFF555555;        // Darker gray
-		private static final int COLOR_PLAYER = 0xFFFFFF00;      // Bright yellow
-		private static final int COLOR_PET = 0xFF00FF00;         // Bright green
-		private static final int COLOR_MONSTER = 0xFFFF6666;     // Light red
-		private static final int COLOR_VIEWPORT = 0xFFFFFFFF;    // Solid white (more visible)
-		private static final int COLOR_BORDER = 0xFF666666;      // Gray border
+		private int COLOR_UNEXPLORED = 0xFF1A1A1A;  // Very dark gray instead of black
+		private int COLOR_FLOOR = 0xFF888888;       // Medium gray
+		private int COLOR_WALL = 0xFF555555;        // Darker gray
+		private int COLOR_PLAYER = 0xFFFFFF00;      // Bright yellow
+		private int COLOR_PET = 0xFF00FF00;         // Bright green
+		private int COLOR_MONSTER = 0xFFFF6666;     // Light red
+		private int COLOR_VIEWPORT = 0xFFFFFFFF;    // Solid white (more visible)
+		private int COLOR_BORDER = 0xFF666666;      // Gray border
 
 		// ____________________________________________________________________________________
 		public MinimapView(Context context)
@@ -109,8 +110,22 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 			// Border paint
 			mBorderPaint.setStyle(Paint.Style.STROKE);
 			mBorderPaint.setStrokeWidth(2);
-			mBorderPaint.setColor(COLOR_BORDER);
 			mBorderPaint.setAntiAlias(false);
+
+			updateColors();
+		}
+
+		private void updateColors() {
+			// Chrome-tracking colors: viewport outline, border, unexplored cells.
+			COLOR_UNEXPLORED = ThemeUtils.resolveColor(getContext(),
+				R.attr.colorGameBackground, R.color.nh_game_background);
+			COLOR_VIEWPORT = ThemeUtils.resolveColor(getContext(),
+				R.attr.colorOnSurface, R.color.md_theme_onSurface);
+			COLOR_BORDER = ThemeUtils.resolveColor(getContext(),
+				R.attr.colorOutline, R.color.md_theme_outline);
+			mBorderPaint.setColor(COLOR_BORDER);
+			// COLOR_FLOOR / COLOR_WALL / COLOR_PLAYER / COLOR_PET / COLOR_MONSTER
+			// are intentional gameplay semantics — do not theme.
 		}
 
 		// ____________________________________________________________________________________
@@ -290,8 +305,18 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 
 		// ____________________________________________________________________________________
 		@Override
+		public boolean performClick()
+		{
+			return super.performClick();
+		}
+
+		// ____________________________________________________________________________________
+		@Override
 		public boolean onTouchEvent(MotionEvent event)
 		{
+			if (event.getAction() == MotionEvent.ACTION_UP) {
+				performClick();
+			}
 			// TODO: Allow tapping minimap to center main map on that location
 			// For now, just consume the event in edit mode
 			return super.onTouchEvent(event);

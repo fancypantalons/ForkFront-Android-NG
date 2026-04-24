@@ -3,6 +3,7 @@ package com.tbd.forkfront;
 import java.io.*;
 import java.lang.ref.WeakReference;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -117,8 +118,8 @@ public class UpdateAssets
 		}
 		if(hasDataDir || hasVerDat || hasSrcVer)
 		{
-			newEditor.commit();
-			oldEditor.commit();
+			newEditor.apply();
+			oldEditor.apply();
 		}
 	}
 
@@ -184,8 +185,7 @@ public class UpdateAssets
 				}
 				
 				if(dstPath == null)
-					mError = String.format("Not enough space. %.2fMb required", (float)(mRequiredSpace)/(1024.f*1024.f));
-				else {
+					mError = String.format(Locale.getDefault(), "Not enough space. %.2fMb required", (float)(mRequiredSpace)/(1024.f*1024.f));				else {
 
 					long startns = System.nanoTime();
 					updateFiles(dstPath);
@@ -388,7 +388,7 @@ public class UpdateAssets
 		// TODO don't store absolute path.
 		edit.putString(DATADIR_KEY, dstPath.getAbsolutePath());
 
-		edit.commit();
+		edit.apply();
 	}
 
 	private void doDefaultsBackup(File dstPath, byte[] buf) {

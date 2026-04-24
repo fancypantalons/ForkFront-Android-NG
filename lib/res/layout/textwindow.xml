@@ -1,17 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<FrameLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:fillViewport="true"
-	android:clickable="true"
-	android:background="@color/hearse_background"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
 	android:layout_width="match_parent"
-	android:layout_height="match_parent">
+	android:layout_height="match_parent"
+	android:background="@color/nh_dialog_scrim"
+	android:padding="16dp"
+	android:clickable="true">
 
-	<com.tbd.forkfront.NH_TextView
-		android:id="@+id/text_view"
-		style="@style/WindowText"
-		android:background="#00000000"
-		android:maxLength="999999"
+	<com.google.android.material.card.MaterialCardView
 		android:layout_width="match_parent"
-		android:layout_height="wrap_content"/>
-</ScrollView>
+		android:layout_height="match_parent"
+		app:cardElevation="8dp"
+		app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+		app:shapeAppearance="?attr/shapeAppearanceMediumComponent">
+
+		<ScrollView
+			android:fillViewport="true"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent">
+
+			<com.tbd.forkfront.NH_TextView
+				android:id="@+id/text_view"
+				style="@style/WindowText"
+				android:background="#00000000"
+				android:textColor="?attr/colorOnSurface"
+				android:maxLength="999999"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="8dp"/>
+		</ScrollView>
+	</com.google.android.material.card.MaterialCardView>
+</FrameLayout>

@@ -137,6 +137,15 @@
 			android:text=""
 			android:max="255"/>
 
+		<androidx.preference.ListPreference
+			android:title="Theme"
+			android:summary="%s"
+			android:persistent="true"
+			android:key="theme_mode"
+			android:defaultValue="-1"
+			android:entries="@array/themeNames"
+			android:entryValues="@array/themeValues"/>
+
 	</androidx.preference.PreferenceCategory>
 
 	<androidx.preference.PreferenceCategory

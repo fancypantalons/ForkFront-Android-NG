@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -52,6 +53,7 @@ import com.tbd.forkfront.gamepad.UiContextArbiter;
 import java.io.File;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -135,6 +137,10 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
+		// Apply theme mode before super.onCreate
+		String themeMode = PreferenceManager.getDefaultSharedPreferences(this).getString("theme_mode", "-1");
+		AppCompatDelegate.setDefaultNightMode(Integer.parseInt(themeMode));
+
 		super.onCreate(savedInstanceState);
 
 		Log.print("onCreate");
@@ -157,14 +163,14 @@ public class ForkFront extends AppCompatActivity
 				WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
 		}
 
-		// Configure system bar appearance for dark content
+		// Configure system bar appearance based on theme
 		WindowInsetsControllerCompat insetsController =
 			WindowCompat.getInsetsController(window, window.getDecorView());
 		if (insetsController != null) {
-			// Use dark icons for status/nav bars on light backgrounds
-			// Set to false for dark theme (light icons on dark bars)
-			insetsController.setAppearanceLightStatusBars(false);
-			insetsController.setAppearanceLightNavigationBars(false);
+			boolean isDark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+			// Use dark icons for status/nav bars on light backgrounds (light theme)
+			insetsController.setAppearanceLightStatusBars(!isDark);
+			insetsController.setAppearanceLightNavigationBars(!isDark);
 
 			// Sticky immersive: hide both bars; swipe from a hidden bar's edge
 			// briefly reveals it, then it auto-hides again.
@@ -596,8 +602,7 @@ public class ForkFront extends AppCompatActivity
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 
-		Log.print(String.format("onOptionsItemSelected(item=%d)", item.getItemId()));
-		if(item.getItemId() == 1)
+		Log.print(String.format(Locale.ROOT, "onOptionsItemSelected(item=%d)", item.getItemId()));		if(item.getItemId() == 1)
 		{
 			launchSettings();
 			return true;
@@ -648,7 +653,7 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onSaveInstanceState(Bundle outState)
 	{
-
+		super.onSaveInstanceState(outState);
 		Log.print("onSaveInstanceState(Bundle outState)");
 		if(mViewModel != null && mViewModel.getState() != null)
 			mViewModel.getState().saveState();

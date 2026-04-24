@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="@android:drawable/screen_background_dark_transparent"
+    android:background="@color/nh_dialog_scrim"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clickable="true"
     android:focusableInTouchMode="true"
     android:nextFocusDown="@+id/input"
-    android:nextFocusLeft="@+id/btn_1"
-    android:nextFocusRight="@+id/btn_0"
+    android:nextFocusLeft="@+id/btn_0"
+    android:nextFocusRight="@+id/btn_1"
     android:nextFocusUp="@+id/input" >
 
     <com.google.android.material.card.MaterialCardView
@@ -34,7 +34,7 @@
             <ImageView
                 style="?attr/dividerHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="2px" />
+                android:layout_height="1dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -91,20 +91,20 @@
                     android:layout_height="wrap_content" >
 
                     <Button
-                        android:id="@+id/btn_0"
-                        style="@style/ButtonText"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Ok" />
-
-                    <Button
                         android:id="@+id/btn_1"
                         style="@style/ButtonText"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Cancel" />
+
+                    <Button
+                        android:id="@+id/btn_0"
+                        style="@style/ButtonText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Ok" />
                 </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

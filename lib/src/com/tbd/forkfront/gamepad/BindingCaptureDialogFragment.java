@@ -54,7 +54,7 @@ public class BindingCaptureDialogFragment extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         String label = getArguments() != null ? getArguments().getString(ARG_LABEL) : null;
 
-        View content = LayoutInflater.from(requireContext())
+        View content = getLayoutInflater()
             .inflate(R.layout.dialog_binding_capture, null, false);
 
         mPreviewText = content.findViewById(R.id.capture_preview);
@@ -102,6 +102,15 @@ public class BindingCaptureDialogFragment extends DialogFragment {
         super.onPause();
         GamepadDispatcher gd = GamepadDispatcher.getInstance();
         if (gd != null) gd.popContext(UiContext.BINDING_CAPTURE);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        Dialog dialog = getDialog();
+        if (dialog != null && dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
     }
 
     private void onButtonDown(int keyCode) {

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 DARK palette -->
+    <!-- Brand -->
+    <color name="md_theme_primary">#A8C7FF</color>
+    <color name="md_theme_onPrimary">#003062</color>
+    <color name="md_theme_primaryContainer">#00468B</color>
+    <color name="md_theme_onPrimaryContainer">#D6E3FF</color>
+
+    <color name="md_theme_secondary">#BFC6DC</color>
+    <color name="md_theme_onSecondary">#293042</color>
+    <color name="md_theme_secondaryContainer">#3F4759</color>
+    <color name="md_theme_onSecondaryContainer">#DBE2F9</color>
+
+    <color name="md_theme_tertiary">#DEBCDF</color>
+    <color name="md_theme_onTertiary">#402843</color>
+    <color name="md_theme_tertiaryContainer">#583E5B</color>
+    <color name="md_theme_onTertiaryContainer">#FBD7FC</color>
+
+    <color name="md_theme_error">#FFB4AB</color>
+    <color name="md_theme_onError">#690005</color>
+    <color name="md_theme_errorContainer">#93000A</color>
+    <color name="md_theme_onErrorContainer">#FFDAD6</color>
+
+    <!-- Chrome background / surface (dark) -->
+    <color name="md_theme_background">#141218</color>
+    <color name="md_theme_onBackground">#E5E2E9</color>
+
+    <color name="md_theme_surface">#141218</color>
+    <color name="md_theme_onSurface">#E5E2E9</color>
+    <color name="md_theme_surfaceVariant">#43474E</color>
+    <color name="md_theme_onSurfaceVariant">#C3C6CF</color>
+
+    <!-- Surface container tonal steps (dark) -->
+    <color name="md_theme_surfaceContainerLowest">#0E0D12</color>
+    <color name="md_theme_surfaceContainerLow">#1C1B20</color>
+    <color name="md_theme_surfaceContainer">#211F26</color>
+    <color name="md_theme_surfaceContainerHigh">#2B2930</color>
+    <color name="md_theme_surfaceContainerHighest">#36343B</color>
+
+    <!-- Outlines -->
+    <color name="md_theme_outline">#8D9199</color>
+    <color name="md_theme_outlineVariant">#43474E</color>
+
+    <!-- Tonal elevation tint -->
+    <color name="md_theme_surfaceTint">#A8C7FF</color>
+
+    <!-- Universal scrim for modal dialogs -->
+    <color name="nh_dialog_scrim">#80000000</color>
+
+    <!-- Universal gamepad-focus stroke -->
+    <color name="focus_ring">@color/md_theme_primary</color>
+
+    <!-- Game viewport background (dark: true-black retro viewport) -->
+    <color name="nh_game_background">#000000</color>
+</resources>

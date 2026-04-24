@@ -142,7 +142,7 @@ public class CommandPaletteWidget extends ControlWidget {
     }
 
     private MaterialButton createCommandButton(CmdRegistry.CmdInfo cmd) {
-        MaterialButton btn = new MaterialButton(getContext());
+        MaterialButton btn = ThemeUtils.createButtonText(getContext());
         btn.setText(cmd.getDisplayName());
         btn.setAllCaps(false);
 

@@ -4,6 +4,8 @@ import android.content.Context;
 import android.text.SpannableStringBuilder;
 import android.widget.LinearLayout;
 
+import android.util.TypedValue;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,26 +18,6 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 	private long mConditionMask;
 	private long[] mConditionColorMasks;
 	private boolean mNeedsRender;
-
-	// NetHack color palette (matches winandroid.c palette array)
-	private static final int[] NH_COLOR_PALETTE = {
-		0xFF555555,	// CLR_BLACK (0)
-		0xFFFF0000,	// CLR_RED (1)
-		0xFF008800,	// CLR_GREEN (2)
-		0xFF664411, // CLR_BROWN (3)
-		0xFF0000FF,	// CLR_BLUE (4)
-		0xFFFF00FF,	// CLR_MAGENTA (5)
-		0xFF00FFFF,	// CLR_CYAN (6)
-		0xFF888888,	// CLR_GRAY (7)
-		0xFFFFFFFF,	// NO_COLOR (8)
-		0xFFFF9900,	// CLR_ORANGE (9)
-		0xFF00FF00,	// CLR_BRIGHT_GREEN (10)
-		0xFFFFFF00,	// CLR_YELLOW (11)
-		0xFF0088FF,	// CLR_BRIGHT_BLUE (12)
-		0xFFFF77FF,	// CLR_BRIGHT_MAGENTA (13)
-		0xFF77FFFF,	// CLR_BRIGHT_CYAN (14)
-		0xFFFFFFFF	// CLR_WHITE (15)
-	};
 
 	// Condition bit names (from NHW_Status)
 	private static final String[] CONDITION_NAMES = {
@@ -85,9 +67,11 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 			LinearLayout.LayoutParams.WRAP_CONTENT
 		));
 
+		int color = ThemeUtils.resolveColor(context, R.attr.colorOnSurface, R.color.md_theme_onSurface);
+
 		// Create two AutoFitTextViews for the two status lines
 		AutoFitTextView line1 = new AutoFitTextView(context);
-		line1.setTextColor(0xFFFFFFFF);
+		line1.setTextColor(color);
 		line1.setTextSize(15);
 		line1.setLayoutParams(new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MATCH_PARENT,
@@ -95,7 +79,7 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 		));
 
 		AutoFitTextView line2 = new AutoFitTextView(context);
-		line2.setTextColor(0xFFFFFFFF);
+		line2.setTextColor(color);
 		line2.setTextSize(15);
 		line2.setLayoutParams(new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MATCH_PARENT,
@@ -327,10 +311,11 @@ public class StatusWidget extends ControlWidget implements NHW_Status.StatusUpda
 	}
 
 	// ____________________________________________________________________________________
-	private static int nhColorToRGB(int nhColor)
+	private int nhColorToRGB(int nhColor)
 	{
-		if (nhColor >= 0 && nhColor < NH_COLOR_PALETTE.length) {
-			return NH_COLOR_PALETTE[nhColor];
+		int[] palette = TextAttr.getPalette(getContext());
+		if (nhColor >= 0 && nhColor < palette.length) {
+			return palette[nhColor];
 		}
 		return 0xFF000000; // Default to black
 	}

@@ -144,16 +144,15 @@ public class WidgetLayout extends FrameLayout {
     public void loadLayout() {
         String layoutKey = LayoutConfiguration.getLayoutKey(getContext(), mScreenId);
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
-        
+
         String userLayoutKey = "layouts/" + mScreenId + "/" + layoutKey + "/widget_count";
-        
+
         if (prefs.contains(userLayoutKey)) {
             loadUserLayout(layoutKey, prefs);
         } else {
             loadStockLayout(layoutKey);
         }
     }
-
     ControlWidget createWidget(ControlWidget.WidgetData data) {
         if ("dpad".equals(data.type)) {
             DirectionalPadView dpadView = new DirectionalPadView(getContext());
@@ -162,7 +161,7 @@ public class WidgetLayout extends FrameLayout {
             }
             return new ControlWidget(getContext(), dpadView, "dpad");
         } else if ("button".equals(data.type)) {
-            MaterialButton btn = new MaterialButton(getContext());
+            MaterialButton btn = ThemeUtils.createButtonText(getContext());
             btn.setText(data.label);
             if (mNHState != null && data.command != null && data.command.length() > 0) {
                 btn.setOnClickListener(v -> {
@@ -179,7 +178,7 @@ public class WidgetLayout extends FrameLayout {
             w.getWidgetData().command = data.command;
             return w;
         } else if ("palette".equals(data.type)) {
-            MaterialButton btn = new MaterialButton(getContext());
+            MaterialButton btn = ThemeUtils.createButtonText(getContext());
             btn.setText(data.label);
             btn.setIconResource(android.R.drawable.ic_menu_search);
             btn.setOnClickListener(v -> {

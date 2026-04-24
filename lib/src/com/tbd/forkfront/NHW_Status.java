@@ -9,6 +9,7 @@ import java.util.Set;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.text.SpannableStringBuilder;
+import android.util.TypedValue;
 import android.view.View;
 
 public class NHW_Status implements NH_Window
@@ -229,14 +230,12 @@ public class NHW_Status implements NH_Window
 	public void statusInit()
 	{
 		// Initialize field storage
-		android.util.Log.d("NHW_Status", "statusInit called");
 		mFields.clear();
 		mConditionMask = 0;
 	}
 
 	public void statusEnableField(int fieldIdx, String name, String fmt, boolean enable)
 	{
-		android.util.Log.d("NHW_Status", "statusEnableField: idx=" + fieldIdx + " name=" + name + " enable=" + enable);
 		if (fieldIdx < 0 || fieldIdx == BL_CONDITION) {
 			return; // BL_CONDITION handled separately
 		}
@@ -252,10 +251,8 @@ public class NHW_Status implements NH_Window
 
 	public void statusUpdate(int fieldIdx, String value, long conditionMask, int chg, int percent, int color, long[] colormasks)
 	{
-		// android.util.Log.d("NHW_Status", "statusUpdate: idx=" + fieldIdx + " value=" + value + " condMask=" + conditionMask);
 		// Handle special field indices
 		if (fieldIdx == BL_FLUSH) {
-			// android.util.Log.d("NHW_Status", "BL_FLUSH - rendering");
 			mUI.render();
 			notifyFlush();
 			return;
@@ -393,36 +390,6 @@ public class NHW_Status implements NH_Window
 	}
 
 	// ____________________________________________________________________________________ //
-	// NetHack color palette (matches winandroid.c palette array)
-	// ____________________________________________________________________________________ //
-	private static final int[] NH_COLOR_PALETTE = {
-		0xFF555555,	// CLR_BLACK (0)
-		0xFFFF0000,	// CLR_RED (1)
-		0xFF008800,	// CLR_GREEN (2)
-		0xFF664411, // CLR_BROWN (3)
-		0xFF0000FF,	// CLR_BLUE (4)
-		0xFFFF00FF,	// CLR_MAGENTA (5)
-		0xFF00FFFF,	// CLR_CYAN (6)
-		0xFF888888,	// CLR_GRAY (7)
-		0xFFFFFFFF,	// NO_COLOR (8)
-		0xFFFF9900,	// CLR_ORANGE (9)
-		0xFF00FF00,	// CLR_BRIGHT_GREEN (10)
-		0xFFFFFF00,	// CLR_YELLOW (11)
-		0xFF0088FF,	// CLR_BRIGHT_BLUE (12)
-		0xFFFF77FF,	// CLR_BRIGHT_MAGENTA (13)
-		0xFF77FFFF,	// CLR_BRIGHT_CYAN (14)
-		0xFFFFFFFF	// CLR_WHITE (15)
-	};
-
-	// Convert NetHack color code (0-15) to Android RGB color
-	private static int nhColorToRGB(int nhColor) {
-		if (nhColor >= 0 && nhColor < NH_COLOR_PALETTE.length) {
-			return NH_COLOR_PALETTE[nhColor];
-		}
-		return 0xFF000000; // Default to black
-	}
-
-	// ____________________________________________________________________________________ //
 	// 																						//
 	// ____________________________________________________________________________________ //
 	private class UI
@@ -440,9 +407,10 @@ public class NHW_Status implements NH_Window
 			mRows[0] = new SpannableStringBuilder();
 			mRows[1] = new SpannableStringBuilder();
 
-			// Set text color
-			mViews[0].setTextColor(0xFFFFFFFF); // White
-			mViews[1].setTextColor(0xFFFFFFFF); // White
+			// Set text color theme-aware
+			int color = ThemeUtils.resolveColor(context, R.attr.colorOnSurface,
+					R.color.md_theme_onSurface);			mViews[0].setTextColor(color);
+			mViews[1].setTextColor(color);
 		}
 
 		// ____________________________________________________________________________________
@@ -465,16 +433,12 @@ public class NHW_Status implements NH_Window
 			mRows[0] = new SpannableStringBuilder();
 			mRows[1] = new SpannableStringBuilder();
 
-			// Build first row: Title, stats, alignment, score
 			buildRow1();
-
-			// Build second row: Dungeon level, gold, HP, Pw, AC, XP, Time, Hunger, Conditions
 			buildRow2();
 
 			mViews[0].setText(mRows[0]);
 			mViews[1].setText(mRows[1]);
 
-			// Force layout update
 			mViews[0].requestLayout();
 			mViews[1].requestLayout();
 		}
@@ -482,13 +446,11 @@ public class NHW_Status implements NH_Window
 		// ____________________________________________________________________________________
 		private void buildRow1()
 		{
-			// Title (role/rank)
 			StatusField title = mFields.get(BL_TITLE);
 			if (title != null && title.enabled && !title.value.isEmpty()) {
 				appendField(0, title.value + " ", title.color);
 			}
 
-			// Characteristics: Str, Dex, Con, Int, Wis, Cha
 			appendStat(0, BL_STR, "St:");
 			appendStat(0, BL_DX, "Dx:");
 			appendStat(0, BL_CO, "Co:");
@@ -496,13 +458,11 @@ public class NHW_Status implements NH_Window
 			appendStat(0, BL_WI, "Wi:");
 			appendStat(0, BL_CH, "Ch:");
 
-			// Alignment
 			StatusField align = mFields.get(BL_ALIGN);
 			if (align != null && align.enabled) {
 				appendField(0, align.value + " ", align.color);
 			}
 
-			// Score
 			StatusField score = mFields.get(BL_SCORE);
 			if (score != null && score.enabled) {
 				appendField(0, "S:" + score.value + " ", score.color);
@@ -512,59 +472,50 @@ public class NHW_Status implements NH_Window
 		// ____________________________________________________________________________________
 		private void buildRow2()
 		{
-			// Dungeon level (Level 1)
 			StatusField dlvl = mFields.get(BL_LEVELDESC);
 			if (dlvl != null && dlvl.enabled) {
 				appendField(1, dlvl.value + " ", dlvl.color);
 			}
 
-			// Gold ($:123)
 			StatusField gold = mFields.get(BL_GOLD);
 			if (gold != null && gold.enabled) {
 				appendField(1, "$:" + gold.value + " ", gold.color);
 			}
 
-			// HP: current/max
 			StatusField hp = mFields.get(BL_HP);
 			StatusField hpmax = mFields.get(BL_HPMAX);
 			if (hp != null && hp.enabled && hpmax != null && hpmax.enabled) {
 				appendField(1, "HP:" + hp.value + "(" + hpmax.value + ") ", hp.color);
 			}
 
-			// Pw: current/max (Power/Energy)
 			StatusField pw = mFields.get(BL_ENE);
 			StatusField pwmax = mFields.get(BL_ENEMAX);
 			if (pw != null && pw.enabled && pwmax != null && pwmax.enabled) {
 				appendField(1, "Pw:" + pw.value + "(" + pwmax.value + ") ", pw.color);
 			}
 
-			// AC
 			StatusField ac = mFields.get(BL_AC);
 			if (ac != null && ac.enabled) {
 				appendField(1, "AC:" + ac.value + " ", ac.color);
 			}
 
-			// XP or HD
-			StatusField exp = mFields.get(BL_EXP); // Experience LEVEL
-			StatusField xp = mFields.get(BL_XP);   // Total XP points
+			StatusField exp = mFields.get(BL_EXP);
+			StatusField xp = mFields.get(BL_XP);
 			if (exp != null && exp.enabled) {
 				String xpVal = xp != null && xp.enabled ? "/" + xp.value : "";
 				appendField(1, "Xp:" + exp.value + xpVal + " ", exp.color);
 			}
 
-			// Time (optional)
 			StatusField time = mFields.get(BL_TIME);
 			if (time != null && time.enabled) {
 				appendField(1, "T:" + time.value + " ", time.color);
 			}
 
-			// Hunger
 			StatusField hunger = mFields.get(BL_HUNGER);
 			if (hunger != null && hunger.enabled && !hunger.value.isEmpty()) {
 				appendField(1, hunger.value + " ", hunger.color);
 			}
 
-			// Conditions (Blind, Stun, etc)
 			for (int i = 0; i < CONDITION_BITS.length; i++) {
 				if ((mConditionMask & CONDITION_BITS[i]) != 0) {
 					int nhColor = (int)mConditionColorMasks[i];
@@ -573,7 +524,6 @@ public class NHW_Status implements NH_Window
 			}
 		}
 
-		// Helper to append a characteristic with label
 		private void appendStat(int row, int fieldIdx, String label)
 		{
 			StatusField field = mFields.get(fieldIdx);
@@ -582,15 +532,19 @@ public class NHW_Status implements NH_Window
 			}
 		}
 
-		// Append styled text to row
 		private void appendField(int row, String text, int nhColor)
 		{
 			int start = mRows[row].length();
 			mRows[row].append(text);
 			int end = mRows[row].length();
 
-			// Apply color styling
-			int rgb = nhColorToRGB(nhColor);
+			int[] palette = TextAttr.getPalette(mViews[row].getContext());
+			int rgb;
+			if (nhColor >= 0 && nhColor < palette.length) {
+				rgb = palette[nhColor];
+			} else {
+				rgb = mViews[row].getCurrentTextColor();
+			}
 			mRows[row].setSpan(new android.text.style.ForegroundColorSpan(rgb), start, end, 0);
 		}
 

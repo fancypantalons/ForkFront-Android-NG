@@ -1,0 +1,4 @@
+<lint>
+    <issue id="UnusedResources" severity="error" />
+    <issue id="UnusedIds" severity="error" />
+</lint>

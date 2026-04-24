@@ -77,7 +77,7 @@ public class ContextualActionBarView extends FrameLayout {
 
         setVisibility(VISIBLE);
         for (final CmdRegistry.CmdInfo cmd : actions) {
-            MaterialButton btn = new MaterialButton(getContext(), null, com.google.android.material.R.attr.materialButtonStyle);
+            MaterialButton btn = ThemeUtils.createButtonText(getContext());
             btn.setText(cmd.getDisplayName());
             btn.setPadding(16, 8, 16, 8);
             
