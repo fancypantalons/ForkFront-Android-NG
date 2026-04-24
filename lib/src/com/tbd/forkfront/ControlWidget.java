@@ -65,7 +65,20 @@ public class ControlWidget extends FrameLayout {
 
     public void setFontSize(int size) {
         mData.fontSize = size;
-        // Subclasses will override to apply to their text views
+        if (!"status".equals(mData.type) && !"message".equals(mData.type)) {
+            applyFontSizeToView(mContentView, size);
+        }
+    }
+
+    private void applyFontSizeToView(View view, int size) {
+        if (view instanceof android.widget.TextView) {
+            ((android.widget.TextView) view).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
+        } else if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                applyFontSizeToView(vg.getChildAt(i), size);
+            }
+        }
     }
 
     public ControlWidget(Context context) {

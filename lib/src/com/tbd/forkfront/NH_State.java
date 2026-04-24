@@ -834,11 +834,14 @@ public class NH_State
 		boolean isContextual = "contextual".equals(data.type);
 		boolean isCommandPalette = "command_palette".equals(data.type);
 		boolean isText = "status".equals(data.type) || "message".equals(data.type);
+		boolean showFontSize = isText || "button".equals(data.type) || "dpad".equals(data.type) || 
+				"command_palette".equals(data.type) || "palette".equals(data.type) || 
+				"contextual".equals(data.type);
 		boolean showMoveButton = mPrimaryWidgetLayout != null && mSecondaryWidgetLayout != null;
 
 		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(
 				data.label, isButton, isContextual, isCommandPalette, data.horizontal,
-				data.opacity, isText, data.fontSize, data.rows, data.columns, data.category, showMoveButton);
+				data.opacity, showFontSize, data.fontSize, data.rows, data.columns, data.category, showMoveButton);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
