@@ -13,4 +13,8 @@
     <attr name="colorSurfaceContainer" format="color" />
     <attr name="colorSurfaceContainerHigh" format="color" />
     <attr name="colorSurfaceContainerHighest" format="color" />
+
+    <declare-styleable name="NH_TextView">
+        <attr name="useFittedSize" format="boolean" />
+    </declare-styleable>
 </resources>
