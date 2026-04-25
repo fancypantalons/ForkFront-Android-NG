@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:id="@+id/new_character_row_root"
+	android:orientation="horizontal"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:minHeight="56dp"
+	android:gravity="center_vertical"
+	android:paddingStart="@dimen/padding_large"
+	android:paddingEnd="@dimen/padding_large"
+	android:background="?attr/selectableItemBackground"
+	android:foreground="@drawable/gamepad_focus_selector"
+	android:focusable="true"
+	android:clickable="true">
+
+	<ImageView
+		android:layout_width="24dp"
+		android:layout_height="24dp"
+		android:src="@drawable/ic_character_new"
+		app:tint="?attr/colorPrimary"/>
+
+	<TextView
+		style="@style/DialogTitle"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_marginStart="@dimen/padding_medium"
+		android:text="New Character"
+		android:textColor="?attr/colorPrimary"/>
+
+</LinearLayout>

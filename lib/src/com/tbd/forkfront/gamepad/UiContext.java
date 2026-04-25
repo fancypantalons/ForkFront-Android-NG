@@ -14,5 +14,6 @@ public enum UiContext {
     DRAWER_OPEN,
     SETTINGS_OPEN,
     BINDING_CAPTURE,
+    CHARACTER_PICKER,
     OTHER
 }

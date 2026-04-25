@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/character_row_root"
+	android:orientation="vertical"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:minHeight="56dp"
+	android:gravity="center_vertical"
+	android:paddingStart="@dimen/padding_large"
+	android:paddingEnd="@dimen/padding_large"
+	android:paddingTop="@dimen/padding_small"
+	android:paddingBottom="@dimen/padding_small"
+	android:background="?attr/selectableItemBackground"
+	android:foreground="@drawable/gamepad_focus_selector"
+	android:focusable="true"
+	android:clickable="true">
+
+	<TextView
+		android:id="@+id/character_name"
+		style="@style/ListText1"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:textColor="?attr/colorOnSurface"/>
+
+	<TextView
+		android:id="@+id/character_details"
+		style="@style/ListText2"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:textColor="?attr/colorOnSurfaceVariant"/>
+
+</LinearLayout>

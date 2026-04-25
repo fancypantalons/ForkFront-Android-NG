@@ -34,6 +34,7 @@ public class NH_State
 	private NHW_Status mStatus;
 	private NHW_Map mMap;
 	private NH_GetLine mGetLine;
+	private NH_CharacterPicker mCharacterPicker;
 	private NH_Question mQuestion;
 	private ArrayList<NH_Window> mWindows;
 	private Tileset mTileset;
@@ -55,16 +56,25 @@ public class NH_State
 	private final UiCapture mGameUiCapture = new UiCapture() {
 		@Override
 		public boolean handleGamepadKey(android.view.KeyEvent ev) {
+			if (mUiContextArbiter != null && mUiContextArbiter.current() == UiContext.CHARACTER_PICKER) {
+				return mCharacterPicker.handleGamepadKey(ev.getKeyCode(), ev);
+			}
 			if(mGetLine != null && mGetLine.isFocused()) {
 				if(mGetLine.handleGamepadKey(ev)) return true;
-				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
-					return mGetLine.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
+				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+					KeyEventResult res = mGetLine.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount());
+					if (res == KeyEventResult.RETURN_TO_SYSTEM) return false;
+					return res == KeyEventResult.HANDLED;
+				}
 				return false;
 			}
 			if(mQuestion != null && mQuestion.isShowing()) {
 				if(mQuestion.handleGamepadKey(ev)) return true;
-				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
-					return mQuestion.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
+				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+					KeyEventResult res = mQuestion.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount());
+					if (res == KeyEventResult.RETURN_TO_SYSTEM) return false;
+					return res == KeyEventResult.HANDLED;
+				}
 				return false;
 			}
 
@@ -185,6 +195,7 @@ public class NH_State
 		mTileset = new Tileset(app);
 		mWindows = new ArrayList<>();
 		mGetLine = new NH_GetLine(mIO, this);
+		mCharacterPicker = new NH_CharacterPicker(mIO, this);
 		mQuestion = new NH_Question(mIO, this);
 		mSoundPlayer = new SoundPlayer();
 
@@ -224,6 +235,7 @@ public class NH_State
 		for(NH_Window w : mWindows)
 			w.setContext(activity);
 		mGetLine.setContext(activity);
+		mCharacterPicker.setContext(activity);
 		mQuestion.setContext(activity);
 		if (mMessage != null) {
 			mMessage.setContext(activity);
@@ -320,7 +332,11 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
-	private String getLastUsername()
+	public void runOnActivity(Runnable operation) {
+		if(mViewModel != null) mViewModel.runOnActivity(operation);
+	}
+
+	public String getLastUsername()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
 		return prefs.getString("lastUsername", "");
@@ -412,6 +428,10 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public boolean handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
+		if (mUiContextArbiter != null && mUiContextArbiter.current() == UiContext.CHARACTER_PICKER) {
+			if (mCharacterPicker.handleKeyDown(keyCode, null)) return true;
+		}
+
 		if(repeatCount > 0) switch(keyCode) {
 			case KeyEvent.KEYCODE_ESCAPE:
 				// Ignore repeat on these actions
@@ -1286,15 +1306,7 @@ public class NH_State
 			if (mViewModel != null) {
 				mViewModel.runOnActivity(() -> {
 					if (mActivity != null) {
-						String last = getLastUsername();
-						List<String> list = new ArrayList<>();
-						for(String s : saves) {
-							if(last.equals(s))
-								list.add(0, s);
-							else
-								list.add(s);
-						}
-						mGetLine.showWhoAreYou(mActivity, nMaxChars, list);
+						mCharacterPicker.show(nMaxChars, saves);
 					}
 				});
 			}
