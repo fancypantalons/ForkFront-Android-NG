@@ -20,6 +20,7 @@ import com.tbd.forkfront.*;
 import com.tbd.forkfront.Hearse.Hearse;
 import com.tbd.forkfront.gamepad.GamepadDispatcher;
 import com.tbd.forkfront.gamepad.UiCapture;
+import com.tbd.forkfront.gamepad.UiContext;
 import com.google.android.material.button.MaterialButton;
 
 public class NH_State
@@ -108,6 +109,12 @@ public class NH_State
 
 	public void pushContext(com.tbd.forkfront.gamepad.UiContext ctx) {
 		if(mUiContextArbiter != null) mUiContextArbiter.push(ctx);
+
+		// Reset gamepad state when entering any modal/non-gameplay context
+		if (ctx != UiContext.GAMEPLAY && ctx != UiContext.DIRECTION_PROMPT) {
+			GamepadDispatcher gd = GamepadDispatcher.getInstance();
+			if (gd != null) gd.resetTracker();
+		}
 	}
 
 	public void popContext(com.tbd.forkfront.gamepad.UiContext ctx) {
