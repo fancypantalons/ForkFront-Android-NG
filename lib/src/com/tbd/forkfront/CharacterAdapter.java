@@ -61,15 +61,21 @@ public class CharacterAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     class CharacterViewHolder extends RecyclerView.ViewHolder {
-        TextView nameText;
-        TextView detailsText;
+        TextView identityText;
+        TextView raceChip;
+        TextView alignmentChip;
+        TextView wizardChip;
+        View chipContainer;
         View root;
 
         CharacterViewHolder(View itemView) {
             super(itemView);
             root = itemView.findViewById(R.id.character_row_root);
-            nameText = itemView.findViewById(R.id.character_name);
-            detailsText = itemView.findViewById(R.id.character_details);
+            identityText = itemView.findViewById(R.id.character_identity);
+            raceChip = itemView.findViewById(R.id.chip_race);
+            alignmentChip = itemView.findViewById(R.id.chip_alignment);
+            wizardChip = itemView.findViewById(R.id.chip_wizard);
+            chipContainer = itemView.findViewById(R.id.chip_container);
             root.setOnClickListener(v -> {
                 int pos = getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION && pos < characters.size()) {
@@ -79,13 +85,18 @@ public class CharacterAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         }
 
         void bind(String name, boolean isLast) {
-            nameText.setText(name);
             SaveMetadata meta = SaveMetadata.load(saveDir, name);
             if (meta.hasMetadata()) {
-                detailsText.setText(String.format("%s · %s · %s", meta.getRole(), meta.getRace(), meta.getAlignment()));
-                detailsText.setVisibility(View.VISIBLE);
+                identityText.setText(String.format("%s the %s", name, meta.getRole()));
+                raceChip.setText(meta.getRace());
+                alignmentChip.setText(meta.getAlignment());
+                wizardChip.setVisibility(meta.isWizard() ? View.VISIBLE : View.GONE);
+                raceChip.setVisibility(View.VISIBLE);
+                alignmentChip.setVisibility(View.VISIBLE);
+                chipContainer.setVisibility(View.VISIBLE);
             } else {
-                detailsText.setVisibility(View.GONE);
+                identityText.setText(name);
+                chipContainer.setVisibility(View.GONE);
             }
         }
     }
