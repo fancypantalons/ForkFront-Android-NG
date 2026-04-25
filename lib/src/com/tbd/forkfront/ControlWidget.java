@@ -33,6 +33,7 @@ public class ControlWidget extends FrameLayout {
     private int mTouchSlop;
     private boolean mIsDragging = false;
     private boolean mIsResizing = false;
+    private boolean mHasMovedPastSlop = false;
     
     private GestureDetector mGestureDetector;
 
@@ -141,6 +142,7 @@ public class ControlWidget extends FrameLayout {
         mGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
+                if (mHasMovedPastSlop) return;
                 if (mEditMode && mLongClickListener != null) {
                     mLongClickListener.onWidgetLongClick(ControlWidget.this);
                 }
@@ -193,6 +195,7 @@ public class ControlWidget extends FrameLayout {
                         mLastTouchY = y;
                         mStartX = x;
                         mStartY = y;
+                        mHasMovedPastSlop = false;
                         mGestureDetector.setIsLongpressEnabled(true);
                         
                         // Check if touch is on resize handle
@@ -212,6 +215,7 @@ public class ControlWidget extends FrameLayout {
                         float dy = y - mLastTouchY;
                         
                         if (Math.abs(x - mStartX) > mTouchSlop || Math.abs(y - mStartY) > mTouchSlop) {
+                            mHasMovedPastSlop = true;
                             mGestureDetector.setIsLongpressEnabled(false);
                         }
                         
@@ -238,6 +242,7 @@ public class ControlWidget extends FrameLayout {
                     case MotionEvent.ACTION_CANCEL:
                         mIsDragging = false;
                         mIsResizing = false;
+                        mHasMovedPastSlop = false;
                         if (mChangeListener != null) {
                             mChangeListener.onWidgetChanged(ControlWidget.this);
                         }

@@ -20,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.*;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
+import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
 import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.Input.Modifier;
 
@@ -736,7 +737,8 @@ public class NHW_Menu implements NH_Window
 			mListView.setItemsCanFocus(false);
 			mListView.setChoiceMode(mMenu.mHow == MenuSelectMode.PickMany ? ListView.CHOICE_MODE_MULTIPLE : ListView.CHOICE_MODE_SINGLE);
 			mListView.setFocusable(true);
-			mListView.setFocusableInTouchMode(true);
+			if(GamepadDeviceWatcher.isGamepadConnected(requireActivity()))
+				mListView.setFocusableInTouchMode(true);
 
 			if (mMenu.mHow != MenuSelectMode.PickNone) {
 				mListView.requestFocus();
