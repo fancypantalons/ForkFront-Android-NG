@@ -702,6 +702,20 @@ public class NHW_Menu implements NH_Window
 			});
 			btn.requestFocus();
 			updateText(root);
+
+			View closeBtn = root.findViewById(R.id.btn_close);
+			if(closeBtn != null)
+			{
+				closeBtn.setOnClickListener(new OnClickListener()
+				{
+					@Override
+					public void onClick(View view)
+					{
+						mMenu.close();
+					}
+				});
+			}
+
 			return root;
 		}
 
@@ -740,6 +754,20 @@ public class NHW_Menu implements NH_Window
 			if (mMenu.mTitle.length() > 0) {
 				((NH_TextView) root.findViewById(R.id.title)).setVisibility(View.VISIBLE);
 				((NH_TextView) root.findViewById(R.id.title)).setText(mMenu.mTitle);
+			}
+
+			View closeBtn = root.findViewById(R.id.btn_close);
+			if(closeBtn != null)
+			{
+				closeBtn.setOnClickListener(new OnClickListener()
+				{
+					@Override
+					public void onClick(View view)
+					{
+						mMenu.mKeyboardCount = -1;
+						sendCancelSelect();
+					}
+				});
 			}
 
 			return root;

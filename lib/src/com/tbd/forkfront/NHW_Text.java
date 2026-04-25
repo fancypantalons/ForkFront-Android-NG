@@ -208,6 +208,19 @@ public class NHW_Text implements NH_Window
 			}
 			textView.setOnTouchListener(mTouchListener);
 
+			View closeBtn = root.findViewById(R.id.btn_close);
+			if(closeBtn != null)
+			{
+				closeBtn.setOnClickListener(new View.OnClickListener()
+				{
+					@Override
+					public void onClick(View view)
+					{
+						mParent.close();
+					}
+				});
+			}
+
 			return root;
 		}
 
