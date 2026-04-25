@@ -197,14 +197,17 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
         String tileset = prefs.getString("tileset", "default_32");
         boolean isCustom = "CUSTOM".equals(tileset);
+        boolean isAscii = "TTY".equals(tileset);
 
         Preference pickPref = findPreference("pick_custom_tileset");
         Preference wPref = findPreference("customTileW");
         Preference hPref = findPreference("customTileH");
+        Preference smoothScalingPref = findPreference("fallbackRenderer");
 
         if (pickPref != null) pickPref.setVisible(isCustom);
         if (wPref != null) wPref.setVisible(isCustom);
         if (hPref != null) hPref.setVisible(isCustom);
+        if (smoothScalingPref != null) smoothScalingPref.setVisible(!isAscii);
     }
 
     private void setIconSpaceReserved(Preference preference, boolean reserved) {
