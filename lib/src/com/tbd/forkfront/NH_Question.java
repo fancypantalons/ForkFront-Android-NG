@@ -122,14 +122,43 @@ public class NH_Question
 		{
 			try
 			{
-				Button focus = (Button)mRoot.findFocus();
+				View focus = mRoot.findFocus();
 				if(focus != null)
-					return focus.getText().charAt(0);
+				{
+					for(int i = 0; i < mBtns.length; i++)
+					{
+						if(focus.getId() == mBtns[i])
+							return mChoices[i];
+					}
+				}
 			}
 			catch(Exception e)
 			{
 			}
 			return 0;
+		}
+
+		// ____________________________________________________________________________________
+		private String getChoiceLabel(char choice)
+		{
+			switch(choice)
+			{
+			case 'y':
+			case 'Y': return "Yes";
+			case 'n':
+			case 'N': return "No";
+			case 'q':
+			case 'Q': return "Cancel";
+			case 'a':
+			case 'A': return "All";
+			case 'r':
+			case 'R': return "Right";
+			case 'l':
+			case 'L': return "Left";
+			case ' ': return "Continue";
+			case '-': return "None";
+			default: return Character.toString(choice);
+			}
 		}
 
 		// ____________________________________________________________________________________
@@ -154,6 +183,7 @@ public class NH_Question
 			if(mChoices.length == 1)
 			{
 				Button btn = mRoot.findViewById(R.id.btn_0);
+				btn.setText(getChoiceLabel(mChoices[0]));
 				btn.setFocusable(true);
 				btn.setFocusableInTouchMode(true);
 				btn.setOnClickListener(new OnClickListener()
@@ -170,7 +200,7 @@ public class NH_Question
 				{
 					final int a = i;
 					Button btn = (Button)mRoot.findViewById(mBtns[i]);
-					btn.setText(Character.toString(mChoices[i]));
+					btn.setText(getChoiceLabel(mChoices[i]));
 					btn.setFocusable(true);
 					btn.setFocusableInTouchMode(true);
 					btn.setOnClickListener(new OnClickListener()
