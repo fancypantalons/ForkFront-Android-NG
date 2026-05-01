@@ -1,103 +1,55 @@
 package com.tbd.forkfront;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.os.Build;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.preference.PreferenceActivity;
-import android.preference.PreferenceCategory;
-import android.preference.PreferenceScreen;
-import android.view.Window;
-import com.tbd.forkfront.TilesetPreference;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceScreen;
+import androidx.preference.Preference;
 
-public class Settings extends PreferenceActivity implements OnSharedPreferenceChangeListener
-{
-	private TilesetPreference mTilesetPref;
+public class Settings extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
 
-	// ____________________________________________________________________________________
-	@Override
-	protected void onCreate(Bundle savedInstanceState)
-	{
-		// turn off the window's title bar
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
+    private SettingsFragment fragment;
 
-		super.onCreate(savedInstanceState);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (savedInstanceState == null) {
+            fragment = new SettingsFragment();
+            getSupportFragmentManager()
+                .beginTransaction()
+                .replace(android.R.id.content, fragment)
+                .commit();
+        }
+    }
 
-		addPreferencesFromResource(R.xml.preferences);
-	}
+    @Override
+    public boolean onPreferenceStartScreen(PreferenceFragmentCompat caller, PreferenceScreen pref) {
+        SettingsFragment newFragment = new SettingsFragment();
+        Bundle args = new Bundle();
+        args.putString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT, pref.getKey());
+        newFragment.setArguments(args);
 
-	// ____________________________________________________________________________________
-	@Override
-	protected void onResume()
-	{
-		super.onResume();
+        getSupportFragmentManager()
+            .beginTransaction()
+            .replace(android.R.id.content, newFragment)
+            .addToBackStack(pref.getKey())
+            .commit();
+        
+        return true;
+    }
 
-		SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
-
-		for(int i = 0; i < 10; i++)
-		{
-			char idx = (char)('0' + i);
-			Preference screen = findPreference("panel" + idx);
-
-			if(screen == null)
-				break;
-
-			String name = sharedPreferences.getString("pName" + idx, "");
-
-			screen.setTitle(name);
-		}
-
-		sharedPreferences.registerOnSharedPreferenceChangeListener(this);
-
-		mTilesetPref = (TilesetPreference)findPreference("tilesetPreference");
-		mTilesetPref.setActivity(this);
-
-		if(!getApplicationContext().getResources().getBoolean(R.bool.hearseAvailable))
-		{
-			PreferenceCategory hearseParent = (PreferenceCategory)findPreference("advanced");
-			Preference hearsePref = findPreference("hearse");
-			if(hearsePref != null)
-				hearseParent.removePreference(hearsePref);
-		}
-
-		// Immersive mode only available on API 11 and up
-		PreferenceCategory settingsCategory = (PreferenceCategory)findPreference("settings");
-		if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
-		{
-			Preference fullscreenPref = findPreference("immersive");
-			if(fullscreenPref != null)
-				settingsCategory.removePreference(fullscreenPref);
-		}
-	}
-
-	// ____________________________________________________________________________________
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data)
-	{
-		super.onActivityResult(requestCode, resultCode, data);
-		mTilesetPref.onActivityResult(requestCode, resultCode, data);
-	}
-
-	// ____________________________________________________________________________________
-	@Override
-	protected void onPause()
-	{
-		super.onPause();
-		getPreferenceScreen().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
-	}
-
-	// ____________________________________________________________________________________
-	@Override
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
-	{
-		if(key.startsWith("pName"))
-		{
-			char idx = key.charAt(key.length() - 1);
-			Preference screen = findPreference("panel" + idx);
-			String name = sharedPreferences.getString("pName" + idx, "");
-			screen.setTitle(name);
-		}
-	}
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(android.R.id.content);
+        if (currentFragment instanceof PreferenceFragmentCompat) {
+            Preference pref = ((PreferenceFragmentCompat) currentFragment).findPreference("tilesetPreference");
+            if (pref instanceof TilesetPreference) {
+                ((TilesetPreference) pref).onActivityResult(requestCode, resultCode, data);
+            }
+        }
+    }
 }

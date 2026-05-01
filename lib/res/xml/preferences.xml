@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen
+<androidx.preference.PreferenceScreen
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:forkfront="http://schemas.android.com/apk/res-auto">
-	<PreferenceCategory
+	<androidx.preference.PreferenceCategory
 		android:title="Settings"
 		android:key="settings">
-		<PreferenceScreen
+		<androidx.preference.PreferenceScreen
 			android:title="Tileset"
 			android:summary="The visual style of the game world">
 
@@ -15,23 +15,23 @@
 				android:summary="The visual style of the game world"
 				android:layout="@layout/tileset_select_menu"/>
 
-		</PreferenceScreen>
+		</androidx.preference.PreferenceScreen>
 
-		<CheckBoxPreference
+		<androidx.preference.CheckBoxPreference
 			android:title="Fullscreen"
 			android:summary="Enable fullscreen mode"
 			android:persistent="true"
 			android:defaultValue="false"
 			android:key="fullscreen"/>
 
-		<CheckBoxPreference
+		<androidx.preference.CheckBoxPreference
 			android:title="Immersive mode"
 			android:summary="Hide the on-screen navigation bar"
 			android:persistent="true"
 			android:defaultValue="false"
 			android:key="immersive"/>
 
-		<ListPreference
+		<androidx.preference.ListPreference
 			android:title="Volume up action"
 			android:summary="The action performed when pressing the volume up key"
 			android:persistent="true"
@@ -40,7 +40,7 @@
 			android:entries="@array/actionNames"
 			android:entryValues="@array/actionValues"/>
 			
-		<ListPreference
+		<androidx.preference.ListPreference
 			android:title="Volume down action"
 			android:summary="The action performed when pressing the volume down key"
 			android:persistent="true"
@@ -49,7 +49,7 @@
 			android:entries="@array/actionNames"
 			android:entryValues="@array/actionValues"/>
 
-		<ListPreference
+		<androidx.preference.ListPreference
 			android:title="Travel command"
 			android:summary="When to invoke the Travel command if a position is clicked"
 			android:persistent="true"
@@ -58,14 +58,14 @@
 			android:entries="@array/travelNames"
 			android:entryValues="@array/travelValues"/>
 
-        <CheckBoxPreference
+        <androidx.preference.CheckBoxPreference
                 android:title="Lock view"
                 android:summary="Do not move the view with the character when the entire map can fit the screen"
                 android:persistent="true"
                 android:defaultValue="true"
                 android:key="lockView"/>
 
-		<CheckBoxPreference
+		<androidx.preference.CheckBoxPreference
 			android:title="Monospace mode"
 			android:summary="Use a monospace font for nicer typography"
 			android:persistent="true"
@@ -92,25 +92,25 @@
 			android:text=""
 			android:max="255"/>
 
-		<PreferenceScreen
+		<androidx.preference.PreferenceScreen
 			android:title="Directional overlay"
 			android:summary="Configure the directional overlay">
 
-			<CheckBoxPreference
+			<androidx.preference.CheckBoxPreference
 				android:title="Always show in portrait"
 				android:summary="Always show the directional overlay in portrait mode"
 				android:persistent="true"
 				android:key="ovlPortAlways"
 				android:defaultValue="false"/>
 
-			<CheckBoxPreference
+			<androidx.preference.CheckBoxPreference
 				android:title="Always show in landscape"
 				android:summary="Always show the directional overlay in landscape mode"
 				android:persistent="true"
 				android:key="ovlLandAlways"
 				android:defaultValue="false"/>
 
-			<ListPreference
+			<androidx.preference.ListPreference
 				android:title="Portrait location"
 				android:summary="The location of the overlay in portrait mode"
 				android:persistent="true"
@@ -119,7 +119,7 @@
 				android:entries="@array/dirLocationNames"
 				android:entryValues="@array/dirLocationValues"/>
 
-			<ListPreference
+			<androidx.preference.ListPreference
 				android:title="Landscape location"
 				android:summary="The location of the overlay in landscape mode"
 				android:persistent="true"
@@ -149,39 +149,39 @@
 					forkfront:min="-10"
 					android:max="10"/>
 
-			<CheckBoxPreference
+			<androidx.preference.CheckBoxPreference
 				android:title="Allow map input with overlay"
 				android:summary="Allow directional input by clicking on the map when the overlay is shown"
 				android:persistent="true"
 				android:key="allowMapDir"
 				android:defaultValue="false"/>
 
-		</PreferenceScreen>
+		</androidx.preference.PreferenceScreen>
 		
-		<PreferenceScreen
+		<androidx.preference.PreferenceScreen
 			android:title="Command panels"
 			android:summary="Configure layout and content of the command panels"
 			android:orderingFromXml="true">
 
-			<PreferenceScreen
+			<androidx.preference.PreferenceScreen
 				android:title="Panel 0"
 				android:key="panel0">
 				
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in portrait"
 					android:summary="Whether this panel is active in portrait mode"
 					android:persistent="true"
 					android:defaultValue="true"
 					android:key="pPortActive0"/>
 	
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in landscape"
 					android:summary="Whether this panel is active in landscape mode"
 					android:persistent="true"
 					android:defaultValue="true"
 					android:key="pLandActive0"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Name"
 					android:summary="Set the name of this panel"
 					android:persistent="true"
@@ -189,7 +189,7 @@
 					android:singleLine="true"
 					android:key="pName0"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Command buttons"
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
@@ -197,7 +197,7 @@
 					android:singleLine="false"
 					android:key="pCmdString0"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Portrait location"
 					android:summary="The panel's location in portrait mode"
 					android:persistent="true"
@@ -206,7 +206,7 @@
 					android:entries="@array/locationNames"
 					android:entryValues="@array/locationValues"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Landscape location"
 					android:summary="The panel's location in landscape mode"
 					android:persistent="true"
@@ -236,27 +236,27 @@
 					forkfront:min="-10"
 					android:max="10"/>
 
-			</PreferenceScreen>
+			</androidx.preference.PreferenceScreen>
 			
-			<PreferenceScreen
+			<androidx.preference.PreferenceScreen
 				android:title="Panel 2"
 				android:key="panel1">
 				
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in portrait"
 					android:summary="Whether this panel is active in portrait mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pPortActive1"/>
 	
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in landscape"
 					android:summary="Whether this panel is active in landscape mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pLandActive1"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Name"
 					android:summary="Set the name of this panel"
 					android:persistent="true"
@@ -264,7 +264,7 @@
 					android:singleLine="true"
 					android:key="pName1"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Command buttons"
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
@@ -272,7 +272,7 @@
 					android:singleLine="false"
 					android:key="pCmdString1"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Portrait location"
 					android:summary="The panel's location in portrait mode"
 					android:persistent="true"
@@ -281,7 +281,7 @@
 					android:entries="@array/locationNames"
 					android:entryValues="@array/locationValues"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Landscape location"
 					android:summary="The panel's location in landscape mode"
 					android:persistent="true"
@@ -310,28 +310,28 @@
 						android:text=""
 						forkfront:min="-10"
 						android:max="10"/>
-			</PreferenceScreen>
+			</androidx.preference.PreferenceScreen>
 			
 			
-			<PreferenceScreen
+			<androidx.preference.PreferenceScreen
 				android:title="Panel 3"
 				android:key="panel2">
 				
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in portrait"
 					android:summary="Whether this panel is active in portrait mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pPortActive2"/>
 	
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in landscape"
 					android:summary="Whether this panel is active in landscape mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pLandActive2"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Name"
 					android:summary="Set the name of this panel"
 					android:persistent="true"
@@ -339,7 +339,7 @@
 					android:singleLine="true"
 					android:key="pName2"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Command buttons"
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
@@ -347,7 +347,7 @@
 					android:singleLine="false"
 					android:key="pCmdString2"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Portrait location"
 					android:summary="The panel's location in portrait mode"
 					android:persistent="true"
@@ -356,7 +356,7 @@
 					android:entries="@array/locationNames"
 					android:entryValues="@array/locationValues"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Landscape location"
 					android:summary="The panel's location in landscape mode"
 					android:persistent="true"
@@ -386,28 +386,28 @@
 						forkfront:min="-10"
 						android:max="10"/>
 
-			</PreferenceScreen>
+			</androidx.preference.PreferenceScreen>
 			
 			
-			<PreferenceScreen
+			<androidx.preference.PreferenceScreen
 				android:title="Panel 4"
 				android:key="panel3">
 				
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in portrait"
 					android:summary="Whether this panel is active in portrait mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pPortActive3"/>
 	
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in landscape"
 					android:summary="Whether this panel is active in landscape mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pLandActive3"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Name"
 					android:summary="Set the name of this panel"
 					android:persistent="true"
@@ -415,7 +415,7 @@
 					android:singleLine="true"
 					android:key="pName3"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Command buttons"
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
@@ -423,7 +423,7 @@
 					android:singleLine="false"
 					android:key="pCmdString3"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Portrait location"
 					android:summary="The panel's location in portrait mode"
 					android:persistent="true"
@@ -432,7 +432,7 @@
 					android:entries="@array/locationNames"
 					android:entryValues="@array/locationValues"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Landscape location"
 					android:summary="The panel's location in landscape mode"
 					android:persistent="true"
@@ -462,28 +462,28 @@
 						forkfront:min="-10"
 						android:max="10"/>
 
-			</PreferenceScreen>
+			</androidx.preference.PreferenceScreen>
 			
 			
-			<PreferenceScreen
+			<androidx.preference.PreferenceScreen
 				android:title="Panel 5"
 				android:key="panel4">
 				
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in portrait"
 					android:summary="Whether this panel is active in portrait mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pPortActive4"/>
 	
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in landscape"
 					android:summary="Whether this panel is active in landscape mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pLandActive4"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Name"
 					android:summary="Set the name of this panel"
 					android:persistent="true"
@@ -491,7 +491,7 @@
 					android:singleLine="true"
 					android:key="pName4"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Command buttons"
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
@@ -499,7 +499,7 @@
 					android:singleLine="false"
 					android:key="pCmdString4"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Portrait location"
 					android:summary="The panel's location in portrait mode"
 					android:persistent="true"
@@ -508,7 +508,7 @@
 					android:entries="@array/locationNames"
 					android:entryValues="@array/locationValues"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Landscape location"
 					android:summary="The panel's location in landscape mode"
 					android:persistent="true"
@@ -538,28 +538,28 @@
 						forkfront:min="-10"
 						android:max="10"/>
 
-			</PreferenceScreen>
+			</androidx.preference.PreferenceScreen>
 			
 			
-			<PreferenceScreen
+			<androidx.preference.PreferenceScreen
 				android:title="Panel 6"
 				android:key="panel5">
 				
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in portrait"
 					android:summary="Whether this panel is active in portrait mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pPortActive5"/>
 	
-				<CheckBoxPreference
+				<androidx.preference.CheckBoxPreference
 					android:title="Active in landscape"
 					android:summary="Whether this panel is active in landscape mode"
 					android:persistent="true"
 					android:defaultValue="false"
 					android:key="pLandActive5"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Name"
 					android:summary="Set the name of this panel"
 					android:persistent="true"
@@ -567,7 +567,7 @@
 					android:singleLine="true"
 					android:key="pName5"/>
 	
-				<EditTextPreference
+				<androidx.preference.EditTextPreference
 					android:title="Command buttons"
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
@@ -575,7 +575,7 @@
 					android:singleLine="false"
 					android:key="pCmdString5"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Portrait location"
 					android:summary="The panel's location in portrait mode"
 					android:persistent="true"
@@ -584,7 +584,7 @@
 					android:entries="@array/locationNames"
 					android:entryValues="@array/locationValues"/>
 	
-				<ListPreference
+				<androidx.preference.ListPreference
 					android:title="Landscape location"
 					android:summary="The panel's location in landscape mode"
 					android:persistent="true"
@@ -614,35 +614,35 @@
 						forkfront:min="-10"
 						android:max="10"/>
 
-			</PreferenceScreen>
+			</androidx.preference.PreferenceScreen>
 			
-		</PreferenceScreen>
+		</androidx.preference.PreferenceScreen>
 
-		<CheckBoxPreference
+		<androidx.preference.CheckBoxPreference
 			android:title="Reset command panel"
 			android:summary="Restore the command panel to its original layout"
 			android:persistent="true"
 			android:defaultValue="false"
 			android:key="reset"/>
-	</PreferenceCategory>
+	</androidx.preference.PreferenceCategory>
 
-	<PreferenceCategory
+	<androidx.preference.PreferenceCategory
 		android:title="Advanced"
 		android:key="advanced">
 
-		<PreferenceScreen
+		<androidx.preference.PreferenceScreen
 			android:title="Hearse"
 			android:key="hearse"
 			android:summary="Allow players to share bones files over the internet">
 
-			<CheckBoxPreference
+			<androidx.preference.CheckBoxPreference
 				android:title="Enable Hearse"
 				android:summary="Bones sharing. Don't use Hearse with Wizard Mode bones"
 				android:persistent="true"
 				android:key="hearseEnable"
 				android:defaultValue="false"/>
 
-			<EditTextPreference
+			<androidx.preference.EditTextPreference
 				android:title="Email"
 				android:summary="How Hearse admins can contact you if needed"
 				android:persistent="true"
@@ -650,7 +650,7 @@
 				android:singleLine="true"
 				android:key="hearseMail"/>
 
-			<EditTextPreference
+			<androidx.preference.EditTextPreference
 				android:title="Nickname"
 				android:summary="The name displayed on Hearse website"
 				android:persistent="true"
@@ -659,7 +659,7 @@
 				android:maxLength="39"
 				android:key="hearseName"/>
 
-			<EditTextPreference
+			<androidx.preference.EditTextPreference
 				android:title="User token"
 				android:summary="You can copy this to keep your identity across multiple devices"
 				android:persistent="true"
@@ -667,41 +667,41 @@
 				android:singleLine="true"
 				android:key="hearseID"/>
 
-			<CheckBoxPreference
+			<androidx.preference.CheckBoxPreference
 				android:title="Keep my bones"
 				android:summary="Default is to delete bones after upload"
 				android:persistent="true"
 				android:defaultValue="false"
 				android:key="hearseKeepUploaded"/>
 
-			<Preference
+			<androidx.preference.Preference
 				android:summary="Hearse is hosted by Krollmark. Click here to visit the Hearse website">
 
 				<intent
 					android:action="android.intent.action.VIEW"
 					android:data="http://hearse.krollmark.com"/>
 
-			</Preference>
+			</androidx.preference.Preference>
 
-		</PreferenceScreen>
+		</androidx.preference.PreferenceScreen>
 
 		<com.tbd.forkfront.EditFilePreference
 			android:title="Edit options file"
 			android:summary=""/>
 	
-		<CheckBoxPreference
+		<androidx.preference.CheckBoxPreference
 			android:title="Use fallback renderer"
 			android:summary="Check this if you experience rendering problems"
 			android:persistent="true"
 			android:defaultValue="false"
 			android:key="fallbackRenderer"/>
 
-	</PreferenceCategory>
+	</androidx.preference.PreferenceCategory>
 
-	<PreferenceCategory
+	<androidx.preference.PreferenceCategory
 		android:title="About">
 
-		<PreferenceScreen
+		<androidx.preference.PreferenceScreen
 			android:title="Credits"
 			android:summary="Contributors of this port">
 
@@ -709,6 +709,6 @@
 				android:title="Credits"
 				android:summary="Contributors of this port"/>
 
-		</PreferenceScreen>
-	</PreferenceCategory>
-</PreferenceScreen>
+		</androidx.preference.PreferenceScreen>
+	</androidx.preference.PreferenceCategory>
+</androidx.preference.PreferenceScreen>
