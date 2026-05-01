@@ -1,0 +1,27 @@
+package com.tbd.forkfront.window;
+
+import androidx.appcompat.app.AppCompatActivity;
+import android.content.SharedPreferences;
+
+import java.util.Set;
+
+import com.tbd.forkfront.input.Input;
+import com.tbd.forkfront.input.KeyEventResult;
+
+public interface NH_Window
+{
+	int id();
+	void show(boolean bBlocking);
+	void destroy();
+	void clear();
+	void printString(int attr, String str, int append, int color);
+	KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode,
+	        Set<Input.Modifier> modifiers, int repeatCount);
+	void setContext(AppCompatActivity context);
+	String getTitle();
+	void setCursorPos(int x, int y);
+	void preferencesUpdated(SharedPreferences prefs);
+	boolean isVisible();
+	boolean handleGamepadKey(android.view.KeyEvent ev);
+	boolean handleGamepadMotion(android.view.MotionEvent ev);
+}

@@ -175,11 +175,11 @@ public class NH_State implements ForkFrontHost
 	 * Get the NH_Handler for this state.
 	 * Used by NetHackIO to receive JNI callbacks from native engine.
 	 */
-	NH_Handler getNhHandler() {
+	public NH_Handler getNhHandler() {
 		return mCallbacks;
 	}
 
-	void setViewModel(NetHackViewModel viewModel) {
+	public void setViewModel(NetHackViewModel viewModel) {
 		mScope.setViewModel(viewModel);
 	}
 }
