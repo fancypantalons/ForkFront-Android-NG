@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="fill_parent"
+	android:layout_width="match_parent"
 	android:layout_height="?android:attr/listPreferredItemHeight"
-	android:paddingLeft="4dip"
-	android:paddingRight="4dip">
+	android:paddingLeft="4dp"
+	android:paddingRight="4dp">
 
 	<com.tbd.forkfront.NH_TextView
 		android:id="@+id/item_acc"
@@ -19,9 +19,9 @@
 		android:layout_gravity="center_vertical"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:minWidth="25dip"
-		android:minHeight="25dip"
-		android:layout_marginRight="6dip"/>
+		android:minWidth="25dp"
+		android:minHeight="25dp"
+		android:layout_marginRight="6dp"/>
 
 	<LinearLayout 
 		android:orientation="vertical"
