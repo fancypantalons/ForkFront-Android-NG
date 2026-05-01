@@ -34,9 +34,11 @@ public class ControlWidget extends FrameLayout {
     private float mStartX;
     private float mStartY;
     private int mTouchSlop;
-    private boolean mIsDragging = false;
-    private boolean mIsResizing = false;
     private boolean mHasMovedPastSlop = false;
+    private int mActivePointerId = -1;
+
+    private enum DragState { IDLE, DRAGGING, RESIZING }
+    private DragState mDragState = DragState.IDLE;
     
     private GestureDetector mGestureDetector;
 
@@ -191,31 +193,40 @@ public class ControlWidget extends FrameLayout {
                 // Pass to gesture detector for long press
                 mGestureDetector.onTouchEvent(event);
 
-                float x = event.getRawX();
-                float y = event.getRawY();
+                int action = event.getActionMasked();
 
-                switch (event.getAction()) {
+                switch (action) {
                     case MotionEvent.ACTION_DOWN:
-                        mLastTouchX = x;
-                        mLastTouchY = y;
-                        mStartX = x;
-                        mStartY = y;
+                        mActivePointerId = event.getPointerId(0);
+                        mLastTouchX = event.getX();
+                        mLastTouchY = event.getY();
+                        mStartX = mLastTouchX;
+                        mStartY = mLastTouchY;
                         mHasMovedPastSlop = false;
                         mGestureDetector.setIsLongpressEnabled(true);
                         
-                        // Check if touch is on resize handle
+                        // Check if touch is on resize handle (using raw coordinates)
+                        float rawX = event.getRawX();
+                        float rawY = event.getRawY();
                         int[] location = new int[2];
                         mResizeHandle.getLocationOnScreen(location);
-                        if (x >= location[0] && x <= location[0] + mResizeHandle.getWidth() &&
-                            y >= location[1] && y <= location[1] + mResizeHandle.getHeight()) {
-                            mIsResizing = true;
+                        if (rawX >= location[0] && rawX <= location[0] + mResizeHandle.getWidth() &&
+                            rawY >= location[1] && rawY <= location[1] + mResizeHandle.getHeight()) {
+                            mDragState = DragState.RESIZING;
                             mGestureDetector.setIsLongpressEnabled(false);
                         } else {
-                            mIsDragging = true;
+                            mDragState = DragState.DRAGGING;
                         }
                         return true;
                         
                     case MotionEvent.ACTION_MOVE:
+                        if (mDragState == DragState.IDLE) return false;
+                        
+                        int pointerIndex = event.findPointerIndex(mActivePointerId);
+                        if (pointerIndex < 0) return false;
+                        
+                        float x = event.getX(pointerIndex);
+                        float y = event.getY(pointerIndex);
                         float dx = x - mLastTouchX;
                         float dy = y - mLastTouchY;
                         
@@ -224,12 +235,12 @@ public class ControlWidget extends FrameLayout {
                             mGestureDetector.setIsLongpressEnabled(false);
                         }
                         
-                        if (mIsResizing) {
+                        if (mDragState == DragState.RESIZING) {
                             LayoutParams params = (LayoutParams) getLayoutParams();
                             params.width = (int) Math.max(100, getWidth() + dx);
                             params.height = (int) Math.max(100, getHeight() + dy);
                             setLayoutParams(params);
-                        } else if (mIsDragging) {
+                        } else if (mDragState == DragState.DRAGGING) {
                             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) getLayoutParams();
                             params.leftMargin += (int) dx;
                             params.topMargin += (int) dy;
@@ -243,11 +254,25 @@ public class ControlWidget extends FrameLayout {
                         mLastTouchY = y;
                         return true;
                         
+                    case MotionEvent.ACTION_POINTER_UP:
+                        int upIndex = event.getActionIndex();
+                        int upPointerId = event.getPointerId(upIndex);
+                        if (upPointerId == mActivePointerId) {
+                            // Our active pointer went up - finalize and reset
+                            mDragState = DragState.IDLE;
+                            mHasMovedPastSlop = false;
+                            mActivePointerId = -1;
+                            if (mChangeListener != null) {
+                                mChangeListener.onWidgetChanged(ControlWidget.this);
+                            }
+                        }
+                        return true;
+                        
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        mIsDragging = false;
-                        mIsResizing = false;
+                        mDragState = DragState.IDLE;
                         mHasMovedPastSlop = false;
+                        mActivePointerId = -1;
                         if (mChangeListener != null) {
                             mChangeListener.onWidgetChanged(ControlWidget.this);
                         }

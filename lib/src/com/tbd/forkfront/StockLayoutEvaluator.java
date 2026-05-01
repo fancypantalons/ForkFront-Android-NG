@@ -44,10 +44,14 @@ public class StockLayoutEvaluator {
             if (is == null) {
                 return null;
             }
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, read);
+            }
             is.close();
-            String json = new String(buffer, "UTF-8");
+            String json = baos.toString("UTF-8");
             
             JSONObject root = new JSONObject(json);
             JSONArray widgets = root.getJSONArray("widgets");

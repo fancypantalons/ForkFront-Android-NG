@@ -53,7 +53,7 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 	@Override
 	public void onMapUpdated()
 	{
-		mMinimapView.invalidate(); // Request redraw
+		mMinimapView.postInvalidate(); // Request redraw
 	}
 
 	// ____________________________________________________________________________________
@@ -154,7 +154,7 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 				android.util.Log.d("MinimapView", "Viewport info set: offset=(" + viewOffset.x + "," + viewOffset.y +
 					") scale=" + scale + " canvas=" + canvasRect + " isEmpty=" + canvasRect.isEmpty());
 			}
-			invalidate();
+			postInvalidate();
 		}
 
 		// ____________________________________________________________________________________

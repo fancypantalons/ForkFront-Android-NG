@@ -115,6 +115,8 @@ public class WidgetLayout extends FrameLayout {
     }
 
     public void removeWidget(ControlWidget widget) {
+        widget.setOnWidgetChangeListener(null);
+        widget.setOnWidgetLongClickListener(null);
         mWidgets.remove(widget);
         removeView(widget);
     }

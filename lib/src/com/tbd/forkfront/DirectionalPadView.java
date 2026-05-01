@@ -7,6 +7,9 @@ import android.view.View;
 import android.widget.GridLayout;
 import com.google.android.material.button.MaterialButton;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A modern, Material 3 based 8-way directional pad for NetHack.
  */
@@ -17,7 +20,7 @@ public class DirectionalPadView extends GridLayout {
     }
 
     private OnDirectionListener mListener;
-    private final TouchRepeatHelper mRepeatHelper = new TouchRepeatHelper();
+    private final List<TouchRepeatHelper> mRepeatHelpers = new ArrayList<>();
 
     public DirectionalPadView(Context context) {
         super(context);
@@ -66,16 +69,18 @@ public class DirectionalPadView extends GridLayout {
         button.setLayoutParams(params);
 
         final char direction = cmd.charAt(0);
+        final TouchRepeatHelper repeatHelper = new TouchRepeatHelper();
+        mRepeatHelpers.add(repeatHelper);
         button.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
+                switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
                         v.setPressed(true);
                         if (mListener != null) {
                             mListener.onDirection(direction);
                         }
-                        mRepeatHelper.startRepeat(() -> {
+                        repeatHelper.startRepeat(() -> {
                             if (mListener != null) {
                                 mListener.onDirection(direction);
                             }
@@ -84,7 +89,7 @@ public class DirectionalPadView extends GridLayout {
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
                         v.setPressed(false);
-                        mRepeatHelper.cancelRepeat();
+                        repeatHelper.cancelRepeat();
                         v.performClick();
                         return true;
                 }
@@ -102,6 +107,9 @@ public class DirectionalPadView extends GridLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mRepeatHelper.destroy();
+        for (TouchRepeatHelper helper : mRepeatHelpers) {
+            helper.destroy();
+        }
+        mRepeatHelpers.clear();
     }
 }

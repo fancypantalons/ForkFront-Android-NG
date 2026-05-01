@@ -33,8 +33,7 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     private boolean mHorizontal;
     private boolean mContextualOnly;
     private Set<String> mPinnedCommands;
-    private final TouchRepeatHelper mRepeatHelper = new TouchRepeatHelper();
-    private boolean mTouchActive = false;
+    private int mActiveTouchCount = 0;
     private boolean mPendingPopulate = false;
     private List<CmdRegistry.CmdInfo> mLastCommands;
 
@@ -239,6 +238,17 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
             }
         };
 
+        final TouchRepeatHelper repeatHelper = new TouchRepeatHelper();
+
+        btn.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) { }
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                repeatHelper.destroy();
+            }
+        });
+
         btn.setOnTouchListener(new OnTouchListener() {
             private final int mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
             private final int mTapTimeout = ViewConfiguration.getTapTimeout();
@@ -254,11 +264,20 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
                 }
             }
 
+            private void checkPendingPopulate() {
+                if (mActiveTouchCount == 0 && mPendingPopulate) {
+                    mPendingPopulate = false;
+                    populateCommands();
+                }
+            }
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
+                int action = event.getActionMasked();
+
+                switch (action) {
                     case MotionEvent.ACTION_DOWN:
-                        mTouchActive = true;
+                        mActiveTouchCount++;
                         mTracking = true;
                         mFired = false;
                         mStartX = event.getX();
@@ -270,7 +289,7 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
                                 if (mTracking && !mFired) {
                                     mFired = true;
                                     fireCommand.run();
-                                    mRepeatHelper.startRepeat(fireCommand);
+                                    repeatHelper.startRepeat(fireCommand);
                                 }
                             }
                         };
@@ -285,15 +304,19 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
                             mTracking = false;
                             cancelPending();
                             v.setPressed(false);
-                            mRepeatHelper.cancelRepeat();
+                            repeatHelper.cancelRepeat();
                             return false;
                         }
                         return true;
 
                     case MotionEvent.ACTION_UP:
-                        if (!mTracking) return false;
+                        if (!mTracking) {
+                            mActiveTouchCount--;
+                            checkPendingPopulate();
+                            return false;
+                        }
                         mTracking = false;
-                        mTouchActive = false;
+                        mActiveTouchCount--;
                         v.setPressed(false);
                         cancelPending();
                         if (!mFired) {
@@ -301,25 +324,24 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
                             fireCommand.run();
                         } else {
                             // Was repeating - stop
-                            mRepeatHelper.cancelRepeat();
+                            repeatHelper.cancelRepeat();
                         }
                         v.performClick();
-                        if (mPendingPopulate) {
-                            mPendingPopulate = false;
-                            populateCommands();
-                        }
+                        checkPendingPopulate();
                         return true;
 
                     case MotionEvent.ACTION_CANCEL:
                         mTracking = false;
-                        mTouchActive = false;
+                        mActiveTouchCount--;
                         cancelPending();
                         v.setPressed(false);
-                        mRepeatHelper.cancelRepeat();
-                        if (mPendingPopulate) {
-                            mPendingPopulate = false;
-                            populateCommands();
-                        }
+                        repeatHelper.cancelRepeat();
+                        checkPendingPopulate();
+                        return true;
+
+                    case MotionEvent.ACTION_POINTER_DOWN:
+                    case MotionEvent.ACTION_POINTER_UP:
+                        // Ignore secondary pointers on buttons
                         return true;
                 }
                 return false;
@@ -411,8 +433,7 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mRepeatHelper.destroy();
-        mTouchActive = false;
+        mActiveTouchCount = 0;
         mPendingPopulate = false;
         if (mNHState != null) {
             mNHState.unregisterGameContextListener(this);
@@ -422,7 +443,7 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     @Override
     public void onContextualActionsChanged(List<CmdRegistry.CmdInfo> actions) {
         if (mContextualOnly) {
-            if (mTouchActive) {
+            if (mActiveTouchCount > 0) {
                 mPendingPopulate = true;
             } else {
                 populateCommands();
