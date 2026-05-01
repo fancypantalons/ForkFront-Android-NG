@@ -824,8 +824,8 @@ public class NH_State
 		ControlWidget.WidgetData data = widget.getWidgetData();
 		boolean isButton = "button".equals(data.type);
 		boolean isContextual = "contextual".equals(data.type);
-		
-		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton, isContextual, data.horizontal);
+
+		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton, isContextual, data.horizontal, data.opacity);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
@@ -846,11 +846,22 @@ public class NH_State
 			}
 
 			@Override
+			public void onOpacityChanged(int opacity) {
+				data.opacity = opacity;
+				applyWidgetOpacity(widget, opacity);
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
 			public void onDelete() {
 				mWidgetLayout.removeWidget(widget);
 			}
 		});
 		fragment.show(activity.getSupportFragmentManager(), "widget_properties");
+	}
+
+	private void applyWidgetOpacity(ControlWidget widget, int opacity) {
+		widget.applyOpacity();
 	}
 
 	public void updateContextualActions() {

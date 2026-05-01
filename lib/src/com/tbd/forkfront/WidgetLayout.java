@@ -123,6 +123,7 @@ public class WidgetLayout extends FrameLayout {
             editor.putFloat("widget_" + i + "_y", data.y);
             editor.putInt("widget_" + i + "_w", data.w);
             editor.putInt("widget_" + i + "_h", data.h);
+            editor.putInt("widget_" + i + "_opacity", data.opacity);
         }
         editor.apply();
     }
@@ -149,7 +150,8 @@ public class WidgetLayout extends FrameLayout {
             data.y = prefs.getFloat("widget_" + i + "_y", 0);
             data.w = prefs.getInt("widget_" + i + "_w", 200);
             data.h = prefs.getInt("widget_" + i + "_h", 200);
-            
+            data.opacity = prefs.getInt("widget_" + i + "_opacity", 191); // Default 75%
+
             ControlWidget widget = createWidget(data);
             if (widget != null) {
                 addWidget(widget);
