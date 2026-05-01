@@ -56,6 +56,7 @@ public class NH_State
 	private SoundPlayer mSoundPlayer;
 	private int mPlayerObjectFlags;
 	private int mNearbyMonstersMask;
+	private ControlWidget mTemporaryDPad;
 
 	// ____________________________________________________________________________________
 	/**
@@ -1024,7 +1025,7 @@ public class NH_State
 		// ____________________________________________________________________________________
 		@Override
 		public void ynFunction(String question, byte[] choices, int def) {
-			// Defer to when Activity is available using ViewModel's queue
+				// Defer to when Activity is available using ViewModel's queue
 			if (mViewModel != null) {
 				mViewModel.runOnActivity(() -> {
 					if (mActivity != null) {
@@ -1037,7 +1038,7 @@ public class NH_State
 		// ____________________________________________________________________________________
 		@Override
 		public void getLine(String title, int nMaxChars, boolean showLog) {
-			// Defer to when Activity is available using ViewModel's queue
+				// Defer to when Activity is available using ViewModel's queue
 			if (mViewModel != null) {
 				mViewModel.runOnActivity(() -> {
 					if (mActivity != null) {
@@ -1216,6 +1217,7 @@ public class NH_State
 			}
 		}
 
+
 		// ____________________________________________________________________________________
 		@Override
 		public void cliparound(int x, int y, int playerX, int playerY, int objectFlags, int nearbyMonsters)
@@ -1254,13 +1256,59 @@ public class NH_State
 		public void showDPad()
 		{
 			mIsDPadActive = true;
-			updateVisibleState();
+			if (mViewModel != null) {
+				mViewModel.runOnActivity(() -> {
+					if (mActivity != null && mWidgetLayout != null) {
+						// Check if we already have a D-pad on screen
+						boolean hasDPad = false;
+						for (int i = 0; i < mWidgetLayout.getChildCount(); i++) {
+							View child = mWidgetLayout.getChildAt(i);
+							if (child instanceof ControlWidget && "dpad".equals(((ControlWidget) child).getWidgetData().type)) {
+								hasDPad = true;
+								break;
+							}
+						}
+
+						if (!hasDPad) {
+							// Spawn temporary D-pad centered on screen
+							float density = mActivity.getResources().getDisplayMetrics().density;
+							int dpadSize = (int)(200 * density);
+
+							DirectionalPadView dpadView = new DirectionalPadView(mActivity);
+							dpadView.setOnDirectionListener(cmd -> sendDirKeyCmd(cmd));
+
+							mTemporaryDPad = new ControlWidget(mActivity, dpadView, "dpad");
+
+							ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
+							dpadData.type = "dpad";
+							dpadData.x = (mActivity.getWindow().getDecorView().getWidth() - dpadSize) / 2f;
+							dpadData.y = (mActivity.getWindow().getDecorView().getHeight() - dpadSize) / 2f;
+							dpadData.w = dpadSize;
+							dpadData.h = dpadSize;
+							mTemporaryDPad.setWidgetData(dpadData);
+
+							mWidgetLayout.addWidget(mTemporaryDPad);
+						}
+					}
+				});
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void hideDPad()
 		{
+			// Remove temporary D-pad if one was spawned
+			if (mTemporaryDPad != null && mWidgetLayout != null) {
+				if (mViewModel != null) {
+					mViewModel.runOnActivity(() -> {
+						if (mWidgetLayout != null) {
+							mWidgetLayout.removeWidget(mTemporaryDPad);
+							mTemporaryDPad = null;
+						}
+					});
+				}
+			}
 			mIsDPadActive = false;
 			updateVisibleState();
 		}
