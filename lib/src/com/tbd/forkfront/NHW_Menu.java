@@ -649,8 +649,6 @@ public class NHW_Menu implements NH_Window
 		// ____________________________________________________________________________________
 		public View createTextDlg(LayoutInflater inflater, ViewGroup container)
 		{
-			Log.print("create text dlg");
-
 			View root = inflater.inflate(R.layout.dialog_text, container, false);
 			((TextView)root.findViewById(R.id.text_view)).setText(mMenu.mBuilder);
 
