@@ -27,11 +27,8 @@ public class NHW_Map implements NH_Window
 	}
 	public static final int TileCols = 80;
 	public static final int TileRows = 21;
-	private static final double ZOOM_BASE = 1.005;
 	static final float PIE_SLICE = (float)Math.sqrt(2)-1;// tan(pi/8)
 	private static final float SELF_RADIUS_FACTOR = 25;
-	private static final float MIN_TILE_SIZE_FACTOR = 5;
-	private static final float MAX_TILE_SIZE_FACTOR = 100;
 
 	// y k u
 	// \ | /
@@ -74,27 +71,16 @@ public class NHW_Map implements NH_Window
 
 	AppCompatActivity mContext;
 	MapView mUI;
+	MapViewport mViewport;
 	Tile[][] mTiles;
-	float mScale;
 	float mDisplayDensity;
-	private float mMinTileH;
-	private float mMaxTileH;
 	float mSelfRadius;
 	float mSelfRadiusSquared;
-	float mScaleCount;
-	private float mMinScaleCount;
-	private float mMaxScaleCount;
-	private float mZoomStep;
-	private float mLockTopMargin;
-	int mStickyZoom;
-	boolean mIsStickyZoom;
 	final Tileset mTileset;
-	PointF mViewOffset;
-	RectF mCanvasRect;
 	Point mPlayerPos;
 	Point mCursorPos;
 	private boolean mIsRogue;
-	private NHW_Status mStatus;
+	NHW_Status mStatus;
 	int mHealthColor;
 	private boolean mIsVisible;
 	boolean mIsBlocking;
@@ -102,8 +88,9 @@ public class NHW_Map implements NH_Window
 	NH_State mNHState;
 	final ByteDecoder mDecoder;
 	int mBorderColor;
-	private int mScreenSizeClass;
+	int mScreenSizeClass;
 	int mGameBackgroundColor;
+
 
 	volatile boolean mIsGamepadCursorMode;
 	private long mLastCursorMoveMs;
@@ -129,9 +116,6 @@ public class NHW_Map implements NH_Window
 			for(int i = 0; i < row.length; i++)
 				row[i] = new Tile();
 		}
-		mScale = 1.f;
-		mViewOffset = new PointF();
-		mCanvasRect = new RectF();
 		mPlayerPos = new Point();
 		mCursorPos = new Point(-1, -1);
 		mStatus = status;
@@ -153,28 +137,6 @@ public class NHW_Map implements NH_Window
 	}
 	
 	// ____________________________________________________________________________________
-	private float getMinTileSizeDp()
-	{
-		// For xxxhdpi (4K phones), allow smaller tiles
-		if (mDisplayDensity >= 4.0f)
-			return 8.f;
-		if (mDisplayDensity >= 3.0f)
-			return 6.f;
-		return 5.f;
-	}
-
-	// ____________________________________________________________________________________
-	private float getMaxTileSizeDp()
-	{
-		// For tablets and foldables, allow larger tiles
-		if (mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_XLARGE)
-			return 150.f;
-		if (mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_LARGE)
-			return 120.f;
-		return 100.f;
-	}
-
-	// ____________________________________________________________________________________
 	@Override
 	public void setContext(AppCompatActivity context)
 	{
@@ -187,11 +149,8 @@ public class NHW_Map implements NH_Window
 		mScreenSizeClass = config.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK;
 
 		mDisplayDensity = context.getResources().getDisplayMetrics().density;
-		mMinTileH = getMinTileSizeDp() * mDisplayDensity;
-		mMaxTileH = getMaxTileSizeDp() * mDisplayDensity;
 		mSelfRadius = SELF_RADIUS_FACTOR * mDisplayDensity;
 		mSelfRadiusSquared = mSelfRadius * mSelfRadius;
-		mLockTopMargin = mStatus.getHeight();
 		if(mUI != null)
 		{
 			mUI.hideInternal();
@@ -200,6 +159,11 @@ public class NHW_Map implements NH_Window
 				parent.removeView(mUI);
 		}
 		mUI = new MapView(this);
+		mViewport = new MapViewport(this, mUI, mUI.mRenderer);
+		mViewport.mMinTileH = mViewport.getMinTileSizeDp() * mDisplayDensity;
+		mViewport.mMaxTileH = mViewport.getMaxTileSizeDp() * mDisplayDensity;
+		mViewport.mLockTopMargin = mStatus.getHeight();
+
 		if(mIsVisible)
 			show(mIsBlocking);
 		else
@@ -228,8 +192,8 @@ public class NHW_Map implements NH_Window
 
 			// Preserve current zoom level preference (mScaleCount)
 			// Recalculate absolute tile sizes with new density/size class
-			mMinTileH = getMinTileSizeDp() * mDisplayDensity;
-			mMaxTileH = getMaxTileSizeDp() * mDisplayDensity;
+			mViewport.mMinTileH = mViewport.getMinTileSizeDp() * mDisplayDensity;
+			mViewport.mMaxTileH = mViewport.getMaxTileSizeDp() * mDisplayDensity;
 			mSelfRadius = SELF_RADIUS_FACTOR * mDisplayDensity;
 			mSelfRadiusSquared = mSelfRadius * mSelfRadius;
 
@@ -445,26 +409,26 @@ public class NHW_Map implements NH_Window
 		for(MapUpdateListener listener : mMapListeners)
 		{
 			listener.onViewportChanged(
-				new PointF(mViewOffset.x, mViewOffset.y),
-				mScale,
-				new RectF(mCanvasRect)
+				new PointF(mViewport.mViewOffset.x, mViewport.mViewOffset.y),
+				mViewport.mScale,
+				new RectF(mViewport.mCanvasRect)
 			);
 		}
 	}
 
 	public PointF getViewOffset()
 	{
-		return new PointF(mViewOffset.x, mViewOffset.y);
+		return mViewport.getViewOffset();
 	}
 
 	public float getScale()
 	{
-		return mScale;
+		return mViewport.getScale();
 	}
 
 	public RectF getCanvasRect()
 	{
-		return new RectF(mCanvasRect);
+		return mViewport.getCanvasRect();
 	}
 
 	public float getScaledTileWidth()
@@ -480,55 +444,25 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________
 	public void cliparound(final int tileX, final int tileY, final int playerX, final int playerY)
 	{
-		mPlayerPos.x = playerX;
-		mPlayerPos.y = playerY;
-
-		centerView(tileX, tileY);
+		mViewport.cliparound(tileX, tileY, playerX, playerY);
 	}
 
 	// ____________________________________________________________________________________
 	public void centerView(final int tileX, final int tileY)
 	{
-		float tileW = mUI.mRenderer.getScaledTileWidth();
-		float tileH = mUI.mRenderer.getScaledTileHeight();
-
-		float ofsX, ofsY;
-		if(shouldLockView(tileW, tileH))
-		{
-			ofsX = mCanvasRect.left + (mCanvasRect.width() - tileW * TileCols) * .5f;
-
-			float hDiff = mCanvasRect.height() - tileH * TileRows;
-			float margin = Math.min(mLockTopMargin, hDiff);
-			ofsY = mCanvasRect.top + (hDiff + margin) * .5f;
-		}
-		else
-		{
-			ofsX = mCanvasRect.left + (mCanvasRect.width() - tileW) * .5f - tileW * tileX;
-			ofsY = mCanvasRect.top + (mCanvasRect.height() - tileH) * .5f - tileH * tileY;
-		}
-
-		if (mViewOffset.x != ofsX || mViewOffset.y != ofsY)
-		{
-			mViewOffset.set(ofsX, ofsY);
-			mUI.requestRedraw();
-			notifyViewportChanged();
-		}
+		mViewport.centerView(tileX, tileY);
 	}
 
 	// ____________________________________________________________________________________
 	private boolean shouldLockView()
 	{
-		return shouldLockView(mUI.mRenderer.getScaledTileWidth(), mUI.mRenderer.getScaledTileHeight());
+		return mViewport.shouldLockView();
 	}
 
 	// ____________________________________________________________________________________
 	private boolean shouldLockView(float tileW, float tileH)
 	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-		if(!prefs.getBoolean("lockView", true))
-			return false;
-
-		return tileW * TileCols	<= mCanvasRect.width() && tileH * TileRows <= mCanvasRect.height();
+		return mViewport.shouldLockView(tileW, tileH);
 	}
 
 	// ____________________________________________________________________________________
@@ -578,78 +512,31 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________
 	public void zoom(float amount)
 	{
-		if(amount == 0)
-			return;
-		zoomForced(amount);
+		mViewport.zoom(amount);
 	}
 
 	// ____________________________________________________________________________________
 	public void zoomForced(float amount)
 	{
-		if(mUI == null)
-			return;
-
-		float ofsX = (mViewOffset.x - mCanvasRect.left - mCanvasRect.width() * 0.5f) / mUI.getViewWidth();
-		float ofsY = (mViewOffset.y - mCanvasRect.top - mCanvasRect.height() * 0.5f) / mUI.getViewHeight();
-
-		mScaleCount = Math.min(Math.max(mScaleCount + amount, mMinScaleCount), mMaxScaleCount);
-
-		mScale = (float) Math.pow(ZOOM_BASE, mScaleCount);
-
-		if(canPan())
-		{
-			ofsX = mCanvasRect.left + ofsX * mUI.getViewWidth() + mCanvasRect.width() * 0.5f;
-			ofsY = mCanvasRect.top + ofsY * mUI.getViewHeight() + mCanvasRect.height() * 0.5f;
-
-			mViewOffset.set(ofsX, ofsY);
-		}
-		else
-		{
-			centerView(0, 0);
-		}
-		mUI.requestRedraw();
-		notifyViewportChanged();
+		mViewport.zoomForced(amount);
 	}
 
 	// ____________________________________________________________________________________
 	private void resetZoom()
 	{
-		zoom(-mScaleCount);
-		centerView(mCursorPos.x, mCursorPos.y);
+		mViewport.resetZoom();
 	}
 
 	// ____________________________________________________________________________________
 	public void updateZoomLimits()
 	{
-		float minScale = mMinTileH / mUI.mRenderer.getBaseTileHeight();
-		float maxScale = mMaxTileH / mUI.mRenderer.getBaseTileHeight();
-
-		float amount;
-		if(mMaxScaleCount - mMinScaleCount < 1)
-			amount = 0.5f;
-		else
-			amount = (mScaleCount - mMinScaleCount) / (mMaxScaleCount - mMinScaleCount);
-
-		mMinScaleCount = (float)(Math.log(minScale) / Math.log(ZOOM_BASE));
-		mMaxScaleCount = (float)(Math.log(maxScale) / Math.log(ZOOM_BASE));
-
-		mZoomStep = (mMaxScaleCount - mMinScaleCount) / 20;
-		mScaleCount = mMinScaleCount + amount * (mMaxScaleCount - mMinScaleCount);
-
-		zoomForced(0);
+		mViewport.updateZoomLimits();
 	}
 
 	// ____________________________________________________________________________________
 	void updateViewBounds()
 	{
-		// Adjust lock top margin to account for system insets (status bar + top notch/cutout)
-		mLockTopMargin = mStatus.getHeight() + mSystemInsetsTop;
-
-		// Recalculate zoom limits with new bounds
-		updateZoomLimits();
-
-		// Re-center view if needed
-		centerView(mCursorPos.x, mCursorPos.y);
+		mViewport.updateViewBounds();
 	}
 
 	// ____________________________________________________________________________________
@@ -680,53 +567,25 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________
 	public void pan(float dx, float dy)
 	{
-		if(canPan())
-		{
-			mViewOffset.offset(dx, dy);
-			mUI.requestRedraw();
-			notifyViewportChanged();
-		}
+		mViewport.pan(dx, dy);
 	}
 
 	// ____________________________________________________________________________________
 	private boolean canPan()
 	{
-		return travelAfterPan() || !shouldLockView();
-	}
-
-	// ____________________________________________________________________________________
-	enum Travel
-	{
-		Never,
-		AfterPan,
-		Always
+		return mViewport.canPan();
 	}
 
 	// ____________________________________________________________________________________
 	private boolean travelAfterPan()
 	{
-		return getTravelOption() == Travel.AfterPan;
+		return mViewport.travelAfterPan();
 	}
 
 	// ____________________________________________________________________________________
-	Travel getTravelOption()
+	MapViewport.Travel getTravelOption()
 	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-		// Convert old option
-		if(prefs.contains("travelAfterPan"))
-		{
-			boolean oldValue = prefs.getBoolean("travelAfterPan", true);
-			SharedPreferences.Editor editor = prefs.edit();
-			editor.remove("travelAfterPan");
-			editor.putString("travelOnClick", oldValue ? "1" : "0");
-			editor.apply();
-		}
-		int setting = Util.parseInt(prefs.getString("travelOnClick", "1"), 1);
-		if(setting == 0)
-			return Travel.Never;
-		if(setting == 1)
-			return Travel.AfterPan;
-		return Travel.Always;
+		return mViewport.getTravelOption();
 	}
 
 	// ____________________________________________________________________________________
@@ -816,9 +675,9 @@ public class NHW_Map implements NH_Window
 	{
 		if(keyCode == KeyAction.ZoomIn || keyCode == KeyAction.ZoomOut)
 		{
-			float scale = mScaleCount;
-			zoom(keyCode == KeyAction.ZoomIn ? mZoomStep : -mZoomStep);
-			if(Math.abs(mScaleCount - scale) < 0.1 && repeatCount == 0)
+			float scale = mViewport.mScaleCount;
+			zoom(keyCode == KeyAction.ZoomIn ? mViewport.mZoomStep : -mViewport.mZoomStep);
+			if(Math.abs(mViewport.mScaleCount - scale) < 0.1 && repeatCount == 0)
 				resetZoom();
 			saveZoomLevel();
 			return KeyEventResult.HANDLED;
@@ -846,27 +705,17 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________
 	public void viewAreaChanged(Rect viewRect)
 	{
-		mUI.viewAreaChanged(viewRect);
+		mViewport.viewAreaChanged(viewRect);
 	}
 
 	// ____________________________________________________________________________________
 	public void saveZoomLevel() {
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-		prefs.edit().putFloat("zoomLevel", mScaleCount).apply();
+		mViewport.saveZoomLevel();
 	}
 	
 	// ____________________________________________________________________________________
 	public void loadZoomLevel() {
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-		float zoomLevel = 0;
-		try
-		{
-			zoomLevel = prefs.getFloat("zoomLevel", 0.f);
-		}
-		catch(Exception e)
-		{
-		}
-		zoom(zoomLevel - mScaleCount);
+		mViewport.loadZoomLevel();
 	}
 
 }

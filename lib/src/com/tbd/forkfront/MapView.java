@@ -245,7 +245,7 @@ class MapView extends TextureView implements TextureView.SurfaceTextureListener
 	// ____________________________________________________________________________________
 	public void viewAreaChanged(Rect viewRect)
 	{
-		mMap.mCanvasRect.set(viewRect);
+		mMap.mViewport.mCanvasRect.set(viewRect);
 		mMap.centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
 	}
 

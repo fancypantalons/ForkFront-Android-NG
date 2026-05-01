@@ -158,7 +158,7 @@ class MapGestureController
 					mHandler.removeCallbacks(mLongPressRunnable);
 				setZoomPanMode(ZoomPanMode.Zooming);
 				mIsViewPanned = false;
-				mMap.mIsStickyZoom = false;
+				mMap.mViewport.mIsStickyZoom = false;
 				idx = getActionIndex(event);
 				mPointerId1 = event.getPointerId(idx);
 				mPointer1.set(event.getX(idx), event.getY(idx));
@@ -299,40 +299,40 @@ class MapGestureController
 		if(newDist > 5)
 		{
 			float zoomAmount = (int)(1.5f * (newDist - mPointerDist) / mMap.mDisplayDensity);
-			int newScale = (int)(mMap.mScaleCount + zoomAmount);
+			int newScale = (int)(mMap.mViewport.mScaleCount + zoomAmount);
 
 			if(zoomAmount != 0)
 			{
-				if(mMap.mIsStickyZoom)
+				if(mMap.mViewport.mIsStickyZoom)
 				{
-					int oldScaleSign = (int)Math.signum(mMap.mScaleCount);
-					int newScaleSign = (int)Math.signum(mMap.mScaleCount + zoomAmount);
+					int oldScaleSign = (int)Math.signum(mMap.mViewport.mScaleCount);
+					int newScaleSign = (int)Math.signum(mMap.mViewport.mScaleCount + zoomAmount);
 					int zoomSign = (int)Math.signum(zoomAmount);
-					int stickySign = (int)Math.signum(mMap.mStickyZoom);
+					int stickySign = (int)Math.signum(mMap.mViewport.mStickyZoom);
 
 					boolean crossedZero = oldScaleSign != 0 && newScaleSign != 0
 						&& oldScaleSign != newScaleSign;
-					boolean sameDirAsSticky = mMap.mStickyZoom != 0
+					boolean sameDirAsSticky = mMap.mViewport.mStickyZoom != 0
 						&& stickySign == zoomSign;
 
-					if((crossedZero && mMap.mStickyZoom == 0) || sameDirAsSticky)
+					if((crossedZero && mMap.mViewport.mStickyZoom == 0) || sameDirAsSticky)
 					{
-						mMap.mStickyZoom += zoomAmount;
-						if(Math.abs(mMap.mStickyZoom) < 50)
-							zoomAmount = -mMap.mScaleCount;
+						mMap.mViewport.mStickyZoom += zoomAmount;
+						if(Math.abs(mMap.mViewport.mStickyZoom) < 50)
+							zoomAmount = -mMap.mViewport.mScaleCount;
 						else
-							mMap.mStickyZoom = 0;
+							mMap.mViewport.mStickyZoom = 0;
 					}
 					else
 					{
-						mMap.mStickyZoom = 0;
-						mMap.mIsStickyZoom = true;
+						mMap.mViewport.mStickyZoom = 0;
+						mMap.mViewport.mIsStickyZoom = true;
 					}
 				}
 				else
 				{
-					mMap.mStickyZoom = 0;
-					mMap.mIsStickyZoom = true;
+					mMap.mViewport.mStickyZoom = 0;
+					mMap.mViewport.mIsStickyZoom = true;
 				}
 
 				mMap.zoom(zoomAmount);
@@ -460,12 +460,12 @@ class MapGestureController
 		if(mMap.mPlayerPos.equals(tileX, tileY) || distFromSelfSquared < mMap.mSelfRadiusSquared)
 			return NHW_Map.TouchResult.SEND_MY_POS;
 
-		NHW_Map.Travel travelOption = mMap.getTravelOption();
+		MapViewport.Travel travelOption = mMap.getTravelOption();
 
-		if(travelOption == NHW_Map.Travel.Never)
+		if(travelOption == MapViewport.Travel.Never)
 			return NHW_Map.TouchResult.SEND_DIR;
 
-		if(travelOption == NHW_Map.Travel.Always)
+		if(travelOption == MapViewport.Travel.Always)
 			return NHW_Map.TouchResult.SEND_POS;
 
 		if(!mIsViewPanned)
