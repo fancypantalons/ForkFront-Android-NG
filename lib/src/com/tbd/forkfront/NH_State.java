@@ -494,8 +494,8 @@ public class NH_State
 	public void wireWidgetLayoutButtons(final WidgetLayout layout, View root) {
 		View btnAdd = root.findViewById(R.id.btn_add_widget);
 		if (btnAdd != null) btnAdd.setOnClickListener(v -> showAddWidgetDialogForLayout(mActivity, layout));
-		View btnReset = root.findViewById(R.id.btn_reset_layout);
-		if (btnReset != null) btnReset.setOnClickListener(v -> layout.resetToDefault());
+		View btnDiscard = root.findViewById(R.id.btn_discard_changes);
+		if (btnDiscard != null) btnDiscard.setOnClickListener(v -> discardChangesAndExitEditMode());
 		View btnSave = root.findViewById(R.id.btn_save_layout);
 		if (btnSave != null) btnSave.setOnClickListener(v -> saveLayoutAndExitEditMode());
 	}

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF000000">
@@ -31,27 +32,30 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_add_widget"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add"
-            android:textColor="#FFFFFF" />
+            app:icon="@android:drawable/ic_menu_add"
+            app:iconTint="#FFFFFF"
+            android:contentDescription="@string/add_widget" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_reset_layout"
-            style="@style/Widget.Material3.Button.TextButton"
+            android:id="@+id/btn_discard_changes"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Reset"
-            android:textColor="#FFFFFF" />
+            app:icon="@android:drawable/ic_menu_close_clear_cancel"
+            app:iconTint="#FFFFFF"
+            android:contentDescription="@string/discard_changes" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save_layout"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Save"
-            android:textColor="#FFFFFF" />
+            app:icon="@android:drawable/ic_menu_save"
+            app:iconTint="#FFFFFF"
+            android:contentDescription="@string/save_layout" />
 
     </LinearLayout>
 
