@@ -20,28 +20,60 @@ public class CommandPickerAdapter extends BaseAdapter {
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_COMMAND = 1;
 
+    private static class ListItem {
+        final boolean isHeader;
+        final CmdRegistry.Category category;
+        final CmdRegistry.CmdInfo command;
+
+        ListItem(CmdRegistry.Category category) {
+            this.isHeader = true;
+            this.category = category;
+            this.command = null;
+        }
+
+        ListItem(CmdRegistry.CmdInfo command) {
+            this.isHeader = false;
+            this.category = null;
+            this.command = command;
+        }
+    }
+
+    static class HeaderViewHolder {
+        TextView title;
+
+        HeaderViewHolder(View view) {
+            title = view.findViewById(R.id.header_title);
+        }
+    }
+
+    static class CommandViewHolder {
+        TextView name;
+        TextView desc;
+
+        CommandViewHolder(View view) {
+            name = view.findViewById(R.id.cmd_name);
+            desc = view.findViewById(R.id.cmd_desc);
+        }
+    }
+
     private final Context mContext;
-    private final List<Object> mItems;
-    private final List<Boolean> mEnabled;
+    private final List<ListItem> mItems;
     private int mSelectedPosition = -1;
 
     public CommandPickerAdapter(Context context,
                                   List<CmdRegistry.CmdInfo> commands) {
         mContext = context;
         mItems = new ArrayList<>();
-        mEnabled = new ArrayList<>();
 
         CmdRegistry.Category lastCategory = null;
         for (CmdRegistry.CmdInfo cmd : commands) {
             if (!CmdRegistry.isPaletteVisible(cmd))
                 continue;
             if (cmd.getCategory() != lastCategory) {
-                mItems.add(cmd.getCategory());
-                mEnabled.add(false);
+                mItems.add(new ListItem(cmd.getCategory()));
                 lastCategory = cmd.getCategory();
             }
-            mItems.add(cmd);
-            mEnabled.add(true);
+            mItems.add(new ListItem(cmd));
         }
     }
 
@@ -52,7 +84,8 @@ public class CommandPickerAdapter extends BaseAdapter {
 
     @Override
     public Object getItem(int position) {
-        return mItems.get(position);
+        ListItem item = mItems.get(position);
+        return item.isHeader ? item.category : item.command;
     }
 
     @Override
@@ -67,13 +100,12 @@ public class CommandPickerAdapter extends BaseAdapter {
 
     @Override
     public int getItemViewType(int position) {
-        return mItems.get(position) instanceof CmdRegistry.Category
-            ? TYPE_HEADER : TYPE_COMMAND;
+        return mItems.get(position).isHeader ? TYPE_HEADER : TYPE_COMMAND;
     }
 
     @Override
     public boolean isEnabled(int position) {
-        return mEnabled.get(position);
+        return !mItems.get(position).isHeader;
     }
 
     public void setSelectedPosition(int position) {
@@ -110,24 +142,21 @@ public class CommandPickerAdapter extends BaseAdapter {
                 convertView = LayoutInflater.from(mContext)
                     .inflate(R.layout.command_palette_header, parent,
                         false);
+                convertView.setTag(new HeaderViewHolder(convertView));
             }
-            CmdRegistry.Category cat =
-                (CmdRegistry.Category) mItems.get(position);
-            ((TextView) convertView.findViewById(R.id.header_title))
-                .setText(cat.getDisplayName());
+            HeaderViewHolder holder = (HeaderViewHolder) convertView.getTag();
+            holder.title.setText(mItems.get(position).category.getDisplayName());
         } else {
             if (convertView == null) {
                 convertView = LayoutInflater.from(mContext)
                     .inflate(R.layout.command_palette_item, parent,
                         false);
+                convertView.setTag(new CommandViewHolder(convertView));
             }
-            CmdRegistry.CmdInfo cmd =
-                (CmdRegistry.CmdInfo) mItems.get(position);
-            ((TextView) convertView.findViewById(R.id.cmd_name))
-                .setText(cmd.getDisplayName() + " ("
-                    + cmd.getCommand() + ")");
-            ((TextView) convertView.findViewById(R.id.cmd_desc))
-                .setText(cmd.getDescription());
+            CommandViewHolder holder = (CommandViewHolder) convertView.getTag();
+            CmdRegistry.CmdInfo cmd = mItems.get(position).command;
+            holder.name.setText(cmd.getDisplayLabel());
+            holder.desc.setText(cmd.getDescription());
         }
         if (position == mSelectedPosition) {
             convertView.setBackgroundResource(

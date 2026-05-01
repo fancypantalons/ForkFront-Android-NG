@@ -1,6 +1,5 @@
 package com.tbd.forkfront;
 
-import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +10,7 @@ import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Set;
@@ -28,6 +28,9 @@ public class PinCommandsFragment extends DialogFragment {
     public static PinCommandsFragment newInstance(Set<String> pinnedCommands) {
         PinCommandsFragment f = new PinCommandsFragment();
         Bundle args = new Bundle();
+        if (pinnedCommands == null) {
+            pinnedCommands = Collections.emptySet();
+        }
         ArrayList<String> list = new ArrayList<>(pinnedCommands);
         args.putStringArrayList("pinned", list);
         f.setArguments(args);
@@ -42,7 +45,12 @@ public class PinCommandsFragment extends DialogFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mPinnedCommands = new HashSet<>();
-        if (getArguments() != null) {
+        if (savedInstanceState != null) {
+            ArrayList<String> checked = savedInstanceState.getStringArrayList("checked");
+            if (checked != null) {
+                mPinnedCommands.addAll(checked);
+            }
+        } else if (getArguments() != null) {
             ArrayList<String> list = getArguments().getStringArrayList("pinned");
             if (list != null) {
                 mPinnedCommands.addAll(list);
@@ -79,31 +87,34 @@ public class PinCommandsFragment extends DialogFragment {
             }
         });
 
-        view.findViewById(R.id.btn_close).setOnClickListener(v -> dismiss());
+        View btnClose = view.findViewById(R.id.btn_close);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dismiss());
+        }
 
-        view.findViewById(R.id.btn_done).setOnClickListener(v -> {
-            if (mListener != null) {
-                mListener.onPinsChanged(mAdapter.getCheckedCommands());
-            }
-            dismiss();
-        });
+        View btnDone = view.findViewById(R.id.btn_done);
+        if (btnDone != null) {
+            btnDone.setOnClickListener(v -> {
+                if (mListener != null) {
+                    mListener.onPinsChanged(mAdapter.getCheckedCommands());
+                }
+                dismiss();
+            });
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (mAdapter != null) {
+            outState.putStringArrayList("checked",
+                new ArrayList<>(mAdapter.getCheckedCommands()));
+        }
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        Dialog dialog = getDialog();
-        if (dialog != null) {
-            int width = ViewGroup.LayoutParams.MATCH_PARENT;
-            int height = ViewGroup.LayoutParams.MATCH_PARENT;
-
-            if (getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
-                width = (int)(500 * getResources().getDisplayMetrics().density);
-                height = (int)(400 * getResources().getDisplayMetrics().density);
-            }
-
-            dialog.getWindow().setLayout(width, height);
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
+        DialogUtils.setDialogSize(this, 500, 400);
     }
 }

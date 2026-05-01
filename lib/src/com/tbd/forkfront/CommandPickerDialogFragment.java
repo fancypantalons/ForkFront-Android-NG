@@ -1,6 +1,5 @@
 package com.tbd.forkfront;
 
-import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -79,20 +78,6 @@ public class CommandPickerDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        Dialog dialog = getDialog();
-        if (dialog != null) {
-            int width = ViewGroup.LayoutParams.MATCH_PARENT;
-            int height = ViewGroup.LayoutParams.MATCH_PARENT;
-
-            if (getResources().getConfiguration().orientation
-                == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
-                width = (int)(500 * getResources().getDisplayMetrics().density);
-                height = (int)(400 * getResources().getDisplayMetrics().density);
-            }
-
-            dialog.getWindow().setLayout(width, height);
-            dialog.getWindow().setBackgroundDrawableResource(
-                android.R.color.transparent);
-        }
+        DialogUtils.setDialogSize(this, 500, 400);
     }
 }

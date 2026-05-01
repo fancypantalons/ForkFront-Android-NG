@@ -28,6 +28,7 @@ public class CommandPickerFragment extends Fragment {
     private ListView mListView;
     private CommandPickerAdapter mAdapter;
     private OnCommandPickedListener mListener;
+    private Runnable mInitRunnable;
 
     public void setOnCommandPickedListener(OnCommandPickedListener l) {
         mListener = l;
@@ -63,6 +64,7 @@ public class CommandPickerFragment extends Fragment {
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_BUTTON_A:
                 case KeyEvent.KEYCODE_BUTTON_B:
+                case KeyEvent.KEYCODE_BACK:
                     return handleGamepadKey(event);
                 }
                 return false;
@@ -74,13 +76,7 @@ public class CommandPickerFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                      int position, long id) {
-                Object item = mAdapter.getItem(position);
-                if (item instanceof CmdRegistry.CmdInfo) {
-                    if (mListener != null) {
-                        mListener.onCommandPicked(
-                            (CmdRegistry.CmdInfo) item);
-                    }
-                }
+                dispatchCommandPicked(position);
             }
         });
 
@@ -96,15 +92,23 @@ public class CommandPickerFragment extends Fragment {
     public void onViewCreated(@NonNull View view,
                                @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mListView.post(new Runnable() {
+        if (savedInstanceState != null) {
+            int restoredPos = savedInstanceState.getInt("selected_position", -1);
+            if (restoredPos >= 0 && restoredPos < mAdapter.getCount()) {
+                mAdapter.setSelectedPosition(restoredPos);
+            }
+        }
+        mInitRunnable = new Runnable() {
             @Override
             public void run() {
                 if (mListView == null) return;
-                int initialPos = -1;
-                for (int i = 0; i < mAdapter.getCount(); i++) {
-                    if (mAdapter.isEnabled(i)) {
-                        initialPos = i;
-                        break;
+                int initialPos = mAdapter.getSelectedPosition();
+                if (initialPos < 0 || initialPos >= mAdapter.getCount()) {
+                    for (int i = 0; i < mAdapter.getCount(); i++) {
+                        if (mAdapter.isEnabled(i)) {
+                            initialPos = i;
+                            break;
+                        }
                     }
                 }
                 if (initialPos >= 0) {
@@ -114,7 +118,27 @@ public class CommandPickerFragment extends Fragment {
                 }
                 mListView.requestFocus();
             }
-        });
+        };
+        mListView.post(mInitRunnable);
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (mListView != null) {
+            if (mInitRunnable != null) {
+                mListView.removeCallbacks(mInitRunnable);
+            }
+            mListView = null;
+        }
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (mAdapter != null) {
+            outState.putInt("selected_position", mAdapter.getSelectedPosition());
+        }
     }
 
     private boolean handleGamepadKey(KeyEvent ev) {
@@ -129,55 +153,60 @@ public class CommandPickerFragment extends Fragment {
 
         switch (ev.getKeyCode()) {
         case KeyEvent.KEYCODE_DPAD_UP:
-            if (!wasInvalid) pos--;
-            while (pos >= 0 && pos < mAdapter.getCount()
-                   && !mAdapter.isEnabled(pos)) pos--;
-            if (pos >= 0 && pos < mAdapter.getCount()) {
-                mAdapter.setSelectedPosition(pos);
-                mListView.setSelection(pos);
-                mAdapter.applyHighlightToListView(mListView);
-            }
+            moveSelection(-1);
             return true;
 
         case KeyEvent.KEYCODE_DPAD_DOWN:
-            if (!wasInvalid) pos++;
-            while (pos >= 0 && pos < mAdapter.getCount()
-                   && !mAdapter.isEnabled(pos)) pos++;
-            if (pos >= 0 && pos < mAdapter.getCount()) {
-                mAdapter.setSelectedPosition(pos);
-                mListView.setSelection(pos);
-                mAdapter.applyHighlightToListView(mListView);
-            }
+            moveSelection(1);
             return true;
 
         case KeyEvent.KEYCODE_DPAD_CENTER:
         case KeyEvent.KEYCODE_BUTTON_A:
-            int selectedPos = mAdapter.getSelectedPosition();
-            if (selectedPos >= 0 && selectedPos < mAdapter.getCount()) {
-                Object item = mAdapter.getItem(selectedPos);
-                if (item instanceof CmdRegistry.CmdInfo) {
-                    if (mListener != null) {
-                        mListener.onCommandPicked(
-                            (CmdRegistry.CmdInfo) item);
-                    }
-                }
-            }
+            dispatchCommandPicked(mAdapter.getSelectedPosition());
             return true;
 
         case KeyEvent.KEYCODE_BUTTON_B:
+        case KeyEvent.KEYCODE_BACK:
             dismiss();
             return true;
         }
         return false;
     }
 
-    public void dismiss() {
-        if (mListener != null) mListener.onDismissed();
-        if (isAdded()) {
-            requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .remove(this)
-                .commit();
+    private void moveSelection(int delta) {
+        int pos = mAdapter.getSelectedPosition();
+        if (pos < 0 || pos >= mAdapter.getCount()) {
+            pos = (delta < 0) ? mAdapter.getCount() - 1 : 0;
+        } else {
+            pos += delta;
         }
+        while (pos >= 0 && pos < mAdapter.getCount()
+               && !mAdapter.isEnabled(pos)) {
+            pos += delta;
+        }
+        if (pos >= 0 && pos < mAdapter.getCount()) {
+            mAdapter.setSelectedPosition(pos);
+            mListView.setSelection(pos);
+            mAdapter.applyHighlightToListView(mListView);
+        }
+    }
+
+    private void dispatchCommandPicked(int position) {
+        if (position < 0 || position >= mAdapter.getCount()) return;
+        Object item = mAdapter.getItem(position);
+        if (item instanceof CmdRegistry.CmdInfo) {
+            if (mListener != null) {
+                mListener.onCommandPicked((CmdRegistry.CmdInfo) item);
+            }
+        }
+    }
+
+    public void dismiss() {
+        if (isRemoving() || !isAdded()) return;
+        if (mListener != null) mListener.onDismissed();
+        requireActivity().getSupportFragmentManager()
+            .beginTransaction()
+            .remove(this)
+            .commitAllowingStateLoss();
     }
 }
