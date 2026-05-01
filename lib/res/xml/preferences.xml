@@ -196,7 +196,7 @@
 					android:summary="Set the name of this panel"
 					android:persistent="true"
 					android:defaultValue="Standard panel"
-					android:singleLine="true"
+					android:maxLines="1"
 					android:key="pName0"/>
 	
 				<androidx.preference.EditTextPreference
@@ -204,7 +204,7 @@
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
 					android:defaultValue="@string/defaultCmdPanel"
-					android:singleLine="false"
+					android:maxLines="10"
 					android:key="pCmdString0"/>
 	
 				<androidx.preference.ListPreference
@@ -271,7 +271,7 @@
 					android:summary="Set the name of this panel"
 					android:persistent="true"
 					android:defaultValue="Panel 2"
-					android:singleLine="true"
+					android:maxLines="1"
 					android:key="pName1"/>
 	
 				<androidx.preference.EditTextPreference
@@ -279,7 +279,7 @@
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
 					android:defaultValue=""
-					android:singleLine="false"
+					android:maxLines="10"
 					android:key="pCmdString1"/>
 	
 				<androidx.preference.ListPreference
@@ -346,7 +346,7 @@
 					android:summary="Set the name of this panel"
 					android:persistent="true"
 					android:defaultValue="Panel 3"
-					android:singleLine="true"
+					android:maxLines="1"
 					android:key="pName2"/>
 	
 				<androidx.preference.EditTextPreference
@@ -354,7 +354,7 @@
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
 					android:defaultValue=""
-					android:singleLine="false"
+					android:maxLines="10"
 					android:key="pCmdString2"/>
 	
 				<androidx.preference.ListPreference
@@ -422,7 +422,7 @@
 					android:summary="Set the name of this panel"
 					android:persistent="true"
 					android:defaultValue="Panel 4"
-					android:singleLine="true"
+					android:maxLines="1"
 					android:key="pName3"/>
 	
 				<androidx.preference.EditTextPreference
@@ -430,7 +430,7 @@
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
 					android:defaultValue=""
-					android:singleLine="false"
+					android:maxLines="10"
 					android:key="pCmdString3"/>
 	
 				<androidx.preference.ListPreference
@@ -498,7 +498,7 @@
 					android:summary="Set the name of this panel"
 					android:persistent="true"
 					android:defaultValue="Panel 5"
-					android:singleLine="true"
+					android:maxLines="1"
 					android:key="pName4"/>
 	
 				<androidx.preference.EditTextPreference
@@ -506,7 +506,7 @@
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
 					android:defaultValue=""
-					android:singleLine="false"
+					android:maxLines="10"
 					android:key="pCmdString4"/>
 	
 				<androidx.preference.ListPreference
@@ -574,7 +574,7 @@
 					android:summary="Set the name of this panel"
 					android:persistent="true"
 					android:defaultValue="Panel 6"
-					android:singleLine="true"
+					android:maxLines="1"
 					android:key="pName5"/>
 	
 				<androidx.preference.EditTextPreference
@@ -582,7 +582,7 @@
 					android:summary="Space separated list of commands in this panel"
 					android:persistent="true"
 					android:defaultValue=""
-					android:singleLine="false"
+					android:maxLines="10"
 					android:key="pCmdString5"/>
 	
 				<androidx.preference.ListPreference
@@ -657,7 +657,7 @@
 				android:summary="How Hearse admins can contact you if needed"
 				android:persistent="true"
 				android:defaultValue=""
-				android:singleLine="true"
+				android:maxLines="1"
 				android:key="hearseMail"/>
 
 			<androidx.preference.EditTextPreference
@@ -665,7 +665,7 @@
 				android:summary="The name displayed on Hearse website"
 				android:persistent="true"
 				android:defaultValue=""
-				android:singleLine="true"
+				android:maxLines="1"
 				android:maxLength="39"
 				android:key="hearseName"/>
 
@@ -674,7 +674,7 @@
 				android:summary="You can copy this to keep your identity across multiple devices"
 				android:persistent="true"
 				android:defaultValue=""
-				android:singleLine="true"
+				android:maxLines="1"
 				android:key="hearseID"/>
 
 			<androidx.preference.CheckBoxPreference
