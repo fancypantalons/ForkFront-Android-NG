@@ -31,7 +31,6 @@ public class NHW_Message implements NH_Window
 	private NHW_Text mLogView;
 	private boolean mIsVisible;
 	private int mWid;
-	private int mOpacity;
 	private List<MessageUpdateListener> mListeners;
 
 	// ____________________________________________________________________________________
@@ -315,8 +314,6 @@ public class NHW_Message implements NH_Window
 	@Override
 	public void preferencesUpdated(SharedPreferences prefs)
 	{
-		mOpacity = prefs.getInt("statusOpacity", 0);
-		mUI.updateOpacity();
 	}
 
 	// ____________________________________________________________________________________ //
@@ -333,6 +330,8 @@ public class NHW_Message implements NH_Window
 			m_view = (TextView)mContext.findViewById(R.id.nh_message);
 			m_more = (TextView)mContext.findViewById(R.id.more);
 			m_more.setVisibility(View.GONE);
+			m_more.setFocusable(true);
+			m_more.setFocusableInTouchMode(true);
 			m_more.setOnClickListener(new OnClickListener()
 			{
 				@Override
@@ -341,7 +340,6 @@ public class NHW_Message implements NH_Window
 					showLog(false);
 				}
 			});
-			updateOpacity();
 		}
 
 		// ____________________________________________________________________________________
@@ -416,12 +414,6 @@ public class NHW_Message implements NH_Window
 					m_view.append(msg);
 				}
 			}
-		}
-
-		// ____________________________________________________________________________________
-		public void updateOpacity()
-		{
-			m_view.setBackgroundColor(mOpacity << 24);
 		}
 	}
 }

@@ -46,20 +46,6 @@
 
 		</androidx.preference.PreferenceScreen>
 
-		<androidx.preference.CheckBoxPreference
-			android:title="Fullscreen"
-			android:summary="Enable fullscreen mode"
-			android:persistent="true"
-			android:defaultValue="false"
-			android:key="fullscreen"/>
-
-		<androidx.preference.CheckBoxPreference
-			android:title="Immersive mode"
-			android:summary="Hide the on-screen navigation bar"
-			android:persistent="true"
-			android:defaultValue="false"
-			android:key="immersive"/>
-
 		<androidx.preference.ListPreference
 			android:title="Volume up action"
 			android:summary="The action performed when pressing the volume up key"
@@ -140,16 +126,6 @@
 			android:persistent="true"
 			android:defaultValue="false"
 			android:key="monospace"/>
-
-		<com.tbd.forkfront.SliderPreference
-			android:title="Status background opacity"
-			android:summary="The background opacity of the status lines"
-			android:persistent="true"
-			android:key="statusOpacity"
-			android:dialogMessage="The opacity between invisible (0) and opaque (255)"
-			android:defaultValue="0"
-			android:text=""
-			android:max="255"/>
 
 		<com.tbd.forkfront.SliderPreference
 			android:title="Map border opacity"

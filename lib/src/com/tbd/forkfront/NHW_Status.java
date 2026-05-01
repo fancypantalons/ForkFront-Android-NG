@@ -31,7 +31,6 @@ public class NHW_Status implements NH_Window
 	private UI mUI;
 	private boolean mIsVisible;
 	private int mWid;
-	private int mOpacity;
 
 	// Status field container - made public for listener access
 	public static class StatusField {
@@ -391,8 +390,6 @@ public class NHW_Status implements NH_Window
 	@Override
 	public void preferencesUpdated(SharedPreferences prefs)
 	{
-		mOpacity = prefs.getInt("statusOpacity", 0);
-		mUI.updateOpacity();
 	}
 
 	// ____________________________________________________________________________________ //
@@ -443,11 +440,9 @@ public class NHW_Status implements NH_Window
 			mRows[0] = new SpannableStringBuilder();
 			mRows[1] = new SpannableStringBuilder();
 
-			// Set text color - background will be set by updateOpacity()
+			// Set text color
 			mViews[0].setTextColor(0xFFFFFFFF); // White
 			mViews[1].setTextColor(0xFFFFFFFF); // White
-
-			updateOpacity();
 		}
 
 		// ____________________________________________________________________________________
@@ -602,13 +597,6 @@ public class NHW_Status implements NH_Window
 		public void forceRedraw()
 		{
 			render();
-		}
-
-		public void updateOpacity()
-		{
-			int color = mOpacity << 24;
-			mViews[0].setBackgroundColor(color);
-			mViews[1].setBackgroundColor(color);
 		}
 
 		public float getHeight()
