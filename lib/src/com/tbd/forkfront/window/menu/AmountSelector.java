@@ -216,6 +216,7 @@ public class AmountSelector extends BaseModalUi
 		switch(ev.getKeyCode())
 		{
 		case KeyEvent.KEYCODE_BUTTON_A:
+			if (!seek.hasFocus()) return false;
 			dismiss((int)seek.getValue());
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_B:

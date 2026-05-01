@@ -18,7 +18,6 @@ public class MenuItem
 	private Spanned mAccText;
 	private int mCount;
 	private int mMaxCount;
-	private View mView;
 
 	public MenuItem(int tile, long ident, int accelerator, int groupacc, int attr, String str, int selected, Integer color, android.content.Context context)
 	{
@@ -207,15 +206,5 @@ public class MenuItem
 	public boolean isSelectable()
 	{
 		return mIdent != 0;
-	}
-
-	public void setView(View view)
-	{
-		mView = view;
-	}
-
-	public View getView()
-	{
-		return mView;
 	}
 }

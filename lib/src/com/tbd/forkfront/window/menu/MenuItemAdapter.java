@@ -163,8 +163,6 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 			} else {
 				v.setActivated(false);
 			}
-
-			item.setView(v);
 		}
 		return v;
 	}

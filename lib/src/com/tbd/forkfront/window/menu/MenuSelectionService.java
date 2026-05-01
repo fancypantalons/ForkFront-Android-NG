@@ -2,10 +2,12 @@ package com.tbd.forkfront.window.menu;
 
 import java.util.ArrayList;
 import com.tbd.forkfront.engine.EngineCommandSender;
+import androidx.annotation.MainThread;
 
 /**
  * Service for sending menu selection commands to the NetHack engine.
  */
+@MainThread
 public class MenuSelectionService {
     private final EngineCommandSender mIO;
 
