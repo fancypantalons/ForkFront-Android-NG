@@ -15,6 +15,7 @@ import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceGroup;
 import androidx.recyclerview.widget.RecyclerView;
 import com.tbd.forkfront.gamepad.KeyBindingDefaultsLoader;
 import com.tbd.forkfront.gamepad.KeyBindingStore;
@@ -87,6 +88,11 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             if(advancedParent != null && hearsePref != null) {
                 advancedParent.removePreference(hearsePref);
             }
+        }
+
+        Preference root = getPreferenceScreen();
+        if (root != null) {
+            setIconSpaceReserved(root, false);
         }
     }
 
@@ -184,6 +190,16 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         if (pickPref != null) pickPref.setVisible(isCustom);
         if (wPref != null) wPref.setVisible(isCustom);
         if (hPref != null) hPref.setVisible(isCustom);
+    }
+
+    private void setIconSpaceReserved(Preference preference, boolean reserved) {
+        preference.setIconSpaceReserved(reserved);
+        if (preference instanceof PreferenceGroup) {
+            PreferenceGroup group = (PreferenceGroup) preference;
+            for (int i = 0; i < group.getPreferenceCount(); i++) {
+                setIconSpaceReserved(group.getPreference(i), reserved);
+            }
+        }
     }
 
     @Override
