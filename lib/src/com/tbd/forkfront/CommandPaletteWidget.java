@@ -344,13 +344,14 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         mContextualOnly = contextualOnly;
         mPinnedCommands = pinnedCommands;
 
+        // Grid config changes (rows/columns/orientation) don't change the command
+        // list, but still require a rebuild so the new layout takes effect.
+        // Invalidate the dedup cache so populateCommands() doesn't short-circuit.
+        mLastCommands = null;
+
         if (orientationChanged) {
-            // Orientation changed - need to recreate scroll container
             recreateScrollContainer();
-        } else if (filterChanged || pinsChanged) {
-            populateCommands();
         } else {
-            // Just repopulate with new settings
             populateCommands();
         }
 
@@ -391,7 +392,11 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         // Add new scroll container as the first child (before border, handle, etc.)
         addView(newScrollContainer, 0, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
-        // Populate with commands
+        // Keep ControlWidget's mContentView in sync so getContentView(),
+        // applyOpacity(), and setFontSize() target the live view.
+        setContentView(newScrollContainer);
+
+        // Populate with commands (mLastCommands invalidated by caller)
         populateCommands();
     }
 

@@ -318,6 +318,10 @@ public class ControlWidget extends FrameLayout {
         return mContentView;
     }
 
+    protected void setContentView(View contentView) {
+        mContentView = contentView;
+    }
+
     public void pulseAttention() {
         // Briefly show and pulse the border to draw attention
         if (mBorderView != null && !mEditMode) {
