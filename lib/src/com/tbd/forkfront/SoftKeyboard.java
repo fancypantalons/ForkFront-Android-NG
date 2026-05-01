@@ -2,7 +2,7 @@ package com.tbd.forkfront;
 
 import java.util.EnumSet;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.inputmethodservice.KeyboardView.OnKeyboardActionListener;
@@ -30,7 +30,7 @@ public class SoftKeyboard implements OnKeyboardActionListener
 		META,
 	}
 
-	private Activity mContext;
+	private AppCompatActivity mContext;
 	private ViewGroup mKeyboardFrame;
 	private KeyboardView mKeyboardView;
 	private Keyboard mSymbolsKeyboard;
@@ -42,7 +42,7 @@ public class SoftKeyboard implements OnKeyboardActionListener
 	private boolean mIsShifted;
 
 	// ____________________________________________________________________________________
-	public SoftKeyboard(Activity context, NH_State state)
+	public SoftKeyboard(AppCompatActivity context, NH_State state)
 	{
 		mContext = context;
 		mState = state;

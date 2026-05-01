@@ -1,6 +1,6 @@
 package com.tbd.forkfront;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -35,7 +35,7 @@ public class DPadOverlay
 	}
 
 	// ____________________________________________________________________________________
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		mOrientation = context.getResources().getConfiguration().orientation;
 		mUI = new UI(context);		
@@ -122,11 +122,11 @@ public class DPadOverlay
 		private View mDPad;
 		private View mExtra;
 		private Button[] mButtons;
-		private Activity mContext;
+		private AppCompatActivity mContext;
 		private ColorStateList mDefaultTextColor;
 		private boolean mLongClick;
 
-		public UI(Activity context)
+		public UI(AppCompatActivity context)
 		{
 			mContext = context;
 			mDPad = context.findViewById(R.id.dpad);

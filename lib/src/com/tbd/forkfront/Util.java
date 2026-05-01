@@ -1,6 +1,6 @@
 package com.tbd.forkfront;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.view.LayoutInflater;
@@ -31,7 +31,7 @@ public class Util
 	}
 	
 	// ____________________________________________________________________________________
-	static public View inflate(Activity context, int layoutId, int parentId)
+	static public View inflate(AppCompatActivity context, int layoutId, int parentId)
 	{
 		View v = inflate(context, layoutId);
 		((ViewGroup)context.findViewById(parentId)).addView(v);

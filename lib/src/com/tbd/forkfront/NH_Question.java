@@ -2,7 +2,7 @@ package com.tbd.forkfront;
 
 import java.util.Set;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.View;
@@ -33,7 +33,7 @@ public class NH_Question
 	}
 
 	// ____________________________________________________________________________________
-	public void show(Activity context, String question, byte[] choices, int def)
+	public void show(AppCompatActivity context, String question, byte[] choices, int def)
 	{
 		if(mUI != null)
 			mUI.dismiss();
@@ -53,7 +53,7 @@ public class NH_Question
 	}
 
 	// ____________________________________________________________________________________
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		if(mUI != null)
 			mUI = new UI(context);
@@ -76,7 +76,7 @@ public class NH_Question
 		private boolean mIsDisabled;
 
 		// ____________________________________________________________________________________
-		public UI(Activity context)
+		public UI(AppCompatActivity context)
 		{
 			switch(mChoices.length)
 			{

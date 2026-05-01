@@ -2,7 +2,7 @@ package com.tbd.forkfront;
 
 import java.util.ArrayList;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -37,7 +37,7 @@ public class CmdPanelLayout extends FrameLayout
 	}
 
 	private ArrayList<Panel> mPanelCmds = new ArrayList<>();
-	private Activity mContext;
+	private AppCompatActivity mContext;
 	private NH_State mState;
 	private boolean mPortraitMode;
 	private boolean mShowPanels = true;
@@ -347,7 +347,7 @@ public class CmdPanelLayout extends FrameLayout
 	}
 
 	// ____________________________________________________________________________________
-	public void setContext(Activity context, NH_State nhState)
+	public void setContext(AppCompatActivity context, NH_State nhState)
 	{
 		mContext = context;
 		mState = nhState;

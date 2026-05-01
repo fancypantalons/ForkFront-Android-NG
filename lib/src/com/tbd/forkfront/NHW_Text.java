@@ -2,7 +2,7 @@ package com.tbd.forkfront;
 
 import java.util.Set;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.text.SpannableStringBuilder;
 import android.view.*;
@@ -19,7 +19,7 @@ public class NHW_Text implements NH_Window
 	private int mWid;
 
 	// ____________________________________________________________________________________
-	public NHW_Text(int wid, Activity context, NetHackIO io)
+	public NHW_Text(int wid, AppCompatActivity context, NetHackIO io)
 	{
 		mWid = wid;
 		mIO = io;
@@ -36,7 +36,7 @@ public class NHW_Text implements NH_Window
 
 	// ____________________________________________________________________________________
 	@Override
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		mUI = new UI(context);
 		if(mIsVisible)
@@ -147,12 +147,12 @@ public class NHW_Text implements NH_Window
 	// ____________________________________________________________________________________ //
 	private class UI
 	{
-		private final Activity mContext;
+		private final AppCompatActivity mContext;
 		private TextView mTextView;
 		private ScrollView mScroll;
 		private boolean mIsScrolling;
 
-		public UI(Activity context)
+		public UI(AppCompatActivity context)
 		{
 			mContext = context;
 			mScroll = (ScrollView)Util.inflate(context, R.layout.textwindow, R.id.dlg_frame);

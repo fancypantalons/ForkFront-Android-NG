@@ -3,7 +3,7 @@ package com.tbd.forkfront;
 import java.util.ArrayList;
 import java.util.Set;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.text.SpannableStringBuilder;
 import android.view.KeyEvent;
@@ -41,7 +41,7 @@ public class NHW_Menu implements NH_Window
 	private int mKeyboardCount;
 
 	// ____________________________________________________________________________________
-	public NHW_Menu(int wid, Activity context, NetHackIO io, Tileset tileset)
+	public NHW_Menu(int wid, AppCompatActivity context, NetHackIO io, Tileset tileset)
 	{
 		mWid = wid;
 		mIO = io;
@@ -60,7 +60,7 @@ public class NHW_Menu implements NH_Window
 	
 	// ____________________________________________________________________________________
 	@Override
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		mUI = new UI(context);
 		if(mIsVisible)
@@ -223,14 +223,14 @@ public class NHW_Menu implements NH_Window
 	// ____________________________________________________________________________________ //
 	private class UI implements AmountSelector.Listener
 	{
-		private Activity mContext;
+		private AppCompatActivity mContext;
 		private View mRoot;
 		
 		private ListView mListView;
 		private AmountSelector mAmountSelector;
 		private Button mSelectAllBtn;
 
-		public UI(Activity context)
+		public UI(AppCompatActivity context)
 		{
 			mContext = context;
 		}

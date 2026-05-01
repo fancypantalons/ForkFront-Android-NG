@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.SharedPreferences.Editor;
 import android.preference.PreferenceManager;
@@ -45,7 +45,7 @@ public class NH_GetLine
 	}
 
 	// ____________________________________________________________________________________
-	public void show(Activity context, final String title, final int nMaxChars)
+	public void show(AppCompatActivity context, final String title, final int nMaxChars)
 	{
 		mContext = context;
 		mTitle = title;
@@ -55,7 +55,7 @@ public class NH_GetLine
 	}
 	
 	// ____________________________________________________________________________________
-	public void showWhoAreYou(Activity context, final int nMaxChars, List<String> history)
+	public void showWhoAreYou(AppCompatActivity context, final int nMaxChars, List<String> history)
 	{
 		mContext = context;
 		mTitle = "Who are you?";
@@ -65,7 +65,7 @@ public class NH_GetLine
 	}
 
 	// ____________________________________________________________________________________
-	public void setContext(Activity context)
+	public void setContext(AppCompatActivity context)
 	{
 		mContext = context;
 		if(mUI != null)
@@ -164,7 +164,7 @@ public class NH_GetLine
 		public boolean mShowWizard;
 
 		// ____________________________________________________________________________________
-		public UI(Activity context, boolean saveHistory, boolean showKeyboard, boolean showWizard, String initText)
+		public UI(AppCompatActivity context, boolean saveHistory, boolean showKeyboard, boolean showWizard, String initText)
 		{
 			mContext = context;
 			

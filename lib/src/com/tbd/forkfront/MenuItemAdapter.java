@@ -1,7 +1,7 @@
 package com.tbd.forkfront;
 
 import java.util.ArrayList;
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -24,7 +24,7 @@ public class MenuItemAdapter extends ArrayAdapter<MenuItem>
 	private boolean mIsMonospaceMode;
 
 	// ____________________________________________________________________________________
-	public MenuItemAdapter(Activity context, int textViewResourceId, ArrayList<MenuItem> items, Tileset tileset, MenuSelectMode how)
+	public MenuItemAdapter(AppCompatActivity context, int textViewResourceId, ArrayList<MenuItem> items, Tileset tileset, MenuSelectMode how)
 	{
 		super(context, textViewResourceId, items);
 		mItems = items;

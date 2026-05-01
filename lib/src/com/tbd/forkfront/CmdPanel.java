@@ -2,7 +2,7 @@ package com.tbd.forkfront;
 
 import java.util.ArrayList;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.DialogInterface;
 import android.graphics.Typeface;
 import android.util.TypedValue;
@@ -24,7 +24,7 @@ import com.tbd.forkfront.Cmd.KeySequnece;
 
 public class CmdPanel
 {
-	private Activity mContext;
+	private AppCompatActivity mContext;
 	private NH_State mState;
 	private LinearLayout mBtnPanel;
 	private Button mContextView;
@@ -38,7 +38,7 @@ public class CmdPanel
 	private int mRelSize;
 
 	// ____________________________________________________________________________________
-	public CmdPanel(Activity context, NH_State state, CmdPanelLayout layout, String cmds, int opacity, int relSize)
+	public CmdPanel(AppCompatActivity context, NH_State state, CmdPanelLayout layout, String cmds, int opacity, int relSize)
 	{
 		mContext = context;
 		mState = state;

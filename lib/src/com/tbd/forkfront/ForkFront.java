@@ -15,8 +15,9 @@
  */
 package com.tbd.forkfront;
 
-import android.annotation.TargetApi;
-import android.app.Activity;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -34,7 +35,7 @@ import java.util.EnumSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ForkFront extends Activity
+public class ForkFront extends AppCompatActivity
 {
 	private static NH_State nhState;
 	private boolean mCtrlDown;
@@ -123,9 +124,8 @@ public class ForkFront extends Activity
 		}
 	}
 
-	@TargetApi(Build.VERSION_CODES.M)
-	public void ensureReadWritePermissions(final RequestExternalStorageResult requestExternalStorageResult)
-	{
+	@RequiresApi(Build.VERSION_CODES.M)
+	public void ensureReadWritePermissions(final RequestExternalStorageResult requestExternalStorageResult)	{
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
 		{
 			if(checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
