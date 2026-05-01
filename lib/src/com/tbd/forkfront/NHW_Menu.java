@@ -966,13 +966,15 @@ public class NHW_Menu implements NH_Window
 			}
 
 			int pos = mListView.getSelectedItemPosition();
-			if(pos == ListView.INVALID_POSITION)
-				pos = mListView.getFirstVisiblePosition();
+			boolean wasInvalid = (pos == ListView.INVALID_POSITION);
+			if(wasInvalid)
+				pos = (keyCode == KeyEvent.KEYCODE_DPAD_UP) ? mListView.getCount() - 1 : mListView.getFirstVisiblePosition();
 
 			switch(keyCode)
 			{
 			case KeyEvent.KEYCODE_DPAD_UP:
-				pos--;
+				if(!wasInvalid)
+					pos--;
 				while(pos >= 0 && !mListView.getAdapter().isEnabled(pos))
 					pos--;
 				if(pos >= 0)
@@ -981,7 +983,8 @@ public class NHW_Menu implements NH_Window
 				}
 				break;
 			case KeyEvent.KEYCODE_DPAD_DOWN:
-				pos++;
+				if(!wasInvalid)
+					pos++;
 				while(pos < mListView.getCount() && !mListView.getAdapter().isEnabled(pos))
 					pos++;
 				if(pos < mListView.getCount())
