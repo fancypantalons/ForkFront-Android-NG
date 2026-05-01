@@ -12,12 +12,13 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.TypedValue;
 import android.graphics.*;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.FontMetrics;
 import android.graphics.Paint.Style;
-import android.os.CountDownTimer;
 import androidx.preference.PreferenceManager;
 import android.text.TextPaint;
 import android.view.KeyEvent;
@@ -122,6 +123,7 @@ public class NHW_Map implements NH_Window
 	private final ByteDecoder mDecoder;
 	private int mBorderColor;
 	private int mScreenSizeClass;
+	private int mGameBackgroundColor;
 
 	private volatile boolean mIsGamepadCursorMode;
 	private long mLastCursorMoveMs;
@@ -158,6 +160,7 @@ public class NHW_Map implements NH_Window
 		mSystemInsetsBottom = 0;
 		mSystemInsetsLeft = 0;
 		mSystemInsetsRight = 0;
+		mGameBackgroundColor = 0xFF000000;
 		clear();
 		setContext(context);
 	}
@@ -691,6 +694,7 @@ public class NHW_Map implements NH_Window
 			mBorderColor = borderColor;
 			mUI.requestRedraw();
 		}
+		mUI.updateGameBackgroundColor();
 	}
 
 	// ____________________________________________________________________________________
@@ -890,7 +894,8 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________ // 
 	private class UI extends TextureView implements TextureView.SurfaceTextureListener
 	{
-		private CountDownTimer mPressCountDown;
+		private Handler mHandler;
+		private Runnable mLongPressRunnable;
 		private TextPaint mPaint;
 		private final PointF mPointer0;
 		private final PointF mPointer1;
@@ -911,6 +916,12 @@ public class NHW_Map implements NH_Window
 		private Thread mRenderingThread;
 		private volatile boolean mIsRendering;
 		private volatile boolean mNeedsRedraw;
+		private final Object mRenderLock = new Object();
+
+		// Cached TTY text metrics
+		private float mCachedTileWidth = -1;
+		private float mCachedTileHeight = -1;
+		private float mCachedScale = -1;
 
 		// Preference change listener
 		private SharedPreferences.OnSharedPreferenceChangeListener mPrefListener;
@@ -949,6 +960,7 @@ public class NHW_Map implements NH_Window
 				}
 			};
 
+			mHandler = new Handler(Looper.getMainLooper());
 			mBaseTextSize = 32.f;
 			mPointer0 = new PointF();
 			mPointer1 = new PointF();
@@ -999,6 +1011,17 @@ public class NHW_Map implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
+		private void updateGameBackgroundColor()
+		{
+			TypedValue typedValue = new TypedValue();
+			if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
+				mGameBackgroundColor = typedValue.data;
+			} else {
+				mGameBackgroundColor = 0xFF000000;
+			}
+		}
+
+		// ____________________________________________________________________________________
 		// TextureView.SurfaceTextureListener implementation
 		// ____________________________________________________________________________________
 
@@ -1017,6 +1040,7 @@ public class NHW_Map implements NH_Window
 
 			// Re-apply tile filtering in case preference changed while surface was destroyed
 			updateTileFiltering();
+			updateGameBackgroundColor();
 
 			mRenderingThread = new Thread(new RenderLoop(), "NHW_Map-Render");
 			mRenderingThread.start();
@@ -1033,6 +1057,9 @@ public class NHW_Map implements NH_Window
 		public boolean onSurfaceTextureDestroyed(SurfaceTexture surface)
 		{
 			mIsRendering = false;
+			synchronized (mRenderLock) {
+				mRenderLock.notify();
+			}
 			if (mRenderingThread != null)
 			{
 				try
@@ -1080,12 +1107,7 @@ public class NHW_Map implements NH_Window
 							if (canvas != null)
 							{
 								// Clear the canvas before drawing
-								int surfaceColor = 0xFF000000;
-								TypedValue typedValue = new TypedValue();
-								if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
-									surfaceColor = typedValue.data;
-								}
-								canvas.drawColor(surfaceColor);
+								canvas.drawColor(mGameBackgroundColor);
 
 								synchronized (mTiles)
 								{
@@ -1108,15 +1130,20 @@ public class NHW_Map implements NH_Window
 					}
 					else
 					{
-						// Sleep briefly to avoid busy-waiting
-						try
+						// Wait until notified instead of busy-waiting
+						synchronized (mRenderLock)
 						{
-							Thread.sleep(16); // ~60 FPS max
-						}
-						catch (InterruptedException e)
-						{
-							// Thread was interrupted, exit loop
-							break;
+							while (!mNeedsRedraw && mIsRendering)
+							{
+								try
+								{
+									mRenderLock.wait();
+								}
+								catch (InterruptedException e)
+								{
+									break;
+								}
+							}
 						}
 					}
 				}
@@ -1127,6 +1154,9 @@ public class NHW_Map implements NH_Window
 		public void requestRedraw()
 		{
 			mNeedsRedraw = true;
+			synchronized (mRenderLock) {
+				mRenderLock.notify();
+			}
 		}
 
 		// ____________________________________________________________________________________
@@ -1178,16 +1208,11 @@ public class NHW_Map implements NH_Window
 						mTileset.drawTile(canvas, tile.glyph, dst, mPaint);
 						Bitmap ovl = mTileset.getTileOverlay(tile.overlay);
 						if(ovl != null)
-							canvas.drawBitmap(ovl, mTileset.getOverlayRect(tile.overlay), dst, mPaint);
+							canvas.drawBitmap(ovl, mTileset.getOverlayRect(), dst, mPaint);
 					}
 					else
 					{
-						int surfaceColor = 0xFF000000;
-						TypedValue typedValue = new TypedValue();
-						if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
-							surfaceColor = typedValue.data;
-						}
-						mPaint.setColor(surfaceColor);
+						mPaint.setColor(mGameBackgroundColor);
 						canvas.drawRect(dst, mPaint);
 					}
 
@@ -1243,7 +1268,7 @@ public class NHW_Map implements NH_Window
 				mPaint.setStyle(Style.FILL);
 
 				if (mIsGamepadCursorMode) {
-					mUI.invalidate(); // Keep pulsing
+					requestRedraw(); // Keep pulsing
 				}
 			}
 		}
@@ -1281,19 +1306,13 @@ public class NHW_Map implements NH_Window
 					Tile tile = mTiles[tileY][tileX];
 					int fgColor = TextAttr.getPalette(mContext)[tile.color];
 					int bgColor = 0; // Transparent
-					
-					TypedValue typedValue = new TypedValue();
-					int surfaceColor = 0xFF000000;
-					if (mContext.getTheme().resolveAttribute(R.attr.colorGameBackground, typedValue, true)) {
-						surfaceColor = typedValue.data;
-					}
 
 					if(tileX == mCursorPos.x && tileY == mCursorPos.y)
 					{
 						int[] palette = TextAttr.getPalette(mContext);
 						if(mHealthColor != 0) {
 							bgColor = palette[mHealthColor & 0xF];
-							fgColor = surfaceColor;
+							fgColor = mGameBackgroundColor;
 						} else {
 							bgColor = 0x00000000;
 							fgColor = palette[15]; // Cursor white
@@ -1302,7 +1321,7 @@ public class NHW_Map implements NH_Window
 					else if(tile.overlay != 0 && tile.glyph >= 0)
 					{
 						bgColor = fgColor;
-						fgColor = surfaceColor;
+						fgColor = mGameBackgroundColor;
 					}
 					
 					if (bgColor != 0) {
@@ -1363,8 +1382,8 @@ public class NHW_Map implements NH_Window
 			float tileW = getScaledTileWidth();
 			float tileH = getScaledTileHeight();
 
-			float cx = mPlayerPos.x * tileW + mViewOffset.x + tileW * 0.5f;
-			float cy = mPlayerPos.y * tileH + mViewOffset.y + tileH * 0.5f;
+			float cx = tileToScreenX(mPlayerPos.x) + tileW * 0.5f;
+			float cy = tileToScreenY(mPlayerPos.y) + tileH * 0.5f;
 
 			float radius0 = mSelfRadius;
 			float radius1 = 5 * radius0;
@@ -1398,6 +1417,30 @@ public class NHW_Map implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
+		private float tileToScreenX(int tileX)
+		{
+			return mViewOffset.x + tileX * getScaledTileWidth();
+		}
+
+		// ____________________________________________________________________________________
+		private float tileToScreenY(int tileY)
+		{
+			return mViewOffset.y + tileY * getScaledTileHeight();
+		}
+
+		// ____________________________________________________________________________________
+		private int screenToTileX(float screenX)
+		{
+			return (int)((screenX - mViewOffset.x) / getScaledTileWidth());
+		}
+
+		// ____________________________________________________________________________________
+		private int screenToTileY(float screenY)
+		{
+			return (int)((screenY - mViewOffset.y) / getScaledTileHeight());
+		}
+
+		// ____________________________________________________________________________________
 		@Override
 		protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec)
 		{
@@ -1417,7 +1460,12 @@ public class NHW_Map implements NH_Window
 
 			setMeasuredDimension(w, h);
 
-			centerView(mCursorPos.x, mCursorPos.y);
+			post(new Runnable() {
+				@Override
+				public void run() {
+					centerView(mCursorPos.x, mCursorPos.y);
+				}
+			});
 		}
 
 		// ____________________________________________________________________________________
@@ -1495,23 +1543,17 @@ public class NHW_Map implements NH_Window
 			{
 			case MotionEvent.ACTION_DOWN:
 				setZoomPanMode(ZoomPanMode.Pressed);
-				if(mPressCountDown != null)
-					mPressCountDown.cancel();
-				mPressCountDown = new CountDownTimer(ViewConfiguration.getLongPressTimeout(), 10000)
-				{
+				if(mLongPressRunnable != null)
+					mHandler.removeCallbacks(mLongPressRunnable);
+				mLongPressRunnable = new Runnable() {
 					@Override
-					public void onTick(long millisUntilFinished)
-					{
-					}
-
-					@Override
-					public void onFinish()
-					{
+					public void run() {
 						if(mZoomPanMode == ZoomPanMode.Pressed)
 							onTouched(mPointer0.x, mPointer0.y, true);
 						setZoomPanMode(ZoomPanMode.Idle);
 					}
-				}.start();
+				};
+				mHandler.postDelayed(mLongPressRunnable, ViewConfiguration.getLongPressTimeout());
 
 				idx = getActionIndex(event);
 				mPointerId0 = event.getPointerId(idx);
@@ -1522,7 +1564,8 @@ public class NHW_Map implements NH_Window
 			case MotionEvent.ACTION_UP:
 				if(mZoomPanMode == ZoomPanMode.Pressed)
 				{
-					mPressCountDown.cancel();
+					if(mLongPressRunnable != null)
+						mHandler.removeCallbacks(mLongPressRunnable);
 					onTouched(mPointer0.x, mPointer0.y, false);
 					performClick();
 				}
@@ -1530,8 +1573,8 @@ public class NHW_Map implements NH_Window
 			break;
 
 			case MotionEvent.ACTION_CANCEL:
-				if(mPressCountDown != null)
-					mPressCountDown.cancel();
+				if(mLongPressRunnable != null)
+					mHandler.removeCallbacks(mLongPressRunnable);
 				setZoomPanMode(ZoomPanMode.Idle);
 			break;
 
@@ -1539,7 +1582,8 @@ public class NHW_Map implements NH_Window
 				if(mPointerId1 < 0 && (mZoomPanMode == ZoomPanMode.Pressed || mZoomPanMode == ZoomPanMode.Panning))
 				{
 					// second pointer down, enter zoom mode
-					mPressCountDown.cancel();
+					if(mLongPressRunnable != null)
+						mHandler.removeCallbacks(mLongPressRunnable);
 					setZoomPanMode(ZoomPanMode.Zooming);
 					mIsViewPanned = false;
 					mIsStickyZoom = false;
@@ -1577,7 +1621,8 @@ public class NHW_Map implements NH_Window
 				else if(mZoomPanMode == ZoomPanMode.Panning && idx == idx0)
 				{
 					// Released the last pointer of the first two. Ignore other pointers
-					mPressCountDown.cancel();
+					if(mLongPressRunnable != null)
+						mHandler.removeCallbacks(mLongPressRunnable);
 					setZoomPanMode(ZoomPanMode.Idle);
 				}
 
@@ -1623,7 +1668,8 @@ public class NHW_Map implements NH_Window
 
 			if(Math.abs(dx) > th || Math.abs(dy) > th)
 			{
-				mPressCountDown.cancel();
+				if(mLongPressRunnable != null)
+					mHandler.removeCallbacks(mLongPressRunnable);
 				if(mZoomPanMode != ZoomPanMode.Zooming)
 					mIsViewPanned = true;
 				setZoomPanMode(ZoomPanMode.Panning);
@@ -1685,13 +1731,31 @@ public class NHW_Map implements NH_Window
 
 				if(zoomAmount != 0)
 				{
-					if(mIsStickyZoom && ((int)mScaleCount ^ newScale) < 0 && mStickyZoom == 0 || mStickyZoom != 0 && (mStickyZoom ^ (int)zoomAmount) >= 0)
+					if(mIsStickyZoom)
 					{
-						mStickyZoom += zoomAmount;
-						if(Math.abs(mStickyZoom) < 50)
-							zoomAmount = -mScaleCount;
+						int oldScaleSign = (int)Math.signum(mScaleCount);
+						int newScaleSign = (int)Math.signum(mScaleCount + zoomAmount);
+						int zoomSign = (int)Math.signum(zoomAmount);
+						int stickySign = (int)Math.signum(mStickyZoom);
+
+						boolean crossedZero = oldScaleSign != 0 && newScaleSign != 0
+							&& oldScaleSign != newScaleSign;
+						boolean sameDirAsSticky = mStickyZoom != 0
+							&& stickySign == zoomSign;
+
+						if((crossedZero && mStickyZoom == 0) || sameDirAsSticky)
+						{
+							mStickyZoom += zoomAmount;
+							if(Math.abs(mStickyZoom) < 50)
+								zoomAmount = -mScaleCount;
+							else
+								mStickyZoom = 0;
+						}
 						else
+						{
 							mStickyZoom = 0;
+							mIsStickyZoom = true;
+						}
 					}
 					else
 					{
@@ -1750,14 +1814,13 @@ public class NHW_Map implements NH_Window
 				return;
 			}
 
+			int tileX = screenToTileX(x);
+			int tileY = screenToTileY(y);
+
 			float tileW = getScaledTileWidth();
 			float tileH = getScaledTileHeight();
-
-			int tileX = (int)((x - mViewOffset.x) / tileW);
-			int tileY = (int)((y - mViewOffset.y) / tileH);
-
-			float cx = mPlayerPos.x * tileW + mViewOffset.x + tileW * 0.5f;
-			float cy = mPlayerPos.y * tileH + mViewOffset.y + tileH * 0.5f;
+			float cx = tileToScreenX(mPlayerPos.x) + tileW * 0.5f;
+			float cy = tileToScreenY(mPlayerPos.y) + tileH * 0.5f;
 
 			float dx = x - cx;
 			float dy = y - cy;
@@ -1941,13 +2004,26 @@ public class NHW_Map implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
+		private void updateTextMetrics()
+		{
+			if(mScale != mCachedScale)
+			{
+				mPaint.setTextSize(mBaseTextSize * mScale);
+				float w = mPaint.measureText("\u2550");
+				mCachedTileWidth = (float)Math.floor(w) - 1;
+				FontMetrics metrics = mPaint.getFontMetrics();
+				mCachedTileHeight = (float)Math.floor(metrics.descent - metrics.ascent);
+				mCachedScale = mScale;
+			}
+		}
+
+		// ____________________________________________________________________________________
 		private float getScaledTileWidth()
 		{
 			if(isTTY())
 			{
-				mPaint.setTextSize(mBaseTextSize * mScale);
-				float w = mPaint.measureText("\u2550");
-				return (float)Math.floor(w) - 1;
+				updateTextMetrics();
+				return mCachedTileWidth;
 			}
 
 			return mTileset.getTileWidth() * mScale;
@@ -1958,9 +2034,8 @@ public class NHW_Map implements NH_Window
 		{
 			if(isTTY())
 			{
-				mPaint.setTextSize(mBaseTextSize * mScale);
-				FontMetrics metrics = mPaint.getFontMetrics();
-				return (float)Math.floor(metrics.descent - metrics.ascent);
+				updateTextMetrics();
+				return mCachedTileHeight;
 			}
 
 			return mTileset.getTileHeight() * mScale;

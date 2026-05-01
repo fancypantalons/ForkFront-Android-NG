@@ -20,10 +20,17 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 	private MinimapView mMinimapView;
 	private Tileset mTileset;
 
+	// Semantic gameplay colors -- do not theme
+	private static final int COLOR_FLOOR = 0xFF888888;       // Medium gray
+	private static final int COLOR_WALL = 0xFF555555;        // Darker gray
+	private static final int COLOR_PLAYER = 0xFFFFFF00;      // Bright yellow
+	private static final int COLOR_PET = 0xFF00FF00;         // Bright green
+	private static final int COLOR_MONSTER = 0xFFFF6666;     // Light red
+
 	// ____________________________________________________________________________________
 	public MinimapWidget(Context context, NHW_Map mapWindow, Tileset tileset)
 	{
-		super(context, createMinimapView(context), "minimap");
+		super(context, new MinimapView(context), "minimap");
 		mMapWindow = mapWindow;
 		mTileset = tileset;
 		mMinimapView = (MinimapView) getContentView();
@@ -43,12 +50,6 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 	}
 
 	// ____________________________________________________________________________________
-	private static MinimapView createMinimapView(Context context)
-	{
-		return new MinimapView(context);
-	}
-
-	// ____________________________________________________________________________________
 	@Override
 	public void onMapUpdated()
 	{
@@ -59,8 +60,10 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 	@Override
 	public void onViewportChanged(PointF viewOffset, float scale, RectF canvasRect)
 	{
-		android.util.Log.d("MinimapWidget", "Viewport changed: offset=(" + viewOffset.x + "," + viewOffset.y +
-			") scale=" + scale + " canvas=" + canvasRect);
+		if (DEBUG.isOn()) {
+			android.util.Log.d("MinimapWidget", "Viewport changed: offset=(" + viewOffset.x + "," + viewOffset.y +
+				") scale=" + scale + " canvas=" + canvasRect);
+		}
 		mMinimapView.setViewportInfo(viewOffset, scale, canvasRect);
 	}
 
@@ -91,13 +94,8 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 		private float mScale = 1.0f;
 		private RectF mCanvasRect = new RectF();
 
-		// Brighter colors for minimap elements (opacity controlled by widget setting)
+		// Themed colors (updated from theme)
 		private int COLOR_UNEXPLORED = 0xFF1A1A1A;  // Very dark gray instead of black
-		private int COLOR_FLOOR = 0xFF888888;       // Medium gray
-		private int COLOR_WALL = 0xFF555555;        // Darker gray
-		private int COLOR_PLAYER = 0xFFFFFF00;      // Bright yellow
-		private int COLOR_PET = 0xFF00FF00;         // Bright green
-		private int COLOR_MONSTER = 0xFFFF6666;     // Light red
 		private int COLOR_VIEWPORT = 0xFFFFFFFF;    // Solid white (more visible)
 		private int COLOR_BORDER = 0xFF666666;      // Gray border
 
@@ -125,7 +123,7 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 				R.attr.colorOutline, R.color.md_theme_outline);
 			mBorderPaint.setColor(COLOR_BORDER);
 			// COLOR_FLOOR / COLOR_WALL / COLOR_PLAYER / COLOR_PET / COLOR_MONSTER
-			// are intentional gameplay semantics — do not theme.
+			// are intentional gameplay semantics -- do not theme.
 		}
 
 		// ____________________________________________________________________________________
@@ -152,8 +150,10 @@ public class MinimapWidget extends ControlWidget implements NHW_Map.MapUpdateLis
 			mViewOffset.set(viewOffset.x, viewOffset.y);
 			mScale = scale;
 			mCanvasRect.set(canvasRect);
-			android.util.Log.d("MinimapView", "Viewport info set: offset=(" + viewOffset.x + "," + viewOffset.y +
-				") scale=" + scale + " canvas=" + canvasRect + " isEmpty=" + canvasRect.isEmpty());
+			if (DEBUG.isOn()) {
+				android.util.Log.d("MinimapView", "Viewport info set: offset=(" + viewOffset.x + "," + viewOffset.y +
+					") scale=" + scale + " canvas=" + canvasRect + " isEmpty=" + canvasRect.isEmpty());
+			}
 			invalidate();
 		}
 

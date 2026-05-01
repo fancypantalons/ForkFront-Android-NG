@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
+import android.util.LruCache;
 import androidx.preference.PreferenceManager;
 import android.text.TextPaint;
 import android.widget.Toast;
@@ -14,8 +15,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class Tileset
 {
@@ -33,7 +32,7 @@ public class Tileset
 	private int mnCols;
 	private Context mContext;
 	private boolean mFallbackRenderer;
-	private final Map<Integer, Bitmap> mTileCache = new HashMap<>();
+	private final LruCache<Integer, Bitmap> mTileCache;
 	private final String mNamespace;
 
 	// ____________________________________________________________________________________
@@ -41,6 +40,15 @@ public class Tileset
 	{
 		mContext = context;
 		mNamespace = context.getResources().getString(R.string.namespace);
+		// Cache up to ~1MB of tiles (typical tile is small)
+		final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+		final int cacheSize = maxMemory / 32;
+		mTileCache = new LruCache<Integer, Bitmap>(cacheSize) {
+			@Override
+			protected int sizeOf(Integer key, Bitmap bitmap) {
+				return bitmap.getByteCount() / 1024;
+			}
+		};
 	}
 
 	// ____________________________________________________________________________________
@@ -52,14 +60,14 @@ public class Tileset
 	// ____________________________________________________________________________________
 	public void updateTileset(SharedPreferences prefs, Resources r)
 	{
-
 		mFallbackRenderer = prefs.getBoolean("fallbackRenderer", false);
 
 		String tilesetName = prefs.getString("tileset", "TTY");
+		boolean customTiles = prefs.getBoolean("customTiles", false);
 
 		boolean TTY = tilesetName.equals("TTY");
 		int tileW, tileH;
-		if (prefs.getBoolean("customTiles", false)) {
+		if (customTiles) {
 			try {
 				tileW = Integer.parseInt(prefs.getString("customTileW", "32"));
 				tileH = Integer.parseInt(prefs.getString("customTileH", "32"));
@@ -78,9 +86,8 @@ public class Tileset
 
 		if(!TTY && (tileW <= 0 || tileH <= 0))
 		{
-			Toast.makeText(mContext, "Invalid tile dimensions (" + mTileW + "x" + mTileH + ")", Toast.LENGTH_LONG).show();
+			Toast.makeText(mContext, "Invalid tile dimensions (" + tileW + "x" + tileH + ")", Toast.LENGTH_LONG).show();
 			TTY = true;
-
 		}
 
 		if(!TTY)
@@ -88,7 +95,7 @@ public class Tileset
 			mTileW = tileW;
 			mTileH = tileH;
 
-			if(prefs.getBoolean("customTiles", false))
+			if(customTiles)
 				loadCustomTileset(tilesetName);
 			else
 				loadFromResources(tilesetName, r);
@@ -126,7 +133,7 @@ public class Tileset
 	// ____________________________________________________________________________________
 	private void clearBitmap()
 	{
-		mTileCache.clear();
+		mTileCache.evictAll();
 		mBitmap = null;
 	}
 
@@ -176,10 +183,10 @@ public class Tileset
 	}
 
 	// ____________________________________________________________________________________
-	private int getTileBitmapOffset(int iTile)
+	private Point getTileBitmapOffset(int iTile)
 	{
 		if(mBitmap == null)
-			return 0;
+			return new Point(0, 0);
 		
 		int iRow = iTile / mnCols;
 		int iCol = iTile - iRow * mnCols;
@@ -187,7 +194,7 @@ public class Tileset
 		int x = iCol * mTileW;
 		int y = iRow * mTileH;
 		
-		return (x << 16) | y;
+		return new Point(x, y);
 	}
 
 	// ____________________________________________________________________________________
@@ -198,20 +205,18 @@ public class Tileset
 		Bitmap bitmap = mTileCache.get(iTile);
 		if(bitmap == null)
 		{
-			int ofs = getTileBitmapOffset(iTile);
-
-			int x = ofs >> 16;
-			int y = ofs & 0xffff;
+			Point ofs = getTileBitmapOffset(iTile);
 
 			try
 			{
-				bitmap = Bitmap.createBitmap(mBitmap, x, y, mTileW, mTileH);
+				bitmap = Bitmap.createBitmap(mBitmap, ofs.x, ofs.y, mTileW, mTileH);
+				mTileCache.put(iTile, bitmap);
 			}
 			catch(Exception e)
 			{
-				bitmap = Bitmap.createBitmap(mBitmap, 0, 0, 1, 1);
+				// Invalid glyph; return null so caller can handle fallback
+				return null;
 			}
-			mTileCache.put(iTile, bitmap);
 		}
 		return bitmap;
 	}
@@ -229,15 +234,15 @@ public class Tileset
 	}
 	
 	// ____________________________________________________________________________________
-	public Rect getOverlayRect(short overlay)
+	public Rect getOverlayRect()
 	{
-		return new Rect(0, 0, 32, 32);
+		return new Rect(0, 0, mTileW, mTileH);
 	}
 
 	// ____________________________________________________________________________________
 	public Bitmap getTileOverlay(short overlay)
 	{
-		if((overlay & OVERLAY_PET) != 0)
+		if((overlay & (OVERLAY_PET | OVERLAY_DETECT | OVERLAY_OBJPILE)) != 0)
 			return mOverlay;
 		return null;
 	}
@@ -257,6 +262,8 @@ public class Tileset
 		if(mFallbackRenderer)
 		{
 			Bitmap bitmap = getTile(glyph);
+			if(bitmap == null)
+				return;
 			src.left = 0;
 			src.top = 0;
 			src.right = getTileWidth();
@@ -265,30 +272,25 @@ public class Tileset
 		}
 		else
 		{
-			int ofs = getTileBitmapOffset(glyph);
-			src.left = (ofs >> 16) & 0xffff;
-			src.top = ofs & 0xffff;
-			src.right = src.left + getTileWidth();
-			src.bottom = src.top + getTileHeight();
+			Point ofs = getTileBitmapOffset(glyph);
+			src.left = ofs.x;
+			src.top = ofs.y;
+			src.right = ofs.x + getTileWidth();
+			src.bottom = ofs.y + getTileHeight();
 			canvas.drawBitmap(mBitmap, src, dst, paint);
 		}
 	}
 
 	// ____________________________________________________________________________________
 	public static boolean createCustomTilesetLocalCopy(Context context, android.net.Uri from) {
-		InputStream inputStream = null;
-		OutputStream outputStream = null;
-		try {
-			inputStream = context.getContentResolver().openInputStream(from);
-			File file = getLocalTilesetFile(context);
-			outputStream = new FileOutputStream(file, false);
+		try (InputStream inputStream = context.getContentResolver().openInputStream(from);
+			 OutputStream outputStream = new FileOutputStream(getLocalTilesetFile(context), false)) {
+			if (inputStream == null)
+				return false;
 			Util.copy(inputStream, outputStream);
 			return true;
 		} catch (Exception e) {
 			Toast.makeText(context, "Error loading tileset: " + e.getMessage(), Toast.LENGTH_LONG).show();
-		} finally {
-			if (inputStream != null) try { inputStream.close(); } catch (IOException e) {}
-			if (outputStream != null) try { outputStream.close(); } catch (IOException e) {}
 		}
 		return false;
 	}
