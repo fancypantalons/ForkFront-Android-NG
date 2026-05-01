@@ -36,13 +36,6 @@ public class Input
 		return mod;
 	}
 	
-	public static int nhKeyFromMod(char ch, EnumSet<Modifier> modifiers)
-	{
-		if(modifiers.contains(Input.Modifier.Shift))
-			return Character.toUpperCase(ch);
-		return ch;
-	}
-
 	// ____________________________________________________________________________________
 	public static int nhKeyFromKeyCode(int keyCode, char ch, EnumSet<Modifier> mod, boolean numPadOn)
 	{
@@ -92,11 +85,6 @@ public class Input
 		return nhKey;
 	}
 
-	public static EnumSet<Modifier> modifiers()
-	{
-		return EnumSet.noneOf(Modifier.class);
-	}
-
 	public static int keyCodeToAction(int keyCode, Context context)
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
@@ -124,66 +112,5 @@ public class Input
 		}
 
 		return action;
-	}
-	
-	public static int toKeyCode(char primaryCode)
-	{
-		primaryCode = Character.toUpperCase(primaryCode);
-		switch(primaryCode)
-		{
-		case '0': return KeyEvent.KEYCODE_0;
-		case '1': return KeyEvent.KEYCODE_1;
-		case '2': return KeyEvent.KEYCODE_2;
-		case '3': return KeyEvent.KEYCODE_3;
-		case '4': return KeyEvent.KEYCODE_4;
-		case '5': return KeyEvent.KEYCODE_5;
-		case '6': return KeyEvent.KEYCODE_6;
-		case '7': return KeyEvent.KEYCODE_7;
-		case '8': return KeyEvent.KEYCODE_8;
-		case '9': return KeyEvent.KEYCODE_9;
-		case 'A': return KeyEvent.KEYCODE_A;
-		case '\'': return KeyEvent.KEYCODE_APOSTROPHE;
-		case '@': return KeyEvent.KEYCODE_AT;
-		case 'B': return KeyEvent.KEYCODE_B;
-		case '\\': return KeyEvent.KEYCODE_BACKSLASH;
-		case 'C': return KeyEvent.KEYCODE_C;
-		case ',': return KeyEvent.KEYCODE_COMMA;
-		case 'D': return KeyEvent.KEYCODE_D;
-		case 'E': return KeyEvent.KEYCODE_E;
-		case '=': return KeyEvent.KEYCODE_EQUALS;
-		case 'F': return KeyEvent.KEYCODE_F;
-		case 'G': return KeyEvent.KEYCODE_G;
-		case '`': return KeyEvent.KEYCODE_GRAVE;
-		case 'H': return KeyEvent.KEYCODE_H;
-		case 'I': return KeyEvent.KEYCODE_I;
-		case 'J': return KeyEvent.KEYCODE_J;
-		case 'K': return KeyEvent.KEYCODE_K;
-		case 'L': return KeyEvent.KEYCODE_L;
-		case '[': return KeyEvent.KEYCODE_LEFT_BRACKET;
-		case 'M': return KeyEvent.KEYCODE_M;
-		case '-': return KeyEvent.KEYCODE_MINUS;
-		case 'N': return KeyEvent.KEYCODE_N;
-		case 'O': return KeyEvent.KEYCODE_O;
-		case 'P': return KeyEvent.KEYCODE_P;
-		case '.': return KeyEvent.KEYCODE_PERIOD;
-		case '+': return KeyEvent.KEYCODE_PLUS;
-		case 'Q': return KeyEvent.KEYCODE_Q;
-		case 'R': return KeyEvent.KEYCODE_R;
-		case ']': return KeyEvent.KEYCODE_RIGHT_BRACKET;
-		case 'S': return KeyEvent.KEYCODE_S;
-		case ';': return KeyEvent.KEYCODE_SEMICOLON;
-		case '/': return KeyEvent.KEYCODE_SLASH;
-		case ' ': return KeyEvent.KEYCODE_SPACE;
-		case '*': return KeyEvent.KEYCODE_STAR;
-		case 'T': return KeyEvent.KEYCODE_T;
-		case 'U': return KeyEvent.KEYCODE_U;
-		case 'V': return KeyEvent.KEYCODE_V;
-		case 'W': return KeyEvent.KEYCODE_W;
-		case 'X': return KeyEvent.KEYCODE_X;
-		case 'Y': return KeyEvent.KEYCODE_Y;
-		case 'Z': return KeyEvent.KEYCODE_Z;
-		case 10: return KeyEvent.KEYCODE_ENTER;
-		default: return 0;
-		}
 	}
 }

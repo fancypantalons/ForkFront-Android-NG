@@ -199,10 +199,10 @@ public class NHW_Menu implements NH_Window
 
 	// ____________________________________________________________________________________
 	@Override
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
 		if(mFragment != null && mFragment.isAdded())
-			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount, bSoftInput);
+			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 		return KeyEventResult.IGNORED;
 	}
 
@@ -293,10 +293,10 @@ public class NHW_Menu implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
-		public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Modifier> modifiers, int repeatCount, boolean bSoftInput)
+		public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Modifier> modifiers, int repeatCount)
 		{
 			if(mAmountSelector != null)
-				return mAmountSelector.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount, bSoftInput);
+				return mAmountSelector.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 
 			if(ch == '<')
 				keyCode = KeyEvent.KEYCODE_PAGE_UP;
@@ -365,23 +365,10 @@ public class NHW_Menu implements NH_Window
 					break;
 
 				case KeyEvent.KEYCODE_ENTER:
-					if(bSoftInput)
-						menuOk();
-					else
-						return KeyEventResult.RETURN_TO_SYSTEM;
-				break;
+					return KeyEventResult.RETURN_TO_SYSTEM;
 
 				case KeyEvent.KEYCODE_SPACE:
-					if(bSoftInput)
-					{
-						if(mMenu.mHow == MenuSelectMode.PickNone)
-							menuOk();
-						else
-							toggleItemOrGroupAt(mListView.getSelectedItemPosition());
-					}
-					else
-						return KeyEventResult.RETURN_TO_SYSTEM;
-				break;
+					return KeyEventResult.RETURN_TO_SYSTEM;
 
 				default:
 					if(mMenu.mHow == MenuSelectMode.PickNone)

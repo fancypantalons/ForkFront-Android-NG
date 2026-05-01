@@ -176,7 +176,7 @@ public class AmountSelector
 	}
 
 	// ____________________________________________________________________________________
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Modifier> modifiers, int repeatCount)
 	{
 		if(mRoot == null)
 			return KeyEventResult.IGNORED;

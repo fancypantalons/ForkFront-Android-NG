@@ -104,11 +104,11 @@ public class NH_GetLine
 	}
 
 	// ____________________________________________________________________________________
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
 		if(mUI == null)
 			return KeyEventResult.IGNORED;
-		return mUI.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount, bSoftInput);
+		return mUI.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 	}
 	
 	// ____________________________________________________________________________________
@@ -293,7 +293,7 @@ public class NH_GetLine
 		}
 
 		// ____________________________________________________________________________________
-		public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+		public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 		{
 			if(mRoot == null)
 				return KeyEventResult.IGNORED;
@@ -311,31 +311,10 @@ public class NH_GetLine
 			default:
 				if(ch == '\033')
 					cancel();
-				else if(bSoftInput)
-				{
-					boolean hasSelection = mInput.hasSelection();
-					if(hasSelection)
-						mInput.setText(mInput.getText().replace(mInput.getSelectionStart(), mInput.getSelectionEnd(), ""));
-					if(ch != 0x7f)
-						mInput.append(""+ch);
-					else if(!hasSelection)
-						doBackspace();
-					return KeyEventResult.HANDLED;
-				}
 				else
 					return KeyEventResult.RETURN_TO_SYSTEM;
 			}
 			return KeyEventResult.HANDLED;
-		}
-
-		private void doBackspace() {
-			int caretPos = mInput.getSelectionEnd();
-			if(caretPos == -1)
-				caretPos = mInput.getText().length();
-			if(caretPos == 0)
-				return;
-			mInput.setText(mInput.getText().delete(caretPos - 1, caretPos));
-			mInput.setSelection(caretPos - 1);
 		}
 
 		// ____________________________________________________________________________________

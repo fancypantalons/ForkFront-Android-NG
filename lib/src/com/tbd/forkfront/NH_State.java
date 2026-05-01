@@ -297,7 +297,7 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
-	public boolean handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public boolean handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
 		if(repeatCount > 0) switch(keyCode) {
 			case KeyEvent.KEYCODE_ESCAPE:
@@ -305,15 +305,15 @@ public class NH_State
 				return true;
 		}
 
-		KeyEventResult ret = mGetLine.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount, bSoftInput);
+		KeyEventResult ret = mGetLine.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 
 		if(ret == KeyEventResult.IGNORED)
-			ret = mQuestion.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount, bSoftInput);
+			ret = mQuestion.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 
 		for(int i = mWindows.size() - 1; ret == KeyEventResult.IGNORED && i >= 0; i--)
 		{
 			NH_Window w = mWindows.get(i);
-			ret = w.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount, bSoftInput);
+			ret = w.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 		}
 
 		if(ret == KeyEventResult.HANDLED)

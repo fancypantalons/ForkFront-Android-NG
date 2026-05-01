@@ -359,7 +359,7 @@ public class NHW_Status implements NH_Window
 
 	// ____________________________________________________________________________________
 	@Override
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
 		return KeyEventResult.IGNORED;
 	}

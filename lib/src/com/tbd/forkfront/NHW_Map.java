@@ -744,7 +744,7 @@ public class NHW_Map implements NH_Window
 
 	// ____________________________________________________________________________________
 	@Override
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput)
+	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
 		if(keyCode == KeyAction.ZoomIn || keyCode == KeyAction.ZoomOut)
 		{

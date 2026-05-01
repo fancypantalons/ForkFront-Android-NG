@@ -12,7 +12,7 @@ public interface NH_Window
 	void destroy();
 	void clear();
 	void printString(int attr, String str, int append, int color);
-	KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount, boolean bSoftInput);
+	KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount);
 	void setContext(AppCompatActivity context);
 	String getTitle();
 	void setCursorPos(int x, int y);
