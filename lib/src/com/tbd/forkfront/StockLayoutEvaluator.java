@@ -23,7 +23,7 @@ public class StockLayoutEvaluator {
 
     public StockLayoutEvaluator(Context context) {
         mContext = context;
-        mWindowBounds = WindowMetricsHelper.getSafeBounds(context);
+        mWindowBounds = WindowMetricsHelper.getLayoutBounds(context);
         mWindowBottom = WindowMetricsHelper.getWindowBounds(context).bottom;
         mDensity = context.getResources().getDisplayMetrics().density;
         mPeekHeight = context.getResources().getDimensionPixelSize(R.dimen.command_palette_peek_height);

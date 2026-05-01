@@ -65,6 +65,32 @@ public class WindowMetricsHelper {
     }
 
     /**
+     * Get the current window bounds excluding display cutout only.
+     * This represents the usable area for immersive fullscreen layouts,
+     * where system bars are transient overlays rather than reserved space.
+     *
+     * @param context Context (should be an Activity context when possible)
+     * @return Rect representing the layout bounds
+     */
+    public static Rect getLayoutBounds(Context context) {
+        WindowManager wm = context.getSystemService(WindowManager.class);
+        WindowMetrics metrics = wm.getCurrentWindowMetrics();
+        WindowInsets windowInsets = metrics.getWindowInsets();
+
+        Insets cutout = windowInsets.getInsetsIgnoringVisibility(
+            WindowInsets.Type.displayCutout()
+        );
+
+        Rect bounds = metrics.getBounds();
+        return new Rect(
+            bounds.left + cutout.left,
+            bounds.top + cutout.top,
+            bounds.right - cutout.right,
+            bounds.bottom - cutout.bottom
+        );
+    }
+
+    /**
      * Get the safe window width in pixels (excluding system UI).
      */
     public static int getSafeWidth(Context context) {
