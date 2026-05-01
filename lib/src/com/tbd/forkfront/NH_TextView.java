@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import androidx.preference.PreferenceManager;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import androidx.appcompat.widget.AppCompatTextView;
@@ -30,12 +31,22 @@ public class NH_TextView extends AppCompatTextView {
 
 	public NH_TextView (Context context, AttributeSet attrs) {
 		super(context, attrs);
+		readAttrs(context, attrs);
 		init();
 	}
 
 	public NH_TextView (Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
+		readAttrs(context, attrs);
 		init();
+	}
+
+	private void readAttrs(Context context, AttributeSet attrs) {
+		if (attrs != null) {
+			TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.NH_TextView);
+			mIsFittedMode = a.getBoolean(R.styleable.NH_TextView_useFittedSize, true);
+			a.recycle();
+		}
 	}
 
 	private void init() {

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="?attr/listPreferredItemHeightSmall"
@@ -12,6 +13,7 @@
         <com.tbd.forkfront.NH_TextView
                 android:id="@+id/item_acc"
                 style="@style/ListText1"
+                app:useFittedSize="false"
                 android:text="t"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
@@ -24,7 +26,7 @@
                 android:minHeight="@dimen/padding_large"
                 android:layout_marginEnd="@dimen/padding_small"/>
 
-        <LinearLayout 
+        <LinearLayout
                 android:orientation="vertical"
                 android:layout_weight="1"
                 android:layout_width="0dp"
@@ -33,6 +35,7 @@
                 <com.tbd.forkfront.NH_TextView
                         android:id="@+id/item_text"
                         style="@style/ListText1"
+                        app:useFittedSize="false"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="item_text"/>
@@ -40,6 +43,7 @@
                 <com.tbd.forkfront.NH_TextView
                         android:id="@+id/item_sub"
                         style="@style/ListText2"
+                        app:useFittedSize="false"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="item_sub"/>
@@ -47,6 +51,7 @@
         <com.tbd.forkfront.NH_TextView
                 android:id="@+id/item_count"
                 style="@style/ListText1"
+                app:useFittedSize="false"
                 android:text="1234"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
