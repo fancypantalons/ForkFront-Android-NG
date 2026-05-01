@@ -67,6 +67,7 @@ public class ForkFront extends AppCompatActivity
 	private GamepadDispatcher mGamepadDispatcher;
 	private UiContextArbiter mUiContextArbiter;
 	private GamepadDeviceWatcher mGamepadDeviceWatcher;
+	private DrawerUiCapture mDrawerUiCapture;
 	private final GamepadDispatcher.SyntheticDispatcher mSyntheticDispatcher =
 		new GamepadDispatcher.SyntheticDispatcher() {
 			@Override
@@ -212,8 +213,14 @@ public class ForkFront extends AppCompatActivity
 					if (mUiContextArbiter != null) {
 						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
 					}
-					// Move keyboard focus to the first focusable NavigationView item
 					NavigationView nav = findViewById(R.id.nav_view);
+					if (nav != null && mGamepadDispatcher != null) {
+						if (mDrawerUiCapture == null) {
+							mDrawerUiCapture = new DrawerUiCapture(mDrawerLayout, nav);
+						}
+						mGamepadDispatcher.enterUiCapture(mDrawerUiCapture);
+					}
+					// Move keyboard focus to the first focusable NavigationView item
 					if (nav != null) {
 						nav.post(() -> {
 							View first = findFirstFocusableChild(nav);
@@ -226,6 +233,9 @@ public class ForkFront extends AppCompatActivity
 				public void onDrawerClosed(@NonNull View drawerView) {
 					if (mUiContextArbiter != null) {
 						mUiContextArbiter.pop(UiContext.DRAWER_OPEN);
+					}
+					if (mGamepadDispatcher != null && mDrawerUiCapture != null) {
+						mGamepadDispatcher.exitUiCapture(mDrawerUiCapture);
 					}
 				}
 			});

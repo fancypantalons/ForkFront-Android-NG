@@ -2,6 +2,7 @@ package com.tbd.forkfront;
 
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -63,7 +64,21 @@ public class SliderPreferenceDialogFragment extends PreferenceDialogFragmentComp
         mSeekBar = new SeekBar(context);
         mSeekBar.setMax(pref.getMax() - pref.getMin());
         mSeekBar.setProgress(mValue - pref.getMin());
+        mSeekBar.setFocusable(true);
         mSeekBar.setOnSeekBarChangeListener(this);
+        // L1/R1 → fast scrub by ±10
+        final SliderPreference seekPref = pref;
+        mSeekBar.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            int step = 0;
+            if (keyCode == KeyEvent.KEYCODE_BUTTON_L1) step = -10;
+            else if (keyCode == KeyEvent.KEYCODE_BUTTON_R1) step = 10;
+            if (step == 0) return false;
+            int next = mSeekBar.getProgress() + step;
+            next = Math.max(0, Math.min(mSeekBar.getMax(), next));
+            mSeekBar.setProgress(next);
+            return true;
+        });
         LinearLayout.LayoutParams seekParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         seekParams.setMargins(0, padding, 0, 0);
         layout.addView(mSeekBar, seekParams);
@@ -72,6 +87,12 @@ public class SliderPreferenceDialogFragment extends PreferenceDialogFragmentComp
 
         card.addView(layout);
         return card;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (mSeekBar != null) mSeekBar.requestFocus();
     }
 
     @Override

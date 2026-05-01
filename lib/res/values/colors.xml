@@ -49,4 +49,8 @@
     <color name="md_theme_dark_inverseSurface">#E2E2E6</color>
     <color name="md_theme_dark_inverseOnSurface">#2E3135</color>
     <color name="md_theme_dark_inversePrimary">#005DB4</color>
+
+    <!-- Gamepad focus highlight -->
+    <color name="gamepad_focus_stroke">#FFFFC107</color>
+    <color name="gamepad_focus_fill">#33FFC107</color>
 </resources>

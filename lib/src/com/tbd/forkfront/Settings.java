@@ -16,6 +16,7 @@ public class Settings extends AppCompatActivity
                PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
     private SettingsFragment fragment;
+    private SettingsUiCapture mSettingsUiCapture;
 
     private final GamepadDispatcher.SyntheticDispatcher mSyntheticDispatcher =
         new GamepadDispatcher.SyntheticDispatcher() {
@@ -45,13 +46,24 @@ public class Settings extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         GamepadDispatcher gd = GamepadDispatcher.getInstance();
-        if (gd != null) gd.setSyntheticDispatcher(mSyntheticDispatcher);
+        if (gd != null) {
+            gd.setSyntheticDispatcher(mSyntheticDispatcher);
+            if (mSettingsUiCapture == null) {
+                mSettingsUiCapture = new SettingsUiCapture(this);
+            }
+            gd.pushContext(UiContext.SETTINGS_OPEN);
+            gd.enterUiCapture(mSettingsUiCapture);
+        }
     }
 
     @Override
     protected void onPause() {
         GamepadDispatcher gd = GamepadDispatcher.getInstance();
-        if (gd != null) gd.setSyntheticDispatcher(null);
+        if (gd != null) {
+            if (mSettingsUiCapture != null) gd.exitUiCapture(mSettingsUiCapture);
+            gd.popContext(UiContext.SETTINGS_OPEN);
+            gd.setSyntheticDispatcher(null);
+        }
         super.onPause();
     }
 

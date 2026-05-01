@@ -43,6 +43,12 @@
     </style>
 
     <style name="PreferenceThemeOverlay" parent="PreferenceThemeOverlay">
+        <item name="preferenceFragmentListStyle">@style/GamepadPreferenceListStyle</item>
+    </style>
+
+    <style name="GamepadPreferenceListStyle" parent="PreferenceFragmentList">
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">false</item>
     </style>
 
     <style name="ForkFront.WindowAnimationStyle" parent="android:Animation.Activity">
