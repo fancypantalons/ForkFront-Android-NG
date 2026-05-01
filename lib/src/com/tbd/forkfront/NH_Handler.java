@@ -24,7 +24,7 @@ public interface NH_Handler
 	void endMenu(int wid, String msg);
 	void selectMenu(int wid, int how);
 	void cliparound(int x, int y, int playerX, int playerY, int objectFlags, int nearbyMonsters);
-	void showDPad();
+	void highlightDPad();
 	void hideDPad();
 	void showLog(int bBlocking);
 	void editOpts();

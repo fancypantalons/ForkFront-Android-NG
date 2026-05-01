@@ -46,7 +46,6 @@ public class NH_State
 	private SoundPlayer mSoundPlayer;
 	private int mPlayerObjectFlags;
 	private int mNearbyMonstersMask;
-	private ControlWidget mTemporaryDPad;
 	private String mDeviceKey;
 	private com.tbd.forkfront.gamepad.UiContextArbiter mUiContextArbiter;
 
@@ -1471,7 +1470,7 @@ public class NH_State
 
 		// ____________________________________________________________________________________
 		@Override
-		public void showDPad()
+		public void highlightDPad()
 		{
 			mIsDPadActive = true;
 			if (mViewModel != null) {
@@ -1501,25 +1500,6 @@ public class NH_State
 						if (existingDPad != null) {
 							// Pulse existing D-pad to draw attention
 							existingDPad.pulseAttention();
-						} else if (mPrimaryWidgetLayout != null) {
-							// Spawn temporary D-pad centered on screen
-							float density = mActivity.getResources().getDisplayMetrics().density;
-							int dpadSize = (int)(200 * density);
-
-							DirectionalPadView dpadView = new DirectionalPadView(mActivity);
-							dpadView.setOnDirectionListener(cmd -> sendDirKeyCmd(cmd));
-
-							mTemporaryDPad = new ControlWidget(mActivity, dpadView, "dpad");
-
-							ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
-							dpadData.type = "dpad";
-							dpadData.x = (mActivity.getWindow().getDecorView().getWidth() - dpadSize) / 2f;
-							dpadData.y = (mActivity.getWindow().getDecorView().getHeight() - dpadSize) / 2f;
-							dpadData.w = dpadSize;
-							dpadData.h = dpadSize;
-							mTemporaryDPad.setWidgetData(dpadData);
-
-							mPrimaryWidgetLayout.addWidget(mTemporaryDPad);
 						}
 					}
 				});
@@ -1530,17 +1510,6 @@ public class NH_State
 		@Override
 		public void hideDPad()
 		{
-			// Remove temporary D-pad if one was spawned
-			if (mTemporaryDPad != null && mPrimaryWidgetLayout != null) {
-				if (mViewModel != null) {
-					mViewModel.runOnActivity(() -> {
-						if (mPrimaryWidgetLayout != null) {
-							mPrimaryWidgetLayout.removeWidget(mTemporaryDPad);
-							mTemporaryDPad = null;
-						}
-					});
-				}
-			}
 			mIsDPadActive = false;
 			updateVisibleState();
 		}
