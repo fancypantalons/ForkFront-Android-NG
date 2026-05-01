@@ -2,6 +2,8 @@ package com.tbd.forkfront;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.GridLayout;
 import com.google.android.material.button.MaterialButton;
 
@@ -15,6 +17,7 @@ public class DirectionalPadView extends GridLayout {
     }
 
     private OnDirectionListener mListener;
+    private final TouchRepeatHelper mRepeatHelper = new TouchRepeatHelper();
 
     public DirectionalPadView(Context context) {
         super(context);
@@ -62,9 +65,30 @@ public class DirectionalPadView extends GridLayout {
         params.height = 0;
         button.setLayoutParams(params);
 
-        button.setOnClickListener(v -> {
-            if (mListener != null) {
-                mListener.onDirection(cmd.charAt(0));
+        final char direction = cmd.charAt(0);
+        button.setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        v.setPressed(true);
+                        if (mListener != null) {
+                            mListener.onDirection(direction);
+                        }
+                        mRepeatHelper.startRepeat(() -> {
+                            if (mListener != null) {
+                                mListener.onDirection(direction);
+                            }
+                        });
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        v.setPressed(false);
+                        mRepeatHelper.cancelRepeat();
+                        v.performClick();
+                        return true;
+                }
+                return false;
             }
         });
 
@@ -73,5 +97,11 @@ public class DirectionalPadView extends GridLayout {
 
     public void setOnDirectionListener(OnDirectionListener listener) {
         mListener = listener;
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mRepeatHelper.destroy();
     }
 }

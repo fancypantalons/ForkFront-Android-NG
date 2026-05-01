@@ -10,6 +10,7 @@ import android.view.MotionEvent;
 import androidx.preference.PreferenceManager;
 
 import com.tbd.forkfront.DeviceProfile;
+import com.tbd.forkfront.TouchRepeatHelper;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -27,9 +28,6 @@ public class GamepadDispatcher {
     /** Synthetic events injected by the dispatcher carry this source flag to prevent re-entry. */
     public static final int SOURCE_SYNTHETIC = InputDevice.SOURCE_UNKNOWN | 0x80000000;
 
-    private static final int REPEAT_INITIAL_MS  = 300;
-    private static final int REPEAT_INTERVAL_MS = 100;
-
     private static volatile GamepadDispatcher sInstance;
 
     private final Context mAppContext;
@@ -44,8 +42,8 @@ public class GamepadDispatcher {
 
     private final Deque<UiCapture> mCaptureStack = new ArrayDeque<>();
 
+    private final TouchRepeatHelper mRepeatHelper = new TouchRepeatHelper();
     private final Handler mRepeatHandler = new Handler(Looper.getMainLooper());
-    private Runnable mRepeatRunnable;
 
     // ─── D-pad diagonal synthesis state ──────────────────────────────────────
     private boolean mDiagonalActive = false;
@@ -130,7 +128,7 @@ public class GamepadDispatcher {
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     public void destroy() {
-        cancelRepeat();
+        mRepeatHelper.destroy();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mAppContext);
         prefs.unregisterOnSharedPreferenceChangeListener(mPrefListener);
         if (sInstance == this) sInstance = null;
@@ -165,7 +163,7 @@ public class GamepadDispatcher {
     }
 
     public void resetTracker() {
-        cancelRepeat();
+        mRepeatHelper.cancelRepeat();
         cancelDpadBuffer();
         cancelStickSettle();
         mStickActivePseudo = -1;
@@ -339,7 +337,7 @@ public class GamepadDispatcher {
                 // Diagonal repeat is started inside handleDpadDown.
                 // Buffer-flush repeat is started inside flushDpadBuffer.
                 if (!mDiagonalActive && mBufferedDpadKey == -1) {
-                    startRepeat(() -> {
+                    mRepeatHelper.startRepeat(() -> {
                         if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
                     });
                 }
@@ -360,7 +358,7 @@ public class GamepadDispatcher {
                 cancelStickSettle();
             } else if (mStickActivePseudo != -1) {
                 // Active direction released: stop repeat.
-                cancelRepeat();
+                mRepeatHelper.cancelRepeat();
                 mStickActivePseudo = -1;
                 // Set transient flag so an immediately following Press (octant transition
                 // within the same synchronous event batch) skips the settle window.
@@ -371,7 +369,7 @@ public class GamepadDispatcher {
         }
 
         if (AxisNormalizer.isHatPseudo(buttonCode)) {
-            cancelRepeat();
+            mRepeatHelper.cancelRepeat();
             int dpadCode = AxisNormalizer.hatPseudoToDpad(buttonCode);
             if (dpadCode != -1) handleDpadUp(dpadCode);
             return;
@@ -406,10 +404,10 @@ public class GamepadDispatcher {
                     mDiagonalActive = true;
                     mDiagonalSecondKey = dpadKeycode;
                     mDiagonalChar = diag;
-                    cancelRepeat();
+                    mRepeatHelper.cancelRepeat();
                     mStateRef.sendDirKeyCmd(diag);
                     final char diagChar = diag;
-                    startRepeat(() -> {
+                    mRepeatHelper.startRepeat(() -> {
                         if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(diagChar);
                     });
                     return true;
@@ -451,13 +449,13 @@ public class GamepadDispatcher {
                 mDiagonalActive = false;
                 mDiagonalSecondKey = -1;
                 mDiagonalChar = 0;
-                cancelRepeat();
+                mRepeatHelper.cancelRepeat();
                 return true;
             }
             mDiagonalActive = false;
             mDiagonalSecondKey = -1;
             mDiagonalChar = 0;
-            cancelRepeat();
+            mRepeatHelper.cancelRepeat();
         }
         return mChordTracker.onKeyUp(dpadKeycode) == ChordTracker.Result.HANDLED;
     }
@@ -475,7 +473,7 @@ public class GamepadDispatcher {
         mDpadBufferRunnable = null;
         mBufferedDpadKey = -1;
         if (mChordTracker.onKeyDown(dpadCode, 0) == ChordTracker.Result.HANDLED) {
-            startRepeat(() -> {
+            mRepeatHelper.startRepeat(() -> {
                 if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
             });
         }
@@ -554,8 +552,6 @@ public class GamepadDispatcher {
 
     private void onBindingFired(KeyBinding binding, boolean isRepeat) {
         BindingTarget target = binding.target;
-        if (isRepeat && target.kind() == BindingTarget.Kind.NH_STRING) return;
-
         switch (target.kind()) {
             case NH_KEY: {
                 char ch = ((BindingTarget.NhKey) target).ch;
@@ -603,40 +599,20 @@ public class GamepadDispatcher {
 
     private void fireStickDirection(int pseudo) {
         mStickActivePseudo = pseudo;
-        cancelRepeat();
+        mRepeatHelper.cancelRepeat();
         KeyBinding explicit = mBindingMap.find(Chord.single(pseudo));
         if (explicit != null) {
             onBindingFired(explicit, false);
-            startRepeat(() -> onBindingFired(explicit, true));
+            mRepeatHelper.startRepeat(() -> onBindingFired(explicit, true));
         } else {
             char nhDir = AxisNormalizer.pseudoToNhDir(pseudo);
             if (nhDir != 0) {
                 mStateRef.sendDirKeyCmd(nhDir);
                 final char dir = nhDir;
-                startRepeat(() -> {
+                mRepeatHelper.startRepeat(() -> {
                     if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(dir);
                 });
             }
-        }
-    }
-
-    // ─── Axis repeat timer ────────────────────────────────────────────────────
-
-    private void startRepeat(Runnable action) {
-        cancelRepeat();
-        mRepeatRunnable = new Runnable() {
-            @Override public void run() {
-                action.run();
-                mRepeatHandler.postDelayed(this, REPEAT_INTERVAL_MS);
-            }
-        };
-        mRepeatHandler.postDelayed(mRepeatRunnable, REPEAT_INITIAL_MS);
-    }
-
-    private void cancelRepeat() {
-        if (mRepeatRunnable != null) {
-            mRepeatHandler.removeCallbacks(mRepeatRunnable);
-            mRepeatRunnable = null;
         }
     }
 

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -166,12 +167,45 @@ public class WidgetLayout extends FrameLayout {
             MaterialButton btn = ThemeUtils.createButtonText(getContext());
             btn.setText(data.label);
             if (mNHState != null && data.command != null && data.command.length() > 0) {
-                btn.setOnClickListener(v -> {
-                    if (mNHState.isEditMode()) return;
-                    if (data.command.startsWith("#")) {
-                        mNHState.sendStringCmd(data.command + "\n");
-                    } else {
-                        mNHState.sendKeyCmd(data.command.charAt(0));
+                final TouchRepeatHelper repeatHelper = new TouchRepeatHelper();
+                final Runnable fireCommand = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mNHState.isEditMode()) return;
+                        if (data.command.startsWith("#")) {
+                            mNHState.sendStringCmd(data.command + "\n");
+                        } else {
+                            mNHState.sendKeyCmd(data.command.charAt(0));
+                        }
+                    }
+                };
+                btn.setOnTouchListener(new OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        switch (event.getAction()) {
+                            case MotionEvent.ACTION_DOWN:
+                                v.setPressed(true);
+                                fireCommand.run();
+                                repeatHelper.startRepeat(fireCommand);
+                                return true;
+                            case MotionEvent.ACTION_UP:
+                            case MotionEvent.ACTION_CANCEL:
+                                v.setPressed(false);
+                                repeatHelper.cancelRepeat();
+                                v.performClick();
+                                return true;
+                        }
+                        return false;
+                    }
+                });
+                btn.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
+                    @Override
+                    public void onViewAttachedToWindow(View v) {
+                        // no-op
+                    }
+                    @Override
+                    public void onViewDetachedFromWindow(View v) {
+                        repeatHelper.destroy();
                     }
                 });
             }

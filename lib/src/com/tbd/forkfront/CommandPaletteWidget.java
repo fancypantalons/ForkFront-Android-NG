@@ -2,7 +2,9 @@ package com.tbd.forkfront;
 
 import android.content.Context;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.HorizontalScrollView;
@@ -31,6 +33,10 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     private boolean mHorizontal;
     private boolean mContextualOnly;
     private Set<String> mPinnedCommands;
+    private final TouchRepeatHelper mRepeatHelper = new TouchRepeatHelper();
+    private boolean mTouchActive = false;
+    private boolean mPendingPopulate = false;
+    private List<CmdRegistry.CmdInfo> mLastCommands;
 
     public CommandPaletteWidget(Context context, NH_State nhState, int rows, int columns,
                                 CmdRegistry.Category category, boolean horizontal,
@@ -84,9 +90,18 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         }
     }
 
-    private void populateCommands() {
-        mGridLayout.removeAllViews();
+    private static boolean commandsEqual(List<CmdRegistry.CmdInfo> a, List<CmdRegistry.CmdInfo> b) {
+        if (a == null || b == null) return a == b;
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) {
+            if (!a.get(i).getCommand().equals(b.get(i).getCommand())) {
+                return false;
+            }
+        }
+        return true;
+    }
 
+    private void populateCommands() {
         // Get commands, optionally filtered by category
         List<CmdRegistry.CmdInfo> commands;
         if (mCategory != null) {
@@ -131,6 +146,14 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
                 return a.getDisplayName().compareToIgnoreCase(b.getDisplayName());
             }
         });
+
+        // Skip rebuild if commands haven't changed
+        if (commandsEqual(mLastCommands, commands)) {
+            return;
+        }
+        mLastCommands = commands;
+
+        mGridLayout.removeAllViews();
 
         if (mHorizontal) {
             // Horizontal scrolling: fixed rows, unlimited columns
@@ -194,13 +217,103 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         btn.setInsetTop(0);
         btn.setInsetBottom(0);
 
-        btn.setOnClickListener(v -> {
-            if (mNHState != null && !mNHState.isEditMode()) {
-                if (cmd.getCommand().startsWith("#")) {
-                    mNHState.sendStringCmd(cmd.getCommand() + "\n");
-                } else {
-                    mNHState.sendKeyCmd(cmd.getCommand().charAt(0));
+        final Runnable fireCommand = new Runnable() {
+            @Override
+            public void run() {
+                if (mNHState != null && !mNHState.isEditMode()) {
+                    if (cmd.getCommand().startsWith("#")) {
+                        mNHState.sendStringCmd(cmd.getCommand() + "\n");
+                    } else {
+                        mNHState.sendKeyCmd(cmd.getCommand().charAt(0));
+                    }
                 }
+            }
+        };
+
+        btn.setOnTouchListener(new OnTouchListener() {
+            private final int mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+            private final int mTapTimeout = ViewConfiguration.getTapTimeout();
+            private float mStartX, mStartY;
+            private boolean mTracking = false;
+            private boolean mFired = false;
+            private Runnable mPendingRunnable;
+
+            private void cancelPending() {
+                if (mPendingRunnable != null) {
+                    btn.removeCallbacks(mPendingRunnable);
+                    mPendingRunnable = null;
+                }
+            }
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        mTouchActive = true;
+                        mTracking = true;
+                        mFired = false;
+                        mStartX = event.getX();
+                        mStartY = event.getY();
+                        v.setPressed(true);
+                        mPendingRunnable = new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mTracking && !mFired) {
+                                    mFired = true;
+                                    fireCommand.run();
+                                    mRepeatHelper.startRepeat(fireCommand);
+                                }
+                            }
+                        };
+                        btn.postDelayed(mPendingRunnable, mTapTimeout);
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        if (!mTracking) return false;
+                        if (Math.abs(event.getX() - mStartX) > mTouchSlop ||
+                            Math.abs(event.getY() - mStartY) > mTouchSlop) {
+                            // Scrolling - cancel everything
+                            mTracking = false;
+                            cancelPending();
+                            v.setPressed(false);
+                            mRepeatHelper.cancelRepeat();
+                            return false;
+                        }
+                        return true;
+
+                    case MotionEvent.ACTION_UP:
+                        if (!mTracking) return false;
+                        mTracking = false;
+                        mTouchActive = false;
+                        v.setPressed(false);
+                        cancelPending();
+                        if (!mFired) {
+                            // Short tap - fire once
+                            fireCommand.run();
+                        } else {
+                            // Was repeating - stop
+                            mRepeatHelper.cancelRepeat();
+                        }
+                        v.performClick();
+                        if (mPendingPopulate) {
+                            mPendingPopulate = false;
+                            populateCommands();
+                        }
+                        return true;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        mTracking = false;
+                        mTouchActive = false;
+                        cancelPending();
+                        v.setPressed(false);
+                        mRepeatHelper.cancelRepeat();
+                        if (mPendingPopulate) {
+                            mPendingPopulate = false;
+                            populateCommands();
+                        }
+                        return true;
+                }
+                return false;
             }
         });
 
@@ -284,6 +397,9 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        mRepeatHelper.destroy();
+        mTouchActive = false;
+        mPendingPopulate = false;
         if (mNHState != null) {
             mNHState.unregisterGameContextListener(this);
         }
@@ -292,7 +408,11 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     @Override
     public void onContextualActionsChanged(List<CmdRegistry.CmdInfo> actions) {
         if (mContextualOnly) {
-            populateCommands();
+            if (mTouchActive) {
+                mPendingPopulate = true;
+            } else {
+                populateCommands();
+            }
         }
     }
 
