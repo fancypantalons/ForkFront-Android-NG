@@ -54,14 +54,14 @@ public class NH_State
 
 	// ____________________________________________________________________________________
 	/**
-	 * Backward-compatible constructor for Phase 4.3.
-	 * Creates NetHackIO internally with Activity context.
+	 * Backward-compatible constructor for Phase 4.3-4.4.
+	 * Creates NetHackIO internally with Application context.
 	 * @deprecated Use constructor with Application and NetHackIO parameters
 	 */
 	@Deprecated
 	public NH_State(AppCompatActivity activity, ByteDecoder decoder)
 	{
-		this(activity.getApplication(), decoder, new NetHackIO(activity, null, decoder));
+		this(activity.getApplication(), decoder, new NetHackIO(activity.getApplication(), null, decoder));
 		// Now we need to inject the handler into mIO
 		// This is a temporary workaround until Phase 4.5
 		try {

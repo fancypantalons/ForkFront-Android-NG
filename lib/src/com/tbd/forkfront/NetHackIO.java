@@ -5,9 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Application;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 
 public class NetHackIO
 {
@@ -140,14 +141,23 @@ public class NetHackIO
 	}
 
 	// ____________________________________________________________________________________
-	public NetHackIO(AppCompatActivity context, NH_Handler nhHandler, ByteDecoder decoder)
+	/**
+	 * Create NetHackIO with Application context.
+	 *
+	 * @param app Application context (survives Activity destruction)
+	 * @param nhHandler Handler for JNI callbacks from native engine
+	 * @param decoder ByteDecoder for NetHack protocol
+	 */
+	public NetHackIO(Application app, NH_Handler nhHandler, ByteDecoder decoder)
 	{
 		mNhHandler = nhHandler;
 		mDecoder = decoder;
-		mLibraryName = context.getResources().getString(R.string.libraryName);
+		mLibraryName = app.getResources().getString(R.string.libraryName);
 		mNextWinId = 1;
 		mCmdQue = new ConcurrentLinkedQueue<>();
-		mHandler = new Handler();
+		// Use main looper explicitly - works without Activity context
+		// Handler posts JNI callbacks to main thread regardless of Activity state
+		mHandler = new Handler(Looper.getMainLooper());
 		mThread = new Thread(ThreadMain, "nh_thread");
 	}
 
