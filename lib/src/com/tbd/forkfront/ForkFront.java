@@ -493,7 +493,19 @@ public class ForkFront extends AppCompatActivity
 
 		Log.print("onResume");
 		mDisplayManager.registerDisplayListener(mDisplayListener, null);
+
+		boolean hadPresentation = mPresentation != null;
 		updateSecondaryDisplay();
+		if (hadPresentation && mPresentation != null) {
+			// Theme may have changed while we were paused (e.g. Settings toggle).
+			// Refresh without killing the window so the secondary display stays alive.
+			WidgetLayout refreshedLayout = mPresentation.refreshTheme();
+			NH_State state = mViewModel != null ? mViewModel.getState() : null;
+			if (state != null) {
+				state.attachSecondaryWidgetLayout(refreshedLayout);
+				mPresentation.wireButtons(state);
+			}
+		}
 
 		// Reattach Activity to ViewModel when resuming
 		if (mViewModel != null) {
@@ -511,10 +523,9 @@ public class ForkFront extends AppCompatActivity
 	protected void onPause()
 	{
 		mDisplayManager.unregisterDisplayListener(mDisplayListener);
-		if (mPresentation != null) {
-			mPresentation.dismiss();
-			mPresentation = null;
-		}
+		// Do NOT dismiss the presentation here. It should survive across
+		// activity transitions (e.g. Settings) so the secondary display
+		// remains active and IME can be routed to it.
 
 		// Reset chord tracker to clear any stuck modifier state
 		if (mGamepadDispatcher != null) {
@@ -533,12 +544,10 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onStop()
 	{
-
 		Log.print("onStop");
-		if (mPresentation != null) {
-			mPresentation.dismiss();
-			mPresentation = null;
-		}
+		// Do NOT dismiss the presentation here. It should survive across
+		// activity transitions (e.g. Settings) so the secondary display
+		// remains active and IME can be routed to it.
 		super.onStop();
 	}
 
@@ -582,6 +591,10 @@ public class ForkFront extends AppCompatActivity
 
 		if (mGamepadDeviceWatcher != null) mGamepadDeviceWatcher.unregister();
 		if (mGamepadDispatcher != null) mGamepadDispatcher.destroy();
+		if (mPresentation != null) {
+			mPresentation.dismiss();
+			mPresentation = null;
+		}
 
 		// ViewModel's onCleared() will handle saveAndQuit() when Activity is truly finished
 		// (not just being recreated for configuration change)

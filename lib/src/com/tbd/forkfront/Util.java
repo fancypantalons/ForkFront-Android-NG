@@ -48,7 +48,7 @@ public class Util
 	// ____________________________________________________________________________________
 	public static void showKeyboard(final Context context, final View input)
 	{
-		// Never explicitly open soft keyboard if physical keyboard is present 
+		// Never explicitly open soft keyboard if physical keyboard is present
 		if(!hasPhysicalKeyboard(context))
 		{
 			input.post(new Runnable()

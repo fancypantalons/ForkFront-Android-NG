@@ -72,4 +72,17 @@ public class SecondaryScreenPresentation extends Presentation {
     public WidgetLayout getWidgetLayout() {
         return mWidgetLayout;
     }
+
+    /**
+     * Re-applies the current theme and re-inflates the layout.
+     * Call this when the theme may have changed (e.g. after returning from Settings).
+     * Returns the new WidgetLayout for re-attachment.
+     */
+    public WidgetLayout refreshTheme() {
+        applyTheme();
+        setContentView(R.layout.secondary_window);
+        mWidgetLayout = findViewById(R.id.secondary_widget_layout);
+        mWidgetLayout.setScreenId("secondary");
+        return mWidgetLayout;
+    }
 }

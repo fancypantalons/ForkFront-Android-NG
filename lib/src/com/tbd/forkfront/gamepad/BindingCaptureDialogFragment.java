@@ -5,11 +5,12 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
+import com.google.android.material.button.MaterialButton;
 import com.tbd.forkfront.R;
 
 import java.util.ArrayList;
@@ -31,8 +32,21 @@ public class BindingCaptureDialogFragment extends DialogFragment {
     public static final String REQUEST_KEY = "binding_capture_result";
     private static final String ARG_LABEL = "label";
 
+    /**
+     * Interface for checking chord conflicts against the existing binding list.
+     * Returns the display name of the command already bound to the given chord,
+     * or null if no conflict exists.
+     */
+    public interface ConflictChecker {
+        @Nullable String getConflictCommand(@NonNull Chord chord);
+    }
+
     private TextView mPreviewText;
-    private AlertDialog mDialog;
+    private View mWarningRow;
+    private TextView mWarningText;
+    private MaterialButton mConfirmBtn;
+    private Dialog mDialog;
+    private ConflictChecker mConflictChecker;
 
     /** Currently held button codes (KeyEvent keycodes). */
     private final TreeSet<Integer> mHeld = new TreeSet<>();
@@ -42,10 +56,16 @@ public class BindingCaptureDialogFragment extends DialogFragment {
     private Chord mFinalChord;
 
     public static BindingCaptureDialogFragment newInstance(@Nullable String commandLabel) {
+        return newInstance(commandLabel, null);
+    }
+
+    public static BindingCaptureDialogFragment newInstance(@Nullable String commandLabel,
+                                                            @Nullable ConflictChecker checker) {
         BindingCaptureDialogFragment f = new BindingCaptureDialogFragment();
         Bundle args = new Bundle();
         args.putString(ARG_LABEL, commandLabel);
         f.setArguments(args);
+        f.mConflictChecker = checker;
         return f;
     }
 
@@ -58,21 +78,17 @@ public class BindingCaptureDialogFragment extends DialogFragment {
             .inflate(R.layout.dialog_binding_capture, null, false);
 
         mPreviewText = content.findViewById(R.id.capture_preview);
-        content.findViewById(R.id.capture_clear_btn).setOnClickListener(v -> clearCapture());
+        mWarningRow = content.findViewById(R.id.capture_warning_row);
+        mWarningText = content.findViewById(R.id.capture_warning_text);
+        mConfirmBtn = content.findViewById(R.id.capture_confirm_btn);
 
-        String title = label != null ? "Bind: " + label : "Capture Binding";
+        content.findViewById(R.id.capture_cancel_btn).setOnClickListener(v -> dismiss());
+        mConfirmBtn.setOnClickListener(v -> deliverResult());
+        mConfirmBtn.setEnabled(false);
 
-        mDialog = new AlertDialog.Builder(requireContext())
-            .setTitle(title)
-            .setView(content)
-            .setPositiveButton("Confirm", (d, which) -> deliverResult())
-            .setNegativeButton("Cancel", null)
-            .create();
-
-        // Disable confirm until a chord is captured
-        mDialog.setOnShowListener(d -> {
-            mDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-        });
+        mDialog = new Dialog(requireContext(), R.style.NH_Dialog);
+        mDialog.setTitle(label != null ? "Bind: " + label : "Capture Binding");
+        mDialog.setContentView(content);
 
         // Intercept all key events so we can capture gamepad buttons
         mDialog.setOnKeyListener((d, keyCode, event) -> {
@@ -110,6 +126,9 @@ public class BindingCaptureDialogFragment extends DialogFragment {
         Dialog dialog = getDialog();
         if (dialog != null && dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            // Make the dialog wide enough to look good
+            int width = (int)(400 * getResources().getDisplayMetrics().density);
+            dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
     }
 
@@ -118,7 +137,8 @@ public class BindingCaptureDialogFragment extends DialogFragment {
             mHeld.add(keyCode);
             mPressOrder.add(keyCode);
             mFinalChord = null;
-            if (mDialog != null) mDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+            if (mConfirmBtn != null) mConfirmBtn.setEnabled(false);
+            clearConflictWarning();
         }
         updatePreview();
     }
@@ -127,7 +147,13 @@ public class BindingCaptureDialogFragment extends DialogFragment {
         mHeld.remove(keyCode);
         if (mHeld.isEmpty() && !mPressOrder.isEmpty()) {
             mFinalChord = buildChord();
-            if (mDialog != null) mDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+            if (mConfirmBtn != null) {
+                boolean hasChord = mFinalChord != null;
+                mConfirmBtn.setEnabled(hasChord);
+                if (hasChord) {
+                    checkAndShowConflict(mFinalChord);
+                }
+            }
         }
         updatePreview();
     }
@@ -136,16 +162,19 @@ public class BindingCaptureDialogFragment extends DialogFragment {
         mHeld.clear();
         mPressOrder.clear();
         mFinalChord = null;
-        if (mDialog != null) mDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-        if (mPreviewText != null) mPreviewText.setText("Waiting for input…");
+        if (mConfirmBtn != null) mConfirmBtn.setEnabled(false);
+        clearConflictWarning();
+        updatePreview();
     }
 
     private void updatePreview() {
         if (mPreviewText == null) return;
+
         if (mPressOrder.isEmpty()) {
-            mPreviewText.setText("Waiting for input…");
+            mPreviewText.setText("Waiting for input...");
             return;
         }
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < mPressOrder.size(); i++) {
             if (i > 0) sb.append(" + ");
@@ -155,6 +184,31 @@ public class BindingCaptureDialogFragment extends DialogFragment {
             sb.append("  (release to confirm)");
         }
         mPreviewText.setText(sb.toString());
+    }
+
+    private void checkAndShowConflict(Chord chord) {
+        if (mConflictChecker == null || mWarningRow == null || mWarningText == null) return;
+        String conflictName = mConflictChecker.getConflictCommand(chord);
+        if (conflictName != null) {
+            mWarningRow.setVisibility(View.VISIBLE);
+            mWarningText.setText("Already bound to: " + conflictName);
+            if (mConfirmBtn != null) {
+                mConfirmBtn.setText("Replace");
+                mConfirmBtn.setTextColor(com.google.android.material.color.MaterialColors
+                    .getColor(requireContext(), com.google.android.material.R.attr.colorError, 0));
+            }
+        } else {
+            clearConflictWarning();
+        }
+    }
+
+    private void clearConflictWarning() {
+        if (mWarningRow != null) mWarningRow.setVisibility(View.GONE);
+        if (mConfirmBtn != null) {
+            mConfirmBtn.setText("Confirm");
+            mConfirmBtn.setTextColor(com.google.android.material.color.MaterialColors
+                .getColor(requireContext(), com.google.android.material.R.attr.colorPrimary, 0));
+        }
     }
 
     private Chord buildChord() {

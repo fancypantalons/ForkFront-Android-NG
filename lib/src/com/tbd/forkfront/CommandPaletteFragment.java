@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
@@ -61,7 +62,11 @@ public class CommandPaletteFragment extends DialogFragment {
                 return true;
             }
         });
-        
+
+        searchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) showSearchKeyboard(searchView);
+        });
+
         View btnClose = view.findViewById(R.id.btn_close);
         if (btnClose != null) {
             btnClose.setOnClickListener(v -> dismiss());
@@ -84,6 +89,17 @@ public class CommandPaletteFragment extends DialogFragment {
             
             dialog.getWindow().setLayout(width, height);
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        }
+    }
+
+    private void showSearchKeyboard(SearchView searchView) {
+        View edit = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        if (edit != null) {
+            edit.requestFocus();
+            Util.showKeyboard(requireContext(), edit);
         }
     }
 }
