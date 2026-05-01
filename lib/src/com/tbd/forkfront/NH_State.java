@@ -177,6 +177,7 @@ public class NH_State
 
 				StatusWidget statusWidget = new StatusWidget(activity, mStatus);
 				statusWidget.setWidgetData(statusData);
+				statusWidget.setPlaceholderText("Status Window");
 				android.util.Log.d("NH_State", "Adding StatusWidget to layout");
 				mWidgetLayout.addWidget(statusWidget);
 
@@ -190,6 +191,7 @@ public class NH_State
 
 				MessageWidget messageWidget = new MessageWidget(activity, mMessage);
 				messageWidget.setWidgetData(messageData);
+				messageWidget.setPlaceholderText("Message Window");
 				mWidgetLayout.addWidget(messageWidget);
 
 				// Add Default D-Pad
@@ -219,6 +221,7 @@ public class NH_State
 				searchBtn.setOnClickListener(v -> sendKeyCmd('s'));
 				ControlWidget searchWidget = new ControlWidget(activity, searchBtn, "button");
 				searchWidget.setWidgetData(searchData);
+				// Buttons have labels, but we can set placeholder too if we want
 				mWidgetLayout.addWidget(searchWidget);
 
 				// Add Default Contextual Action Bar
@@ -244,6 +247,7 @@ public class NH_State
 				contextualView.updateActions(null);
 				ControlWidget contextualWidget = new ControlWidget(activity, contextualView, "contextual");
 				contextualWidget.setWidgetData(contextualData);
+				contextualWidget.setPlaceholderText("Contextual Bar");
 				mWidgetLayout.addWidget(contextualWidget);
 
 				ffPrefs.edit().putBoolean("initialized_v2", true).apply();

@@ -20,6 +20,7 @@ public class ControlWidget extends FrameLayout {
     private View mContentView;
     private View mResizeHandle;
     private View mBorderView;
+    private android.widget.TextView mEditPlaceholder;
     private boolean mEditMode = false;
     
     private float mLastTouchX;
@@ -84,6 +85,14 @@ public class ControlWidget extends FrameLayout {
         mResizeHandle.setVisibility(GONE);
         mResizeHandle.setPadding(8, 8, 0, 0); // Increase visual size / padding
         addView(mResizeHandle);
+
+        // Add placeholder for edit mode
+        mEditPlaceholder = new android.widget.TextView(context);
+        mEditPlaceholder.setTextColor(0x80FFFFFF); // Semi-transparent white
+        mEditPlaceholder.setGravity(Gravity.CENTER);
+        mEditPlaceholder.setTextSize(14);
+        mEditPlaceholder.setVisibility(GONE);
+        addView(mEditPlaceholder, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         
         mGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -101,6 +110,16 @@ public class ControlWidget extends FrameLayout {
         mEditMode = enabled;
         mBorderView.setVisibility(enabled ? VISIBLE : GONE);
         mResizeHandle.setVisibility(enabled ? VISIBLE : GONE);
+        mEditPlaceholder.setVisibility(enabled && mEditPlaceholder.getText().length() > 0 ? VISIBLE : GONE);
+    }
+
+    public void setPlaceholderText(String text) {
+        mEditPlaceholder.setText(text);
+        if (mEditMode && text != null && text.length() > 0) {
+            mEditPlaceholder.setVisibility(VISIBLE);
+        } else {
+            mEditPlaceholder.setVisibility(GONE);
+        }
     }
 
     @Override
