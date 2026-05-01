@@ -212,11 +212,17 @@ public class ForkFront extends AppCompatActivity
 					// "dirty rectangle" bug where the SurfaceView map underneath prevents
 					// the drawer's translated pixels from being drawn.
 					mDrawerLayout.invalidate();
+
+					// Push context as soon as it starts sliding (for swipes)
+					if (slideOffset > 0 && mUiContextArbiter != null
+							&& mUiContextArbiter.current() != UiContext.DRAWER_OPEN) {
+						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
+					}
 				}
 
 				@Override
 				public void onDrawerOpened(@NonNull View drawerView) {
-					if (mUiContextArbiter != null) {
+					if (mUiContextArbiter != null && mUiContextArbiter.current() != UiContext.DRAWER_OPEN) {
 						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
 					}
 					NavigationView nav = findViewById(R.id.nav_view);
@@ -236,6 +242,15 @@ public class ForkFront extends AppCompatActivity
 					}
 					if (mGamepadDispatcher != null && mDrawerUiCapture != null) {
 						mGamepadDispatcher.exitUiCapture(mDrawerUiCapture);
+					}
+				}
+
+				@Override
+				public void onDrawerStateChanged(int newState) {
+					// Push context as soon as it starts moving (for programmatic opens)
+					if (newState != DrawerLayout.STATE_IDLE && mUiContextArbiter != null
+							&& mUiContextArbiter.current() != UiContext.DRAWER_OPEN) {
+						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
 					}
 				}
 			});
@@ -620,6 +635,9 @@ public class ForkFront extends AppCompatActivity
 	 */
 	public void launchSettings()
 	{
+		if (mUiContextArbiter != null && mUiContextArbiter.current() != UiContext.SETTINGS_OPEN) {
+			mUiContextArbiter.push(UiContext.SETTINGS_OPEN);
+		}
 		Intent prefsActivity = new Intent(getBaseContext(), Settings.class);
 		mSettingsLauncher.launch(prefsActivity);
 	}
