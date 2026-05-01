@@ -27,6 +27,9 @@ import com.tbd.forkfront.ui.DrawerUiCapture;
 import com.tbd.forkfront.ui.Util;
 import com.tbd.forkfront.input.Input;
 import com.tbd.forkfront.context.CmdRegistry;
+import com.tbd.forkfront.ui.CommandPaletteController;
+import com.tbd.forkfront.ui.DrawerMenuController;
+import com.tbd.forkfront.ui.SecondaryDisplayController;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -77,20 +80,16 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 {
 	private NetHackViewModel mViewModel;
 	private boolean mBackTracking;
-	private DrawerLayout mDrawerLayout;
-	private SecondaryScreenPresentation mPresentation;
-	private DisplayManager mDisplayManager;
+	private DrawerMenuController mDrawerMenuController;
+	private SecondaryDisplayController mSecondaryDisplayController;
 
 	// Gamepad support
 	private GamepadDispatcher mGamepadDispatcher;
 	private UiContextArbiter mUiContextArbiter;
 	private GamepadDeviceWatcher mGamepadDeviceWatcher;
-	private DrawerUiCapture mDrawerUiCapture;
 
 	// Command palette bottom sheet
-	private BottomSheetBehavior<View> mCommandPaletteBehavior;
-	private CommandAdapter mCommandAdapter;
-	private CmdRegistry.OnCommandListener mCommandPaletteListener;
+	private CommandPaletteController mCommandPaletteController;
 
 	// Command picker (gamepad-only full-screen picker)
 	private CommandPickerFragment mCommandPickerFragment;
@@ -115,24 +114,6 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 			@Override
 			public void dispatchBack() {
 				onBackPressed();
-			}
-		};
-
-	private final DisplayManager.DisplayListener mDisplayListener =
-		new DisplayManager.DisplayListener() {
-			@Override
-			public void onDisplayAdded(int displayId) {
-				updateSecondaryDisplay();
-			}
-
-			@Override
-			public void onDisplayRemoved(int displayId) {
-				updateSecondaryDisplay();
-			}
-
-			@Override
-			public void onDisplayChanged(int displayId) {
-				updateSecondaryDisplay();
 			}
 		};
 
@@ -176,8 +157,6 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 
 		Log.print("onCreate");
 
-		mDisplayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
-
 		// Enable edge-to-edge display
 		WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
@@ -219,8 +198,8 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 					if (mCommandPickerFragment != null
 					&& mCommandPickerFragment.isAdded()) {
 						dismissCommandPicker();
-					} else if (isCommandPaletteExpanded()) {
-						collapseCommandPalette();
+					} else if (mCommandPaletteController != null && mCommandPaletteController.isExpanded()) {
+						mCommandPaletteController.collapse();
 					} else {
 						setEnabled(false);
 						getOnBackPressedDispatcher().onBackPressed();
@@ -250,78 +229,10 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 
 		setContentView(R.layout.mainwindow);
 
-		// Set up DrawerLayout and NavigationView
-		mDrawerLayout = findViewById(R.id.drawer_layout);
-		NavigationView navigationView = findViewById(R.id.nav_view);
-		if (navigationView != null) {
-			navigationView.setNavigationItemSelectedListener(item -> {
-				handleNavigationItemSelected(item.getItemId());
-				mDrawerLayout.closeDrawers();
-				return true;
-			});
-		}
-
-		if (mDrawerLayout != null) {
-			mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
-				@Override
-				public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
-					// Force a full redraw of the drawer layout during slide to fix the
-					// "dirty rectangle" bug where the SurfaceView map underneath prevents
-					// the drawer's translated pixels from being drawn.
-					mDrawerLayout.invalidate();
-
-					// Push context as soon as it starts sliding (for swipes)
-					if (slideOffset > 0 && mUiContextArbiter != null
-					                && !mUiContextArbiter.contains(UiContext.DRAWER_OPEN)) {
-					        mUiContextArbiter.push(UiContext.DRAWER_OPEN);
-					}
-
-				}
-
-				@Override
-				public void onDrawerOpened(@NonNull View drawerView) {
-					if (mUiContextArbiter != null && mUiContextArbiter.current() != UiContext.DRAWER_OPEN) {
-						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
-					}
-					NavigationView nav = findViewById(R.id.nav_view);
-					if (nav != null && mGamepadDispatcher != null) {
-						if (mDrawerUiCapture == null) {
-							mDrawerUiCapture = new DrawerUiCapture(mDrawerLayout, nav);
-						}
-						mGamepadDispatcher.enterUiCapture(mDrawerUiCapture);
-					}
-					if (nav != null) focusFirstMenuItemWhenReady(nav);
-				}
-
-				@Override
-				public void onDrawerClosed(@NonNull View drawerView) {
-					if (mUiContextArbiter != null) {
-						mUiContextArbiter.remove(UiContext.DRAWER_OPEN);
-					}
-					if (mGamepadDispatcher != null && mDrawerUiCapture != null) {
-						mGamepadDispatcher.exitUiCapture(mDrawerUiCapture);
-					}
-				}
-
-				@Override
-				public void onDrawerStateChanged(int newState) {
-					// Push context as soon as it starts moving (for programmatic opens)
-					if (newState != DrawerLayout.STATE_IDLE && mUiContextArbiter != null) {
-						mUiContextArbiter.pushUnique(UiContext.DRAWER_OPEN);
-					}
-				}
-			});
-		}
-
-		// Claim the right edge for our drawer gesture so the system's back gesture
-		// (and gesture nav areas in landscape) don't swallow it.
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && mDrawerLayout != null) {
-			int edgePx = (int)(32 * getResources().getDisplayMetrics().density);
-			mDrawerLayout.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-				Rect rect = new Rect(v.getWidth() - edgePx, 0, v.getWidth(), v.getHeight());
-				v.setSystemGestureExclusionRects(Collections.singletonList(rect));
-			});
-		}
+		// Initialization of controllers
+		mSecondaryDisplayController = new SecondaryDisplayController(this);
+		mCommandPaletteController = new CommandPaletteController(this);
+		mDrawerMenuController = new DrawerMenuController(this);
 
 		// Apply window insets to avoid system bars cutting off UI elements
 		View rootView = findViewById(R.id.base_frame);
@@ -385,7 +296,7 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 		initGamepad();
 
 		// Set up command palette bottom sheet
-		setupCommandPaletteSheet();
+		mCommandPaletteController.setup();
 
 		// Get progress UI elements
 		View loadingOverlay = findViewById(R.id.loading_overlay);
@@ -412,109 +323,6 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 		updateAssets.execute((Void[])null);
 	}
 
-	private void setupCommandPaletteSheet() {
-		View sheetContainer = findViewById(R.id.command_palette_sheet);
-		if (sheetContainer == null) return;
-
-		View sheet = getLayoutInflater().inflate(
-			R.layout.command_palette, (ViewGroup) sheetContainer, true);
-
-		RecyclerView list = sheet.findViewById(R.id.command_list);
-		mCommandAdapter = new CommandAdapter(
-			CmdRegistry.getPaletteSorted(), cmd -> {
-				if (mCommandPaletteListener != null) {
-					mCommandPaletteListener.onCommandExecute(cmd);
-				} else {
-					NH_State s = getState();
-					if (s != null) {
-						s.getCommands().executeCommand(cmd);
-					}
-				}
-				collapseCommandPalette();
-			});
-		list.setAdapter(mCommandAdapter);
-
-		SearchView searchView = sheet.findViewById(R.id.command_search);
-		searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-			@Override
-			public boolean onQueryTextSubmit(String query) {
-				mCommandAdapter.filter(query);
-				return true;
-			}
-			@Override
-			public boolean onQueryTextChange(String newText) {
-				mCommandAdapter.filter(newText);
-				return true;
-			}
-		});
-
-		searchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
-			if (hasFocus) {
-				View edit = searchView.findViewById(
-					androidx.appcompat.R.id.search_src_text);
-				if (edit != null) {
-					edit.requestFocus();
-					Util.showKeyboard(ForkFront.this, edit);
-				}
-			}
-		});
-
-		View btnClose = sheet.findViewById(R.id.btn_close);
-		if (btnClose != null) {
-			btnClose.setOnClickListener(v -> collapseCommandPalette());
-		}
-
-		mCommandPaletteBehavior = BottomSheetBehavior.from(sheetContainer);
-		mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-
-		ViewGroup mapFrame = findViewById(R.id.map_frame);
-		SearchView searchViewRef = searchView;
-		mCommandPaletteBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-			@Override
-			public void onStateChanged(@NonNull View bottomSheet, int newState) {
-				if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-					if (mapFrame != null) {
-						mapFrame.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
-					}
-				} else if (newState == BottomSheetBehavior.STATE_COLLAPSED
-						|| newState == BottomSheetBehavior.STATE_HIDDEN) {
-					if (searchViewRef != null) {
-						searchViewRef.clearFocus();
-					}
-					if (mapFrame != null) {
-						mapFrame.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-					}
-					mCommandPaletteListener = null;
-				}
-			}
-
-			@Override
-			public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-			}
-		});
-	}
-
-	public void expandCommandPalette(CmdRegistry.OnCommandListener listener) {
-		mCommandPaletteListener = listener;
-		if (mCommandAdapter != null) {
-			mCommandAdapter.filter("");
-		}
-		if (mCommandPaletteBehavior != null) {
-			mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-		}
-	}
-
-	public void collapseCommandPalette() {
-		if (mCommandPaletteBehavior != null) {
-			mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-		}
-	}
-
-	public boolean isCommandPaletteExpanded() {
-		return mCommandPaletteBehavior != null
-			&& mCommandPaletteBehavior.getState()
-				== BottomSheetBehavior.STATE_EXPANDED;
-	}
 
 	// ____________________________________________________________________________________
 	public void showCommandPicker() {
@@ -634,20 +442,7 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 	{
 
 		Log.print("onResume");
-		mDisplayManager.registerDisplayListener(mDisplayListener, null);
-
-		boolean hadPresentation = mPresentation != null;
-		updateSecondaryDisplay();
-		if (hadPresentation && mPresentation != null) {
-			// Theme may have changed while we were paused (e.g. Settings toggle).
-			// Refresh without killing the window so the secondary display stays alive.
-			WidgetLayout refreshedLayout = mPresentation.refreshTheme();
-			NH_State state = mViewModel != null ? mViewModel.getState() : null;
-			if (state != null) {
-				state.getWidgets().attachSecondaryWidgetLayout(refreshedLayout);
-				mPresentation.wireButtons(state);
-			}
-		}
+		if (mSecondaryDisplayController != null) mSecondaryDisplayController.onResume();
 
 		// Reattach Activity to ViewModel when resuming
 		if (mViewModel != null) {
@@ -664,7 +459,7 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 	@Override
 	protected void onPause()
 	{
-		mDisplayManager.unregisterDisplayListener(mDisplayListener);
+		if (mSecondaryDisplayController != null) mSecondaryDisplayController.onPause();
 		// Do NOT dismiss the presentation here. It should survive across
 		// activity transitions (e.g. Settings) so the secondary display
 		// remains active and IME can be routed to it.
@@ -693,37 +488,6 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 		super.onStop();
 	}
 
-	private void updateSecondaryDisplay() {
-		Display[] displays = mDisplayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
-		if (displays.length > 0) {
-			Display display = displays[0];
-			if (mPresentation == null || mPresentation.getDisplay() != display) {
-				if (mPresentation != null) {
-					mPresentation.dismiss();
-				}
-				mPresentation = new SecondaryScreenPresentation(this, display);
-				try {
-					mPresentation.show();
-					NH_State state = mViewModel != null ? mViewModel.getState() : null;
-					if (state != null) {
-						state.getWidgets().attachSecondaryWidgetLayout(mPresentation.getWidgetLayout());
-						mPresentation.wireButtons(state);
-					}
-				} catch (WindowManager.InvalidDisplayException e) {
-					mPresentation = null;
-				}
-			}
-		} else {
-			if (mPresentation != null) {
-				mPresentation.dismiss();
-				mPresentation = null;
-				NH_State state = mViewModel != null ? mViewModel.getState() : null;
-				if (state != null) {
-					state.getWidgets().detachSecondaryWidgetLayout();
-				}
-			}
-		}
-	}
 
 	// ____________________________________________________________________________________
 	@Override
@@ -733,10 +497,7 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 
 		if (mGamepadDeviceWatcher != null) mGamepadDeviceWatcher.unregister();
 		if (mGamepadDispatcher != null) mGamepadDispatcher.destroy();
-		if (mPresentation != null) {
-			mPresentation.dismiss();
-			mPresentation = null;
-		}
+		if (mSecondaryDisplayController != null) mSecondaryDisplayController.onDestroy();
 
 		// ViewModel's onCleared() will handle saveAndQuit() when Activity is truly finished
 		// (not just being recreated for configuration change)
@@ -847,12 +608,12 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 
 		UiActionExecutor executor = new UiActionExecutor(new UiActionExecutor.ActionHost() {
 			@Override public void openDrawer() {
-				if (mDrawerLayout != null)
-					mDrawerLayout.openDrawer(androidx.core.view.GravityCompat.END);
+				if (mDrawerMenuController != null && mDrawerMenuController.getDrawerLayout() != null)
+					mDrawerMenuController.getDrawerLayout().openDrawer(androidx.core.view.GravityCompat.END);
 			}
 			@Override public void openSettings()       { launchSettings(); }
 			@Override public void openCommandPalette() {
-					expandCommandPalette(null);
+					if (mCommandPaletteController != null) mCommandPaletteController.expand(null);
 				}
 			@Override public void openCommandPicker() {
 					showCommandPicker();
@@ -892,62 +653,10 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 
 		mGamepadDeviceWatcher = new GamepadDeviceWatcher(this, mGamepadDispatcher);
 		mGamepadDeviceWatcher.register();
-	}
 
-	// ____________________________________________________________________________________
-	// On first drawer open, NavigationView's internal RecyclerView may not have inflated
-	// item views yet. Wait for layout, then request focus on the first item. We retry up
-	// to a few layout passes in case of multi-stage layout (NavigationView + RecyclerView).
-	private void focusFirstMenuItemWhenReady(NavigationView nav) {
-		final NavigationView navFinal = nav;
-		final int[] tries = {0};
-		final android.view.ViewTreeObserver.OnGlobalLayoutListener[] holder =
-			new android.view.ViewTreeObserver.OnGlobalLayoutListener[1];
-		holder[0] = new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-			@Override
-			public void onGlobalLayout() {
-				View target = findFirstMenuItem(navFinal);
-				if (target != null) {
-					target.requestFocus();
-					navFinal.getViewTreeObserver().removeOnGlobalLayoutListener(holder[0]);
-				} else if (++tries[0] > 5) {
-					navFinal.getViewTreeObserver().removeOnGlobalLayoutListener(holder[0]);
-				}
-			}
-		};
-		navFinal.getViewTreeObserver().addOnGlobalLayoutListener(holder[0]);
-	}
-
-	// Drill into a NavigationView to find the first NavigationMenuItemView (the actual
-	// clickable item), skipping over the RecyclerView container that wraps them.
-	private View findFirstMenuItem(android.view.ViewGroup group) {
-		for (int i = 0; i < group.getChildCount(); i++) {
-			View child = group.getChildAt(i);
-			if (child.getClass().getSimpleName().equals("NavigationMenuItemView")
-				&& child.isFocusable() && child.getVisibility() == View.VISIBLE) {
-				return child;
-			}
-			if (child instanceof android.view.ViewGroup) {
-				View found = findFirstMenuItem((android.view.ViewGroup) child);
-				if (found != null) return found;
-			}
+		if (mDrawerMenuController != null) {
+				mDrawerMenuController.setup(mUiContextArbiter, mGamepadDispatcher);
 		}
-		return null;
-	}
-
-	// ____________________________________________________________________________________
-	private View findFirstFocusableChild(android.view.ViewGroup group) {
-		for (int i = 0; i < group.getChildCount(); i++) {
-			View child = group.getChildAt(i);
-			if (child.isFocusable() && child.getVisibility() == View.VISIBLE) {
-				return child;
-			}
-			if (child instanceof android.view.ViewGroup) {
-				View found = findFirstFocusableChild((android.view.ViewGroup) child);
-				if (found != null) return found;
-			}
-		}
-		return null;
 	}
 
 	// ____________________________________________________________________________________
@@ -958,7 +667,7 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
         if(event.getKeyCode() == KeyEvent.KEYCODE_BACK)
         {
             boolean overlaysOpen = (mCommandPickerFragment != null && mCommandPickerFragment.isAdded())
-                    || isCommandPaletteExpanded();
+                    || (mCommandPaletteController != null && mCommandPaletteController.isExpanded());
             if (overlaysOpen) {
                 mBackTracking = false;
                 return super.dispatchKeyEvent(event);
@@ -1041,7 +750,7 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 	}
 
 	// ____________________________________________________________________________________
-    private NH_State getState() {
+    public NH_State getState() {
         return mViewModel != null ? mViewModel.getState() : null;
     }
 
@@ -1103,72 +812,20 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
     }
 
 	// ____________________________________________________________________________________
+	@Override
 	public void setDrawerEditMode(boolean editMode)
 	{
-		NavigationView navigationView = findViewById(R.id.nav_view);
-		if (navigationView == null) return;
-		navigationView.getMenu().clear();
-		navigationView.inflateMenu(editMode ? R.menu.drawer_menu_edit : R.menu.drawer_menu);
-	}
-
-	// ____________________________________________________________________________________
-	private void handleNavigationItemSelected(int itemId)
-	{
-		NH_State state = getState();
-		if (state == null) return;
-
-		if (itemId == R.id.nav_settings) {
-			launchSettings();
-		} else if (itemId == R.id.nav_edit_overlay) {
-			state.getWidgets().setEditMode(true);
-		} else if (itemId == R.id.nav_save_game) {
-			state.getCommands().sendKeyCmd('S');
-		} else if (itemId == R.id.nav_quit) {
-			showQuitConfirmation();
-		} else if (itemId == R.id.nav_quit_no_save) {
-			showQuitNoSaveConfirmation();
-		} else if (itemId == R.id.nav_help) {
-			state.getCommands().sendKeyCmd('?');
-		} else if (itemId == R.id.nav_version) {
-			state.getCommands().sendStringCmd("#version\n");
-		} else if (itemId == R.id.nav_add_widget) {
-			state.getWidgets().showAddWidgetDialog(this, state.getWidgets().getPrimaryWidgetLayout());
-		} else if (itemId == R.id.nav_save_changes) {
-			state.getWidgets().saveLayoutAndExitEditMode();
-		} else if (itemId == R.id.nav_discard_changes) {
-			state.getWidgets().discardChangesAndExitEditMode();
+		if (mDrawerMenuController != null) {
+			mDrawerMenuController.setDrawerEditMode(editMode);
 		}
 	}
 
 	// ____________________________________________________________________________________
-	private void showQuitConfirmation()
+	@Override
+	public void expandCommandPalette(CmdRegistry.OnCommandListener listener)
 	{
-		new androidx.appcompat.app.AlertDialog.Builder(this)
-			.setTitle("Save and Quit")
-			.setMessage("Save your game and quit?")
-			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-				NH_State state = getState();
-				if (state != null) {
-					state.getCommands().saveAndQuit();
-				}
-			})
-			.setNegativeButton(android.R.string.cancel, null)
-			.show();
-	}
-
-	// ____________________________________________________________________________________
-	private void showQuitNoSaveConfirmation()
-	{
-		new androidx.appcompat.app.AlertDialog.Builder(this)
-			.setTitle("Quit without Saving")
-			.setMessage("Are you sure? All progress since last save will be lost!")
-			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-				NH_State state = getState();
-				if (state != null) {
-					state.getCommands().sendStringCmd("#quit\n");
-				}
-			})
-			.setNegativeButton(android.R.string.cancel, null)
-			.show();
+		if (mCommandPaletteController != null) {
+			mCommandPaletteController.expand(listener);
+		}
 	}
 }
