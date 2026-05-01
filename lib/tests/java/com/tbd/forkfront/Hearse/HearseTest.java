@@ -1,6 +1,6 @@
 package com.tbd.forkfront.Hearse;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 
@@ -28,14 +28,14 @@ public class HearseTest {
     private MockWebServer server;
     private Hearse hearse;
     private SharedPreferences mockPrefs;
-    private Activity mockActivity;
+    private AppCompatActivity mockActivity;
 
     @Before
     public void setUp() throws Exception {
         server = new MockWebServer();
         server.start();
 
-        mockActivity = mock(Activity.class);
+        mockActivity = mock(AppCompatActivity.class);
         mockPrefs = mock(SharedPreferences.class);
         Resources mockResources = mock(Resources.class);
 
