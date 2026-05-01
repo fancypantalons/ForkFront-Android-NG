@@ -7,20 +7,20 @@ import androidx.preference.PreferenceManager;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.tbd.forkfront.ActivityScope;
+import com.tbd.forkfront.ui.ActivityScope;
 import com.tbd.forkfront.context.CmdRegistry;
-import com.tbd.forkfront.DirectionalPadView;
-import com.tbd.forkfront.EngineCommands;
+import com.tbd.forkfront.input.DirectionalPadView;
+import com.tbd.forkfront.engine.EngineCommands;
 import com.tbd.forkfront.ForkFrontHost;
-import com.tbd.forkfront.NHW_Map;
-import com.tbd.forkfront.NHW_Message;
-import com.tbd.forkfront.NHW_Status;
+import com.tbd.forkfront.window.map.NHW_Map;
+import com.tbd.forkfront.window.message.NHW_Message;
+import com.tbd.forkfront.window.message.NHW_Status;
 import com.tbd.forkfront.R;
-import com.tbd.forkfront.ThemeUtils;
-import com.tbd.forkfront.Tileset;
-import com.tbd.forkfront.WidgetLayout;
-import com.tbd.forkfront.WidgetPropertiesFragment;
-import com.tbd.forkfront.MapInputCoordinator;
+import com.tbd.forkfront.ui.ThemeUtils;
+import com.tbd.forkfront.window.map.Tileset;
+import com.tbd.forkfront.settings.WidgetLayout;
+import com.tbd.forkfront.settings.WidgetPropertiesFragment;
+import com.tbd.forkfront.window.map.MapInputCoordinator;
 import com.tbd.forkfront.context.ContextualActionsEngine;
 
 import java.util.function.Supplier;
@@ -152,7 +152,7 @@ public class WidgetLayoutController {
     }
 
     public String getDeviceKey() {
-        return com.tbd.forkfront.DeviceProfile.detect(mScope.getApp());
+        return com.tbd.forkfront.ui.DeviceProfile.detect(mScope.getApp());
     }
 
     // --- Helper Methods ---

@@ -5,7 +5,7 @@ import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.TypedValue;
-import com.tbd.forkfront.NH_TextView;
+import com.tbd.forkfront.window.text.NH_TextView;
 
 public class AutoFitTextView extends NH_TextView {
 	private static final float MIN_SIZE_SP = 10;

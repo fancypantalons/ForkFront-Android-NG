@@ -1,4 +1,6 @@
 package com.tbd.forkfront.ui;
+import com.tbd.forkfront.ForkFront;
+import com.tbd.forkfront.settings.Settings;
 
 import android.app.Presentation;
 import android.content.Context;
@@ -7,7 +9,7 @@ import android.view.Display;
 import android.view.WindowManager;
 import com.tbd.forkfront.NH_State;
 import com.tbd.forkfront.R;
-import com.tbd.forkfront.WidgetLayout;
+import com.tbd.forkfront.settings.WidgetLayout;
 
 /**
  * A Presentation that hosts a WidgetLayout on a secondary display.

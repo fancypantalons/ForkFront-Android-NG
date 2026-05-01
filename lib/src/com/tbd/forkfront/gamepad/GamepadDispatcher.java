@@ -1,4 +1,7 @@
 package com.tbd.forkfront.gamepad;
+import com.tbd.forkfront.ForkFront;
+import com.tbd.forkfront.settings.Settings;
+import com.tbd.forkfront.NH_State;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -9,8 +12,8 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import androidx.preference.PreferenceManager;
 
-import com.tbd.forkfront.DeviceProfile;
-import com.tbd.forkfront.TouchRepeatHelper;
+import com.tbd.forkfront.ui.DeviceProfile;
+import com.tbd.forkfront.input.TouchRepeatHelper;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

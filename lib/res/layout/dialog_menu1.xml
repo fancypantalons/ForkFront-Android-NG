@@ -24,7 +24,7 @@
 				android:layout_height="wrap_content"
 				android:gravity="center_vertical">
 
-				<com.tbd.forkfront.NH_TextView
+				<com.tbd.forkfront.window.text.NH_TextView
 					android:id="@+id/title"
 					style="@style/DialogTitle"
 					app:useFittedSize="false"

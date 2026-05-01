@@ -1,4 +1,5 @@
 package com.tbd.forkfront.ui;
+import com.tbd.forkfront.R;
 
 import android.animation.TimeInterpolator;
 import android.content.Context;

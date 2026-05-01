@@ -16,7 +16,7 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 
 import com.tbd.forkfront.R;
-import com.tbd.forkfront.ThemeUtils;
+import com.tbd.forkfront.ui.ThemeUtils;
 
 import java.util.HashSet;
 import java.util.Set;

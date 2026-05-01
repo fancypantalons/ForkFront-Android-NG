@@ -11,10 +11,10 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.tbd.forkfront.DEBUG;
-import com.tbd.forkfront.NHW_Map;
+import com.tbd.forkfront.window.map.NHW_Map;
 import com.tbd.forkfront.R;
-import com.tbd.forkfront.ThemeUtils;
-import com.tbd.forkfront.Tileset;
+import com.tbd.forkfront.ui.ThemeUtils;
+import com.tbd.forkfront.window.map.Tileset;
 
 /**
  * A widget that displays a minimap overview of the entire dungeon.

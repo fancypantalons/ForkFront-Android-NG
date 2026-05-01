@@ -1,4 +1,5 @@
 package com.tbd.forkfront.gamepad;
+import com.tbd.forkfront.input.Input;
 
 import android.content.Context;
 import android.hardware.input.InputManager;

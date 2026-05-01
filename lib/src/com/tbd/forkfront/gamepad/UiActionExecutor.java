@@ -1,4 +1,6 @@
 package com.tbd.forkfront.gamepad;
+import com.tbd.forkfront.ForkFront;
+import com.tbd.forkfront.NH_State;
 
 /**
  * Maps UiActionId values to calls into ForkFront / NH_State.

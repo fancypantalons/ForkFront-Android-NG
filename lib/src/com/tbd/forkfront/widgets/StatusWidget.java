@@ -6,11 +6,11 @@ import android.widget.LinearLayout;
 
 import android.util.TypedValue;
 
-import com.tbd.forkfront.AutoFitTextView;
-import com.tbd.forkfront.NHW_Status;
+import com.tbd.forkfront.ui.AutoFitTextView;
+import com.tbd.forkfront.window.message.NHW_Status;
 import com.tbd.forkfront.R;
-import com.tbd.forkfront.TextAttr;
-import com.tbd.forkfront.ThemeUtils;
+import com.tbd.forkfront.window.text.TextAttr;
+import com.tbd.forkfront.ui.ThemeUtils;
 
 import java.util.HashMap;
 import java.util.Map;

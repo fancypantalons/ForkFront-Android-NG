@@ -6,9 +6,9 @@ import java.util.function.Consumer;
 import androidx.annotation.MainThread;
 import androidx.annotation.Nullable;
 
-import com.tbd.forkfront.NHW_Map;
-import com.tbd.forkfront.NHW_Message;
-import com.tbd.forkfront.NHW_Status;
+import com.tbd.forkfront.window.map.NHW_Map;
+import com.tbd.forkfront.window.message.NHW_Message;
+import com.tbd.forkfront.window.message.NHW_Status;
 
 /**
  * Registry for all active NetHack windows.

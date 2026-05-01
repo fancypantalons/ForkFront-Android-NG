@@ -1,4 +1,5 @@
 package com.tbd.forkfront.gamepad;
+import com.tbd.forkfront.settings.Settings;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -17,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.tbd.forkfront.context.CmdRegistry;
-import com.tbd.forkfront.DeviceProfile;
+import com.tbd.forkfront.ui.DeviceProfile;
 import com.tbd.forkfront.R;
 
 import java.util.ArrayList;
@@ -227,8 +228,8 @@ public class GamepadBindingsFragment extends Fragment
     }
 
     private void onAddBindingClicked() {
-        com.tbd.forkfront.CommandPickerDialogFragment dialog =
-            com.tbd.forkfront.CommandPickerDialogFragment.newInstance();
+        com.tbd.forkfront.commands.CommandPickerDialogFragment dialog =
+            com.tbd.forkfront.commands.CommandPickerDialogFragment.newInstance();
         dialog.setOnCommandSelectedListener(cmd -> {
             mPendingCmd = cmd;
             mEditingIndex = -1;

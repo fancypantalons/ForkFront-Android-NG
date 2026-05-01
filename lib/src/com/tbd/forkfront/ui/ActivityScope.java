@@ -5,7 +5,7 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.MainThread;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import com.tbd.forkfront.NetHackViewModel;
+import com.tbd.forkfront.engine.NetHackViewModel;
 
 /**
  * Activity/Application/ViewModel binding.

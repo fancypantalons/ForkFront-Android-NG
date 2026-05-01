@@ -127,7 +127,7 @@
 			android:defaultValue="false"
 			android:key="monospace"/>
 
-		<com.tbd.forkfront.SliderPreference
+		<com.tbd.forkfront.settings.SliderPreference
 			android:title="Map border opacity"
 			android:summary="The opacity of the border around the map"
 			android:persistent="true"
@@ -207,7 +207,7 @@
 
 		</androidx.preference.PreferenceScreen>
 
-		<com.tbd.forkfront.EditFilePreference
+		<com.tbd.forkfront.settings.EditFilePreference
 			android:title="Edit options file"
 			android:summary=""/>
 	
@@ -228,7 +228,7 @@
 			android:key="credits_screen"
 			android:summary="Contributors of this port">
 
-			<com.tbd.forkfront.CreditsPreference
+			<com.tbd.forkfront.settings.CreditsPreference
 				android:title="Credits"
 				android:summary="Contributors of this port"/>
 

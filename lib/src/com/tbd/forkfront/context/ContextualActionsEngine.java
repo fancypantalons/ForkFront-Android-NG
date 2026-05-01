@@ -9,7 +9,7 @@ import java.util.function.Supplier;
 import androidx.annotation.AnyThread;
 import androidx.annotation.MainThread;
 
-import com.tbd.forkfront.NHW_Map;
+import com.tbd.forkfront.window.map.NHW_Map;
 
 import android.graphics.Point;
 
