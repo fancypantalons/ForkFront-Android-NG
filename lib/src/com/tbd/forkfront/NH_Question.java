@@ -12,6 +12,7 @@ import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
 import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.Input.Modifier;
 
@@ -185,7 +186,8 @@ public class NH_Question
 				Button btn = mRoot.findViewById(R.id.btn_0);
 				btn.setText(getChoiceLabel(mChoices[0]));
 				btn.setFocusable(true);
-				btn.setFocusableInTouchMode(true);
+				if(GamepadDeviceWatcher.isGamepadConnected(context))
+					btn.setFocusableInTouchMode(true);
 				btn.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
@@ -202,7 +204,8 @@ public class NH_Question
 					Button btn = (Button)mRoot.findViewById(mBtns[i]);
 					btn.setText(getChoiceLabel(mChoices[i]));
 					btn.setFocusable(true);
-					btn.setFocusableInTouchMode(true);
+					if(GamepadDeviceWatcher.isGamepadConnected(context))
+						btn.setFocusableInTouchMode(true);
 					btn.setOnClickListener(new OnClickListener()
 					{
 						public void onClick(View v)

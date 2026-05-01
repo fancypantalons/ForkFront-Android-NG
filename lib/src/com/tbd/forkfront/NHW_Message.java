@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import androidx.appcompat.app.AppCompatActivity;
+import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
 import android.content.SharedPreferences;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -331,7 +332,8 @@ public class NHW_Message implements NH_Window
 			m_more = (TextView)mContext.findViewById(R.id.more);
 			m_more.setVisibility(View.GONE);
 			m_more.setFocusable(true);
-			m_more.setFocusableInTouchMode(true);
+			if(GamepadDeviceWatcher.isGamepadConnected(mContext))
+				m_more.setFocusableInTouchMode(true);
 			m_more.setOnClickListener(new OnClickListener()
 			{
 				@Override
