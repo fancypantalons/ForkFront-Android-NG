@@ -813,9 +813,14 @@ public class NH_State
 		@Override
 		public void displayWindow(final int wid, final int bBlocking)
 		{
-			NH_Window win = toFront(wid);
-			if(win != null)
-				win.show(bBlocking != 0);
+			// Defer window display until Activity is available
+			if (mViewModel != null) {
+				mViewModel.runOnActivity(() -> {
+					NH_Window win = toFront(wid);
+					if(win != null)
+						win.show(bBlocking != 0);
+				});
+			}
 		}
 
 		// ____________________________________________________________________________________
@@ -844,28 +849,45 @@ public class NH_State
 		@Override
 		public void startMenu(final int wid)
 		{
-			((NHW_Menu)getWindow(wid)).startMenu();
+			NHW_Menu menu = (NHW_Menu)getWindow(wid);
+			if (menu != null) {
+				menu.startMenu();
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void addMenu(int wid, int tile, long id, int acc, int groupAcc, int attr, String text, int bSelected, int color)
 		{
-			((NHW_Menu)getWindow(wid)).addMenu(tile, id, acc, groupAcc, attr, text, bSelected, color);
+			NHW_Menu menu = (NHW_Menu)getWindow(wid);
+			if (menu != null) {
+				menu.addMenu(tile, id, acc, groupAcc, attr, text, bSelected, color);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void endMenu(int wid, String prompt)
 		{
-			((NHW_Menu)getWindow(wid)).endMenu(prompt);
+			NHW_Menu menu = (NHW_Menu)getWindow(wid);
+			if (menu != null) {
+				menu.endMenu(prompt);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void selectMenu(int wid, int how)
 		{
-			((NHW_Menu)toFront(wid)).selectMenu(MenuSelectMode.fromInt(how));
+			// Defer menu selection until Activity is available
+			if (mViewModel != null) {
+				mViewModel.runOnActivity(() -> {
+					NHW_Menu menu = (NHW_Menu)toFront(wid);
+					if (menu != null) {
+						menu.selectMenu(MenuSelectMode.fromInt(how));
+					}
+				});
+			}
 		}
 
 		// ____________________________________________________________________________________

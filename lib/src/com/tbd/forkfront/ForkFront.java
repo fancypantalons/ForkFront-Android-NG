@@ -157,6 +157,14 @@ public class ForkFront extends AppCompatActivity
 
 	@RequiresApi(Build.VERSION_CODES.M)
 	public void ensureReadWritePermissions(final RequestExternalStorageResult requestExternalStorageResult)	{
+		// On Android 10+ (API 29+), WRITE_EXTERNAL_STORAGE is deprecated and apps use
+		// scoped storage (getExternalFilesDir) which doesn't require permissions
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+		{
+			requestExternalStorageResult.onGranted();
+			return;
+		}
+
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
 		{
 			if(checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
@@ -391,7 +399,7 @@ public class ForkFront extends AppCompatActivity
 		mMetaDown = false;
 
 		Log.print("onSaveInstanceState(Bundle outState)");
-		if(mViewModel.getState() != null)
+		if(mViewModel != null && mViewModel.getState() != null)
 			mViewModel.getState().saveState();
 	}
 
