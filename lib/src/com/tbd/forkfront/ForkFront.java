@@ -111,8 +111,7 @@ public class ForkFront extends AppCompatActivity
 			if(getResources().getString(R.string.namespace).length() == 0
 			|| getResources().getString(R.string.nativeDataDir).length() == 0
 			|| getResources().getString(R.string.libraryName).length() == 0
-			|| getResources().getString(R.string.defaultsFile).length() == 0
-			|| getResources().getString(R.string.defaultCmdPanel).length() == 0)
+			|| getResources().getString(R.string.defaultsFile).length() == 0)
 				throw new RuntimeException("missing config vars");
 			if(getResources().getBoolean(R.bool.hearseAvailable))
 			{
