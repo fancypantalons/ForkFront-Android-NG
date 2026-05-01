@@ -103,8 +103,7 @@ public class NHW_Map implements NH_Window
 	int mGameBackgroundColor;
 
 
-	volatile boolean mIsGamepadCursorMode;
-	private long mLastCursorMoveMs;
+	final GamepadCursorController mGamepadCursorController;
 
 	// System insets for edge-to-edge support
 	int mSystemInsetsTop;
@@ -130,6 +129,7 @@ public class NHW_Map implements NH_Window
 		}
 		mPlayerPos = new Point();
 		mCursorPos = new Point(-1, -1);
+		mGamepadCursorController = new GamepadCursorController(this);
 		mStatus = status;
 		mBorderColor = 0;
 		mSystemInsetsTop = 0;
@@ -317,72 +317,23 @@ public class NHW_Map implements NH_Window
 
 	public void beginGamepadCursor()
 	{
-		mIsGamepadCursorMode = true;
-		if(mCursorPos.x < 0 || mCursorPos.y < 0)
-		{
-			setCursorPos(mPlayerPos.x, mPlayerPos.y);
-		}
-		centerView(mCursorPos.x, mCursorPos.y);
-		if(mUI != null)
-			mUI.invalidate();
+		mGamepadCursorController.begin();
 	}
 
 	public void endGamepadCursor()
 	{
-		mIsGamepadCursorMode = false;
-		if(mUI != null)
-			mUI.invalidate();
+		mGamepadCursorController.end();
 	}
 
 	public boolean handleGamepadKey(KeyEvent ev)
 	{
-		if(!mIsGamepadCursorMode) return false;
-		if(ev.getAction() != KeyEvent.ACTION_DOWN) return false;
-
-		long now = System.currentTimeMillis();
-		switch(ev.getKeyCode())
-		{
-		case KeyEvent.KEYCODE_DPAD_UP:
-			return moveCursor(0, -1, now);
-		case KeyEvent.KEYCODE_DPAD_DOWN:
-			return moveCursor(0, 1, now);
-		case KeyEvent.KEYCODE_DPAD_LEFT:
-			return moveCursor(-1, 0, now);
-		case KeyEvent.KEYCODE_DPAD_RIGHT:
-			return moveCursor(1, 0, now);
-		case KeyEvent.KEYCODE_BUTTON_A:
-			mCommands.sendPosCmd(mCursorPos.x, mCursorPos.y);
-			return true;
-		case KeyEvent.KEYCODE_BUTTON_B:
-		case KeyEvent.KEYCODE_BUTTON_SELECT:
-			mCommands.sendDirKeyCmd('\033');
-			return true;
-		case KeyEvent.KEYCODE_BUTTON_X:
-			setCursorPos(mPlayerPos.x, mPlayerPos.y);
-			centerView(mCursorPos.x, mCursorPos.y);
-			return true;
-		case KeyEvent.KEYCODE_BUTTON_L1:
-			return moveCursor(-5, 0, now);
-		case KeyEvent.KEYCODE_BUTTON_R1:
-			return moveCursor(5, 0, now);
-		}
-		return false;
-	}
-
-	private boolean moveCursor(int dx, int dy, long now)
-	{
-		if(now - mLastCursorMoveMs < 100) return true;
-		setCursorPos(Math.max(0, Math.min(TileCols - 1, mCursorPos.x + dx)),
-					 Math.max(0, Math.min(TileRows - 1, mCursorPos.y + dy)));
-		centerView(mCursorPos.x, mCursorPos.y);
-		mLastCursorMoveMs = now;
-		return true;
+		return mGamepadCursorController.handleKey(ev);
 	}
 
 	@Override
 	public boolean handleGamepadMotion(MotionEvent ev)
 	{
-		return false;
+		return mGamepadCursorController.handleMotion(ev);
 	}
 
 	@Override

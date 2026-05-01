@@ -164,13 +164,13 @@ class MapRenderer
 		float x = (float)Math.floor(mViewport.mViewOffset.x);
 		float y = (float)Math.floor(mViewport.mViewOffset.y);
 
-		if(mMap.mCursorPos.x >= 0 && (mMap.mHealthColor != 0 || mMap.mIsGamepadCursorMode))
+		if(mMap.mCursorPos.x >= 0 && (mMap.mHealthColor != 0 || mMap.mGamepadCursorController.isActive()))
 		{
 			int[] palette = TextAttr.getPalette(mMap.mContext);
 			int color = mMap.mHealthColor != 0 ? palette[mMap.mHealthColor & 0xF] : palette[15];
 			float strokeWidth = 2;
 
-			if (mMap.mIsGamepadCursorMode) {
+			if (mMap.mGamepadCursorController.isActive()) {
 				color = palette[15];
 				strokeWidth = 4;
 
@@ -200,7 +200,7 @@ class MapRenderer
 			canvas.drawRect(dst, mPaint);
 			mPaint.setStyle(Style.FILL);
 
-			if (mMap.mIsGamepadCursorMode) {
+			if (mMap.mGamepadCursorController.isActive()) {
 				if(mMap.mUI != null)
 					mMap.mUI.requestRedraw(); // Keep pulsing
 			}
