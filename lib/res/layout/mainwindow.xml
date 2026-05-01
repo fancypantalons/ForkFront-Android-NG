@@ -29,7 +29,7 @@
         android:focusableInTouchMode="false"
         android:defaultFocusHighlightEnabled="false" >
 
-        <FrameLayout
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/map_frame"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -104,7 +104,17 @@
 
             </com.tbd.forkfront.WidgetLayout>
 
-        </FrameLayout>
+            <!-- Command palette bottom sheet -->
+            <FrameLayout
+                android:id="@+id/command_palette_sheet"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+                app:behavior_peekHeight="32dp"
+                app:behavior_hideable="false"
+                app:behavior_skipCollapsed="false" />
+
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/window_fragment_host"

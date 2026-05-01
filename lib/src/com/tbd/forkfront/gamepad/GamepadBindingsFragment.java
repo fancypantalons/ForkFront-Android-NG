@@ -232,16 +232,16 @@ public class GamepadBindingsFragment extends Fragment {
     }
 
     private void onAddBindingClicked() {
-        com.tbd.forkfront.CommandPaletteFragment picker =
-            com.tbd.forkfront.CommandPaletteFragment.newInstance();
-        picker.setOnCommandListener(cmd -> {
+        if (!(requireActivity() instanceof com.tbd.forkfront.ForkFront)) return;
+        com.tbd.forkfront.ForkFront forkFront =
+            (com.tbd.forkfront.ForkFront) requireActivity();
+        forkFront.expandCommandPalette(cmd -> {
             mPendingCmd = cmd;
             mEditingIndex = -1;
             BindingCaptureDialogFragment capture =
                 BindingCaptureDialogFragment.newInstance(cmd.getDisplayName(), buildConflictChecker());
             capture.show(getParentFragmentManager(), "capture");
         });
-        picker.show(getParentFragmentManager(), "cmd_picker");
     }
 
     private BindingCaptureDialogFragment.ConflictChecker buildConflictChecker() {

@@ -54,6 +54,10 @@ public class CmdRegistry {
         public String toString() { return displayName; }
     }
 
+    public interface OnCommandListener {
+        void onCommandExecute(CmdInfo cmd);
+    }
+
     private static final Map<String, CmdInfo> COMMANDS = new HashMap<>();
     private static final List<CmdInfo> ALL_COMMANDS = new ArrayList<>();
 

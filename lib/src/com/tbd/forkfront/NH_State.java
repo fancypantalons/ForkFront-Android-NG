@@ -834,8 +834,9 @@ public class NH_State
 	}
 
 	public void showCommandPaletteForLayout(AppCompatActivity activity, final WidgetLayout layout) {
-	    CommandPaletteFragment palette = CommandPaletteFragment.newInstance();
-	    palette.setOnCommandListener(cmd -> {
+	    if (!(activity instanceof ForkFront)) return;
+	    ForkFront forkFront = (ForkFront) activity;
+	    forkFront.expandCommandPalette(cmd -> {
 	        if (isEditMode()) {
 	            // Add a new button widget for this command
 	            ControlWidget.WidgetData data = new ControlWidget.WidgetData();
@@ -868,7 +869,6 @@ public class NH_State
 	            }
 	        }
 	    });
-	    palette.show(activity.getSupportFragmentManager(), "command_palette");
 	}
 
 	public void showWidgetProperties(ControlWidget widget) {

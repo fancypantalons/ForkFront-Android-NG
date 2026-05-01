@@ -41,6 +41,9 @@ import android.view.*;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MenuItem;
 import android.widget.TextView;
+import androidx.appcompat.widget.SearchView;
+import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.tbd.forkfront.Input.Modifier;
@@ -70,6 +73,12 @@ public class ForkFront extends AppCompatActivity
 	private UiContextArbiter mUiContextArbiter;
 	private GamepadDeviceWatcher mGamepadDeviceWatcher;
 	private DrawerUiCapture mDrawerUiCapture;
+
+	// Command palette bottom sheet
+	private BottomSheetBehavior<View> mCommandPaletteBehavior;
+	private CommandAdapter mCommandAdapter;
+	private CmdRegistry.OnCommandListener mCommandPaletteListener;
+
 	private final GamepadDispatcher.SyntheticDispatcher mSyntheticDispatcher =
 		new GamepadDispatcher.SyntheticDispatcher() {
 			@Override
@@ -178,6 +187,22 @@ public class ForkFront extends AppCompatActivity
 			insetsController.setSystemBarsBehavior(
 				WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 		}
+
+		// Back-press handling: collapse command palette sheet if open,
+		// otherwise let the default back behavior run (which may pop UI
+		// fragments or dispatch to the native engine).
+		getOnBackPressedDispatcher().addCallback(this,
+			new androidx.activity.OnBackPressedCallback(true) {
+				@Override
+				public void handleOnBackPressed() {
+					if (isCommandPaletteExpanded()) {
+						collapseCommandPalette();
+					} else {
+						setEnabled(false);
+						getOnBackPressedDispatcher().onBackPressed();
+					}
+				}
+			});
 
 		if(DEBUG.isOn())
 		{
@@ -345,6 +370,9 @@ public class ForkFront extends AppCompatActivity
 		// Initialize gamepad support
 		initGamepad();
 
+		// Set up command palette bottom sheet
+		setupCommandPaletteSheet();
+
 		// Get progress UI elements
 		View loadingOverlay = findViewById(R.id.loading_overlay);
 		LinearProgressIndicator progressBar = findViewById(R.id.asset_progress);
@@ -368,6 +396,79 @@ public class ForkFront extends AppCompatActivity
 			}
 		);
 		updateAssets.execute((Void[])null);
+	}
+
+	private void setupCommandPaletteSheet() {
+		View sheetContainer = findViewById(R.id.command_palette_sheet);
+		if (sheetContainer == null) return;
+
+		View sheet = getLayoutInflater().inflate(
+			R.layout.command_palette, (ViewGroup) sheetContainer, true);
+
+		RecyclerView list = sheet.findViewById(R.id.command_list);
+		mCommandAdapter = new CommandAdapter(
+			CmdRegistry.getPaletteSorted(), cmd -> {
+				if (mCommandPaletteListener != null) {
+					mCommandPaletteListener.onCommandExecute(cmd);
+				}
+				collapseCommandPalette();
+			});
+		list.setAdapter(mCommandAdapter);
+
+		SearchView searchView = sheet.findViewById(R.id.command_search);
+		searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+			@Override
+			public boolean onQueryTextSubmit(String query) {
+				mCommandAdapter.filter(query);
+				return true;
+			}
+			@Override
+			public boolean onQueryTextChange(String newText) {
+				mCommandAdapter.filter(newText);
+				return true;
+			}
+		});
+
+		searchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
+			if (hasFocus) {
+				View edit = searchView.findViewById(
+					androidx.appcompat.R.id.search_src_text);
+				if (edit != null) {
+					edit.requestFocus();
+					Util.showKeyboard(ForkFront.this, edit);
+				}
+			}
+		});
+
+		View btnClose = sheet.findViewById(R.id.btn_close);
+		if (btnClose != null) {
+			btnClose.setOnClickListener(v -> collapseCommandPalette());
+		}
+
+		mCommandPaletteBehavior = BottomSheetBehavior.from(sheetContainer);
+		mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+	}
+
+	public void expandCommandPalette(CmdRegistry.OnCommandListener listener) {
+		mCommandPaletteListener = listener;
+		if (mCommandAdapter != null) {
+			mCommandAdapter.filter("");
+		}
+		if (mCommandPaletteBehavior != null) {
+			mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+		}
+	}
+
+	public void collapseCommandPalette() {
+		if (mCommandPaletteBehavior != null) {
+			mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+		}
+	}
+
+	public boolean isCommandPaletteExpanded() {
+		return mCommandPaletteBehavior != null
+			&& mCommandPaletteBehavior.getState()
+				== BottomSheetBehavior.STATE_EXPANDED;
 	}
 
 	@RequiresApi(Build.VERSION_CODES.M)
@@ -711,8 +812,7 @@ public class ForkFront extends AppCompatActivity
 			}
 			@Override public void openSettings()       { launchSettings(); }
 			@Override public void openCommandPalette() {
-					NH_State s = mViewModel != null ? mViewModel.getState() : null;
-					if (s != null) s.showCommandPalette(ForkFront.this);
+					expandCommandPalette(null);
 				}
 			@Override public void toggleKeyboard() {
 				android.view.inputmethod.InputMethodManager imm =
