@@ -6,6 +6,7 @@ import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -25,6 +26,9 @@ public class ControlWidget extends FrameLayout {
     
     private float mLastTouchX;
     private float mLastTouchY;
+    private float mStartX;
+    private float mStartY;
+    private int mTouchSlop;
     private boolean mIsDragging = false;
     private boolean mIsResizing = false;
     
@@ -97,6 +101,8 @@ public class ControlWidget extends FrameLayout {
         mEditPlaceholder.setVisibility(GONE);
         addView(mEditPlaceholder, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+
         mGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
@@ -150,6 +156,9 @@ public class ControlWidget extends FrameLayout {
                     case MotionEvent.ACTION_DOWN:
                         mLastTouchX = x;
                         mLastTouchY = y;
+                        mStartX = x;
+                        mStartY = y;
+                        mGestureDetector.setIsLongpressEnabled(true);
                         
                         // Check if touch is on resize handle
                         int[] location = new int[2];
@@ -157,6 +166,7 @@ public class ControlWidget extends FrameLayout {
                         if (x >= location[0] && x <= location[0] + mResizeHandle.getWidth() &&
                             y >= location[1] && y <= location[1] + mResizeHandle.getHeight()) {
                             mIsResizing = true;
+                            mGestureDetector.setIsLongpressEnabled(false);
                         } else {
                             mIsDragging = true;
                         }
@@ -165,6 +175,10 @@ public class ControlWidget extends FrameLayout {
                     case MotionEvent.ACTION_MOVE:
                         float dx = x - mLastTouchX;
                         float dy = y - mLastTouchY;
+                        
+                        if (Math.abs(x - mStartX) > mTouchSlop || Math.abs(y - mStartY) > mTouchSlop) {
+                            mGestureDetector.setIsLongpressEnabled(false);
+                        }
                         
                         if (mIsResizing) {
                             LayoutParams params = (LayoutParams) getLayoutParams();
