@@ -83,6 +83,29 @@ public class ForkFront extends AppCompatActivity
 		// Enable edge-to-edge display
 		WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
+		// Complete edge-to-edge configuration
+		Window window = getWindow();
+
+		// Make system bars transparent
+		window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+		window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+
+		// Enable drawing into display cutout area (notches)
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+			window.getAttributes().layoutInDisplayCutoutMode =
+				WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+		}
+
+		// Configure system bar appearance for dark content
+		WindowInsetsControllerCompat insetsController =
+			WindowCompat.getInsetsController(window, window.getDecorView());
+		if (insetsController != null) {
+			// Use dark icons for status/nav bars on light backgrounds
+			// Set to false for dark theme (light icons on dark bars)
+			insetsController.setAppearanceLightStatusBars(false);
+			insetsController.setAppearanceLightNavigationBars(false);
+		}
+
 		if(DEBUG.isOn())
 		{
 			if(getResources().getString(R.string.namespace).length() == 0
@@ -110,17 +133,34 @@ public class ForkFront extends AppCompatActivity
 		View rootView = findViewById(R.id.base_frame);
 		if (rootView != null) {
 			ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
-				androidx.core.graphics.Insets systemBars = insets.getInsets(
-					WindowInsetsCompat.Type.systemBars());
+				Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+				Insets displayCutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout());
+
+				// Combine system bars and display cutout insets
+				int topInset = Math.max(systemBars.top, displayCutout.top);
+				int bottomInset = Math.max(systemBars.bottom, displayCutout.bottom);
+				int leftInset = Math.max(systemBars.left, displayCutout.left);
+				int rightInset = Math.max(systemBars.right, displayCutout.right);
+
+				// Apply top padding to status display area to avoid status bar
+				View statusContainer = findViewById(R.id.nh_stat0);
+				if (statusContainer != null && statusContainer.getParent() instanceof View) {
+					View parentLayout = (View) statusContainer.getParent();
+					parentLayout.setPadding(
+						leftInset,
+						topInset,
+						rightInset,
+						parentLayout.getPaddingBottom());
+				}
 
 				// Apply bottom padding to keyboard frame to avoid gesture bar
 				View kbdFrame = findViewById(R.id.kbd_frame);
 				if (kbdFrame != null) {
 					kbdFrame.setPadding(
-						kbdFrame.getPaddingLeft(),
+						leftInset,
 						kbdFrame.getPaddingTop(),
-						kbdFrame.getPaddingRight(),
-						systemBars.bottom);
+						rightInset,
+						bottomInset);
 				}
 
 				return WindowInsetsCompat.CONSUMED;
