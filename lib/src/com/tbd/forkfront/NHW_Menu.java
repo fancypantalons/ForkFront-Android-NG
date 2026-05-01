@@ -668,8 +668,9 @@ public class NHW_Menu implements NH_Window
 		// ____________________________________________________________________________________
 		public View createTextDlg(LayoutInflater inflater, ViewGroup container)
 		{
-			View root = inflater.inflate(R.layout.textwindow, container, false);
-			root.findViewById(R.id.btn_close).setOnClickListener(new OnClickListener()
+			View root = inflater.inflate(R.layout.dialog_text, container, false);
+			View btn = root.findViewById(R.id.btn_ok);
+			btn.setOnClickListener(new OnClickListener()
 			{
 				@Override
 				public void onClick(View view)
@@ -677,6 +678,7 @@ public class NHW_Menu implements NH_Window
 					mMenu.close();
 				}
 			});
+			btn.requestFocus();
 			updateText(root);
 			return root;
 		}
