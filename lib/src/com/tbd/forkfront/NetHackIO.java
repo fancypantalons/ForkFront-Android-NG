@@ -989,4 +989,5 @@ public class NetHackIO
 	// ____________________________________________________________________________________
 	private native void RunNetHack(String path);
 	private native void SaveNetHackState();
+	public native void pushInput(String str);
 }
