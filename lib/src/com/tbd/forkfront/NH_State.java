@@ -492,9 +492,12 @@ public class NH_State
 	}
 
 	public void wireWidgetLayoutButtons(final WidgetLayout layout, View root) {
-		root.findViewById(R.id.btn_add_widget).setOnClickListener(v -> showAddWidgetDialogForLayout(mActivity, layout));
-		root.findViewById(R.id.btn_reset_layout).setOnClickListener(v -> layout.resetToDefault());
-		root.findViewById(R.id.btn_save_layout).setOnClickListener(v -> layout.saveLayout());
+		View btnAdd = root.findViewById(R.id.btn_add_widget);
+		if (btnAdd != null) btnAdd.setOnClickListener(v -> showAddWidgetDialogForLayout(mActivity, layout));
+		View btnReset = root.findViewById(R.id.btn_reset_layout);
+		if (btnReset != null) btnReset.setOnClickListener(v -> layout.resetToDefault());
+		View btnSave = root.findViewById(R.id.btn_save_layout);
+		if (btnSave != null) btnSave.setOnClickListener(v -> saveLayoutAndExitEditMode());
 	}
 
 	public void showAddWidgetDialog(AppCompatActivity activity) {
