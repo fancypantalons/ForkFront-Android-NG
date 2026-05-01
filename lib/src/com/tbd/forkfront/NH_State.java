@@ -42,7 +42,6 @@ public class NH_State
 	private ArrayList<NH_Window> mWindows;
 	private Tileset mTileset;
 	private WidgetLayout mWidgetLayout;
-	private DPadOverlay mDPad;
 	private boolean mIsDPadActive;
 	private boolean mStickyKeyboard;
 	private boolean mHideQuickKeyboard;
@@ -94,7 +93,6 @@ public class NH_State
 		mWindows = new ArrayList<>();
 		mGetLine = new NH_GetLine(mIO, this);
 		mQuestion = new NH_Question(mIO, this);
-		mDPad = new DPadOverlay(this);
 		mSoundPlayer = new SoundPlayer();
 		mMode = CmdMode.Panel;
 
@@ -221,7 +219,6 @@ public class NH_State
 				mWidgetLayout.saveLayout();
 			}
 		}
-		mDPad.setContext(activity);
 		if (mMap != null) {
 			mMap.setContext(activity);
 		}
@@ -270,7 +267,6 @@ public class NH_State
 		/*if (mWidgetLayout != null) {
 			mWidgetLayout.setOrientation(newConfig.orientation);
 		}*/
-		mDPad.setOrientation(newConfig.orientation);
 
 		// Forward configuration changes to map for adaptive tile scaling
 		if(mMap != null)
@@ -289,7 +285,6 @@ public class NH_State
 		if (mWidgetLayout != null) {
 			mWidgetLayout.setEditMode(prefs.getBoolean("edit_mode", false));
 		}
-		mDPad.preferencesUpdated(prefs);
 		mMap.preferencesUpdated(prefs);
 		mStatus.preferencesUpdated(prefs);
 		mMessage.preferencesUpdated(prefs);
@@ -568,7 +563,8 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public boolean isDPadVisible()
 	{
-		return mDPad.isVisible();
+		// Old overlay system removed - always return false
+		return false;
 	}
 
 	// ____________________________________________________________________________________
@@ -912,14 +908,12 @@ public class NH_State
 				}
 				if(mIsDPadActive)
 				{
-					mDPad.showDirectional(true);
 					/*if (mWidgetLayout != null) {
 						mWidgetLayout.hide();
 					}*/
 				}
 				else
 				{
-					mDPad.showDirectional(false);
 					/*if (mWidgetLayout != null) {
 						mWidgetLayout.show();
 					}*/
@@ -933,8 +927,6 @@ public class NH_State
 				/*if (mWidgetLayout != null) {
 					mWidgetLayout.hide();
 				}*/
-				//mDPad.setVisible(false);
-				mDPad.forceHide();
 			}
 		}
 		else
@@ -945,7 +937,6 @@ public class NH_State
 			if (mKeyboard != null) {
 				mKeyboard.hide();
 			}
-			mDPad.forceHide();
 		}
 	}
 
@@ -1344,7 +1335,7 @@ public class NH_State
 		@Override
 		public void setNumPadOption(boolean numPadOn) {
 			mNumPad = numPadOn;
-			mDPad.updateNumPadState();
+			// Old DPad overlay removed - no longer need to update
 		}
 
 		// ____________________________________________________________________________________

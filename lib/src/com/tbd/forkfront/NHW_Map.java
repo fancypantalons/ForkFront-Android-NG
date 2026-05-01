@@ -1592,11 +1592,8 @@ public class NHW_Map implements NH_Window
 		// ____________________________________________________________________________________
 		private boolean allowDirectionalInput()
 		{
-			if(!mNHState.isDPadVisible())
-				return true;
-
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-			return  prefs.getBoolean("allowMapDir", false);
+			// Old overlay system removed - always allow map directional input
+			return true;
 		}
 
 		// ____________________________________________________________________________________
