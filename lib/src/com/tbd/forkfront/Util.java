@@ -56,7 +56,7 @@ public class Util
 				public void run()
 				{
 					InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.showSoftInput(input, InputMethodManager.SHOW_FORCED);
+					imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
 				}
 			});
 		}
@@ -86,11 +86,16 @@ public class Util
 		}
 		catch(NumberFormatException e)
 		{
+			// Silent fallback: return the provided default value.
 		}
 		return def;
 	}
 
 	// ____________________________________________________________________________________
+	/**
+	 * Copies bytes from the input stream to the output stream.
+	 * The caller is responsible for closing both streams.
+	 */
 	public static void copy(InputStream is, OutputStream os) throws IOException
 	{
 		byte[] buf = new byte[10240];

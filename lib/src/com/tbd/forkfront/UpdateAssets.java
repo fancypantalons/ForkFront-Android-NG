@@ -152,6 +152,7 @@ public class UpdateAssets
 					mListener.onAssetsReady(mDstPath);
 				}
 			});
+			mExecutor.shutdown();
 		});
 	}
 
@@ -184,8 +185,9 @@ public class UpdateAssets
 					deleteDirContent(dstPath);
 				}
 				
-				if(dstPath == null)
-					mError = String.format(Locale.getDefault(), "Not enough space. %.2fMb required", (float)(mRequiredSpace)/(1024.f*1024.f));				else {
+				if(dstPath == null) {
+					mError = String.format(Locale.getDefault(), "Not enough space. %.2fMb required", (float)(mRequiredSpace)/(1024.f*1024.f));
+				} else {
 
 					long startns = System.nanoTime();
 					updateFiles(dstPath);
@@ -196,6 +198,7 @@ public class UpdateAssets
 						int sleepms = Math.max(1000-(int)((endns-startns)/1000000), 0);
 						Thread.sleep(sleepms);
 					} catch(InterruptedException e) {
+						Thread.currentThread().interrupt();
 					}
 				}
 			}
@@ -273,8 +276,10 @@ public class UpdateAssets
 		long verDat = mPrefs.getLong(VERDAT_KEY, 0);
 		long srcVer = mPrefs.getLong(SRCVER_KEY, 0);
 
-		Scanner s = new Scanner(mAM.open("ver"));
-		long curVer = s.nextLong();
+		long curVer;
+		try (Scanner s = new Scanner(mAM.open("ver"))) {
+			curVer = s.nextLong();
+		}
 
 		if(verDat == 0 || srcVer != curVer)
 		{
@@ -302,6 +307,7 @@ public class UpdateAssets
 		}
 
 		String[] files = mAM.list(mNativeDataDir);
+		if (files == null) return FileStatus.CORRUPT;
 		for(String file : files)
 		{
 			File dst = new File(dstPath, file);
@@ -330,6 +336,7 @@ public class UpdateAssets
 
 		byte[] buf = new byte[10240];
 		String[] files = mAM.list(mNativeDataDir);
+		if (files == null) return;
 		mTotalWritten = 0;
 
 		if(mBackupDefaultsFile)
@@ -339,6 +346,8 @@ public class UpdateAssets
 
 		for(String file : files)
 		{
+			if (mIsCancelled) break;
+
 			File dstFile = new File(dstPath, file);
 
 			// Don't overwrite defaults file if we're just fixing corruption
@@ -346,43 +355,40 @@ public class UpdateAssets
 				continue;
 			}
 
-			InputStream is = mAM.open(mNativeDataDir + "/" + file);
-			OutputStream os = new FileOutputStream(dstFile, false);
-
-			while(true)
-			{
-				int nRead = is.read(buf);
-				if(nRead > 0) {
+			try (InputStream is = mAM.open(mNativeDataDir + "/" + file);
+			     OutputStream os = new FileOutputStream(dstFile, false)) {
+				int nRead;
+				while((nRead = is.read(buf)) > 0)
+				{
 					os.write(buf, 0, nRead);
 					mTotalWritten += nRead;
-
-					// Report progress
-					if (mProgressListener != null && !mIsCancelled) {
-						final int current = (int)mTotalWritten;
-						final int total = (int)mRequiredSpace;
-						mMainHandler.post(() -> {
-							if (!mIsCancelled && mProgressListener != null) {
-								mProgressListener.onProgressUpdate(current, total);
-							}
-						});
-					}
-				} else {
-					break;
 				}
 			}
 
-			os.flush();
-			os.close();
+			// Report progress once per file
+			if (mProgressListener != null && !mIsCancelled) {
+				final int current = (int)mTotalWritten;
+				final int total = (int)mRequiredSpace;
+				mMainHandler.post(() -> {
+					if (!mIsCancelled && mProgressListener != null) {
+						mProgressListener.onProgressUpdate(current, total);
+					}
+				});
+			}
 		}
 
 		// update version and date
 		SharedPreferences.Editor edit = mPrefs.edit();
 
-		Scanner s = new Scanner(mAM.open("ver"));
-		edit.putLong(SRCVER_KEY, s.nextLong());
+		try (Scanner s = new Scanner(mAM.open("ver"))) {
+			edit.putLong(SRCVER_KEY, s.nextLong());
+		}
 
 		// add a few seconds just in case
-		long lastMod = new File(dstPath, files[files.length - 1]).lastModified() + 1000 * 60;
+		long lastMod = 0;
+		if (files.length > 0) {
+			lastMod = new File(dstPath, files[files.length - 1]).lastModified() + 1000 * 60;
+		}
 		edit.putLong(VERDAT_KEY, lastMod);
 
 		// TODO don't store absolute path.
@@ -399,19 +405,13 @@ public class UpdateAssets
 
 			File dstFile = new File(dstPath, mDefaultsFile + ".bak");
 
-			InputStream is = new FileInputStream(srcFile);
-			OutputStream os = new FileOutputStream(dstFile, false);
-
-			while(true) {
-				int nRead = is.read(buf);
-				if(nRead > 0)
+			try (InputStream is = new FileInputStream(srcFile);
+			     OutputStream os = new FileOutputStream(dstFile, false)) {
+				int nRead;
+				while((nRead = is.read(buf)) > 0) {
 					os.write(buf, 0, nRead);
-				else
-					break;
+				}
 			}
-
-			os.flush();
-			os.close();
 
 			mDefaultsFileBackedUp = true;
 		} catch(IOException e) {
@@ -486,10 +486,16 @@ public class UpdateAssets
 	{
 		mRequiredSpace = 0;
 		String[] files = mAM.list(mNativeDataDir);
+		if (files == null) return;
+		byte[] scratch = new byte[8192];
 		for(String file : files)
 		{
-			InputStream is = mAM.open(mNativeDataDir + "/" + file);
-			mRequiredSpace += is.skip(0x7fffffff);
+			try (InputStream is = mAM.open(mNativeDataDir + "/" + file)) {
+				int nRead;
+				while((nRead = is.read(scratch)) > 0) {
+					mRequiredSpace += nRead;
+				}
+			}
 		}
 	}
 
@@ -498,11 +504,14 @@ public class UpdateAssets
 	{
 		if(dir.exists() && dir.isDirectory())
 		{
-			for(String n : dir.list())
-			{
-				File file = new File(dir, n);
-				deleteDirContent(file);
-				file.delete();
+			String[] children = dir.list();
+			if (children != null) {
+				for(String n : children)
+				{
+					File file = new File(dir, n);
+					deleteDirContent(file);
+					file.delete();
+				}
 			}
 		}
 	}

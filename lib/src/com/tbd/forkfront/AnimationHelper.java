@@ -56,7 +56,7 @@ public class AnimationHelper {
         view.animate()
                 .alpha(1f)
                 .setDuration(DURATION_MEDIUM_1)
-                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.linear_out_slow_in))
+                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_slow_in))
                 .start();
     }
 
@@ -67,13 +67,8 @@ public class AnimationHelper {
         view.animate()
                 .alpha(0f)
                 .setDuration(DURATION_SHORT_4)
-                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_linear_in))
-                .withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        view.setVisibility(View.GONE);
-                    }
-                })
+                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_slow_in))
+                .withEndAction(() -> view.setVisibility(View.GONE))
                 .start();
     }
 
@@ -101,12 +96,7 @@ public class AnimationHelper {
                 .alpha(0f)
                 .setDuration(DURATION_SHORT_4)
                 .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_slow_in))
-                .withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        view.setVisibility(View.GONE);
-                    }
-                })
+                .withEndAction(() -> view.setVisibility(View.GONE))
                 .start();
     }
 }

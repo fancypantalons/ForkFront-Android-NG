@@ -2,6 +2,7 @@ package com.tbd.forkfront;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
@@ -23,6 +24,8 @@ import com.tbd.forkfront.gamepad.KeyBindingDefaultsLoader;
 import com.tbd.forkfront.gamepad.KeyBindingStore;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, InputManager.InputDeviceListener {
+
+    private static final int MAX_PANELS = 10;
 
     private ActivityResultLauncher<String> mImagePickerLauncher;
     private InputManager mInputManager;
@@ -50,7 +53,13 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
+        setupTilesetPreferences();
+        setupGamepadPreferences();
+        setupHearsePreferences();
+        setupUiPreferences();
+    }
 
+    private void setupTilesetPreferences() {
         EditTextPreference wPref = findPreference("customTileW");
         if (wPref != null) {
             wPref.setOnBindEditTextListener(editText -> editText.setInputType(InputType.TYPE_CLASS_NUMBER));
@@ -70,6 +79,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         }
 
         updateTilesetVisibility();
+    }
+
+    private void setupGamepadPreferences() {
         updateGamepadVisibility();
 
         Preference gamepadReset = findPreference("gamepad_reset_defaults");
@@ -85,7 +97,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 return true;
             });
         }
+    }
 
+    private void setupHearsePreferences() {
         if(!getContext().getResources().getBoolean(R.bool.hearseAvailable)) {
             PreferenceCategory advancedParent = findPreference("advanced");
             Preference hearsePref = findPreference("hearse");
@@ -93,7 +107,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 advancedParent.removePreference(hearsePref);
             }
         }
+    }
 
+    private void setupUiPreferences() {
         Preference root = getPreferenceScreen();
         if (root != null) {
             setIconSpaceReserved(root, false);
@@ -119,7 +135,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         }
         SharedPreferences sharedPreferences = getPreferenceManager().getSharedPreferences();
         if (sharedPreferences != null) {
-            for(int i = 0; i < 10; i++) {
+            for(int i = 0; i < MAX_PANELS; i++) {
                 char idx = (char)('0' + i);
                 Preference screen = findPreference("panel" + idx);
                 if(screen == null) break;
@@ -160,6 +176,27 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         }
     }
 
+    private Point parseTileDimensions(String value) {
+        int tileW = 32;
+        int tileH = 32;
+        if (!"TTY".equals(value) && !"CUSTOM".equals(value)) {
+            int xIndex = value.lastIndexOf('x');
+            int underIndex = value.lastIndexOf('_');
+            try {
+                if (xIndex > 0 && underIndex > 0) {
+                    tileW = Integer.parseInt(value.substring(underIndex + 1, xIndex));
+                    tileH = Integer.parseInt(value.substring(xIndex + 1));
+                } else if (underIndex > 0) {
+                    tileW = Integer.parseInt(value.substring(underIndex + 1));
+                    tileH = tileW;
+                }
+            } catch (NumberFormatException e) {
+                // Use defaults
+            }
+        }
+        return new Point(tileW, tileH);
+    }
+
     private void handleTilesetChanged(SharedPreferences sharedPreferences) {
         String value = sharedPreferences.getString("tileset", "default_32");
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -168,26 +205,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             editor.putBoolean("customTiles", true);
         } else {
             editor.putBoolean("customTiles", false);
-            // Parse default dimensions from value (e.g., default_32 or geoduck_24x40)
-            int tileW = 32;
-            int tileH = 32;
-            if (!"TTY".equals(value)) {
-                int xIndex = value.lastIndexOf('x');
-                int underIndex = value.lastIndexOf('_');
-                try {
-                    if (xIndex > 0 && underIndex > 0) {
-                        tileW = Integer.parseInt(value.substring(underIndex + 1, xIndex));
-                        tileH = Integer.parseInt(value.substring(xIndex + 1));
-                    } else if (underIndex > 0) {
-                        tileW = Integer.parseInt(value.substring(underIndex + 1));
-                        tileH = tileW;
-                    }
-                } catch (NumberFormatException e) {
-                    // Use defaults
-                }
-            }
-            editor.putInt("tileW", tileW);
-            editor.putInt("tileH", tileH);
+            Point dims = parseTileDimensions(value);
+            editor.putInt("tileW", dims.x);
+            editor.putInt("tileH", dims.y);
         }
         editor.apply();
         updateTilesetVisibility();
@@ -223,10 +243,8 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onDisplayPreferenceDialog(Preference preference) {
         if (preference instanceof SliderPreference) {
-            @SuppressWarnings("deprecation")
             androidx.fragment.app.DialogFragment f = SliderPreferenceDialogFragment.newInstance(preference.getKey());
-            f.setTargetFragment(this, 0);
-            f.show(getParentFragmentManager(), "androidx.preference.PreferenceFragment.DIALOG");
+            f.show(getChildFragmentManager(), "androidx.preference.PreferenceFragment.DIALOG");
         } else {
             super.onDisplayPreferenceDialog(preference);
         }

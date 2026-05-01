@@ -34,6 +34,7 @@ public class Hearse {
 	private final String CLIENT_ID;
 	private final String HEARSE_CRC;
 	static final String HOST = "hearse.krollmark.com";
+	// TODO: hearse.krollmark.com does not appear to support HTTPS; verify before switching
 	static String BASE_URL = "http://hearse.krollmark.com/bones.dll?act=";	// hearse commands
 	private static final String NEW_USER = "newuser";
 	private static final String UPLOAD = "upload";
@@ -131,9 +132,15 @@ public class Hearse {
 
 		public void start() {
 		if(prefs.getBoolean(PREFS_HEARSE_ENABLE, false)) {
-		        hearseThread.start();
+		        if(hearseThread.getState() == Thread.State.NEW) {
+		                hearseThread.start();
+		        }
 		}
 		}
+
+	public void destroy() {
+		prefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener);
+	}
 	static boolean checkMD5(String md5, File updateFile) {
 		if (md5 == null || md5.length() == 0 || updateFile == null) {
 			return false;
@@ -183,9 +190,7 @@ public class Hearse {
 			return null;
 		}
 
-		BufferedInputStream is = null;
-		try {
-			is = new BufferedInputStream(new FileInputStream(updateFile));
+		try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(updateFile))) {
 			byte[] buffer = new byte[8192];
 			int read;
 			while ((read = is.read(buffer)) > 0) {
@@ -199,14 +204,6 @@ public class Hearse {
 			return output;
 		} catch (IOException e) {
 			throw new RuntimeException("Unable to process file for MD5", e);
-		} finally {
-			if (is != null) {
-				try {
-					is.close();
-				} catch (IOException e) {
-					Log.print(TAG + " Exception on closing MD5 input stream " + e);
-				}
-			}
 		}
 	}
 
@@ -376,41 +373,27 @@ public class Hearse {
 				// For thread safety, don't download as real name.  Nethack might try to load it before complete
 				File tmpBonesFile = new File(dataDirString, bonesFile.getName() + ".tmp");
 
-				BufferedOutputStream out = null;
-				InputStream in = null;
-				try {
+				try (InputStream in = resp.getInputStream();
+				     BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(tmpBonesFile))) {
 					tmpBonesFile.createNewFile();
-					in = resp.getInputStream();
-					out = new BufferedOutputStream(new FileOutputStream(tmpBonesFile));
-					int c;
-					while ((c = in.read()) != -1) {
-						out.write(c);
+					byte[] buffer = new byte[8192];
+					int read;
+					while ((read = in.read(buffer)) != -1) {
+						out.write(buffer, 0, read);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
-				} finally {
-					// I miss try-with-resources :)
-					if (out != null) {
-						try {
-							out.close();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-					if (in != null) {
-						try {
-							in.close();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
 				}
 
 				if(checkMD5(md5Value, tmpBonesFile)) {
-					tmpBonesFile.renameTo(bonesFile);
-					Log.print("Downloaded " + bonesFile.getName());
-					existingBonesSet = existingBonesSet + bonesFile.getName() + ",";
-					nDownloaded++;
+					if(tmpBonesFile.renameTo(bonesFile)) {
+						Log.print("Downloaded " + bonesFile.getName());
+						existingBonesSet = existingBonesSet + bonesFile.getName() + ",";
+						nDownloaded++;
+					} else {
+						Log.print("Failed to rename bones file from " + tmpBonesFile.getName() + " to " + bonesFile.getName());
+						tmpBonesFile.delete();
+					}
 				} else {
 					//arg
 					Log.print("Bad bones downloaded");
@@ -482,17 +465,14 @@ public class Hearse {
 				return 0;
 			}
 
+			boolean uploaded = false;
 			String errorValue = resp.getFirstHeader(HEADER_ERROR);
 			if (errorValue != null) {
 
 				if (errorValue.equals(F_ERROR_INFO)) {
 					// This is a warning so pretend we succeeded.
+					uploaded = true;
 					nUploaded++;
-
-					if (!keepUploaded) {
-						files.get(i).delete();
-					}
-
 					printContent(resp);
 				} else {
 					printContent(resp);
@@ -504,17 +484,18 @@ public class Hearse {
 					ed.putString(HEADER_NETHACKVER, hackVerValue);
 				}
 				Log.print("Uploaded " + currentFileName);
+				uploaded = true;
 				nUploaded++;
-
-				if (!keepUploaded) {
-					files.get(i).delete();
-				}
 
 				String motdValue = resp.getFirstHeader(HEADER_MOTD);
 				if (motdValue != null) {
 					Log.print(HEADER_MOTD + ":" + motdValue); //@todo output this to screen
 				}
 
+			}
+
+			if (uploaded && !keepUploaded) {
+				files.get(i).delete();
 			}
 	
 		}
@@ -527,12 +508,10 @@ public class Hearse {
 	private NHFileInfo loadFile(File file) {
 		long datasize = file.length();
 		byte[] data = new byte[(int) datasize];
-		BufferedInputStream in = null;
 		NHFileInfo results = new NHFileInfo();
-		try {
-			in = new BufferedInputStream(new FileInputStream(file));
+		try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))) {
 
-			in.read(data);
+			in.readFully(data);
 
 			results.data = data;
 
@@ -548,14 +527,6 @@ public class Hearse {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			try {
-				if (in != null) {
-					in.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 
 		results.md5 = getByteMD5(data);
@@ -566,63 +537,70 @@ public class Hearse {
 	HearseResponse doGet(String baseUrl, String action, List<HearseHeader> headers) throws IOException {
 		URL url = new URL(baseUrl + action);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setRequestMethod("GET");
+		try {
+			conn.setRequestMethod("GET");
 
-		for (HearseHeader h : headers) {
-			conn.setRequestProperty(h.getName(), h.getValue());
+			for (HearseHeader h : headers) {
+				conn.setRequestProperty(h.getName(), h.getValue());
+			}
+			conn.setRequestProperty(HEADER_HEARSE_CRC, HEARSE_CRC);
+			conn.setRequestProperty(HEADER_CLIENT, CLIENT_ID);
+
+			int responseCode = conn.getResponseCode();
+			InputStream is = (responseCode >= 400) ? conn.getErrorStream() : conn.getInputStream();
+			byte[] content = (is != null) ? readStream(is) : new byte[0];
+			Map<String, List<String>> responseHeaders = conn.getHeaderFields();
+
+			Log.print("Http Get Response code:" + responseCode);
+			return new HearseResponse(responseCode, content, responseHeaders);
+		} finally {
+			conn.disconnect();
 		}
-		conn.setRequestProperty(HEADER_HEARSE_CRC, HEARSE_CRC);
-		conn.setRequestProperty(HEADER_CLIENT, CLIENT_ID);
-
-		int responseCode = conn.getResponseCode();
-		InputStream is = (responseCode >= 400) ? conn.getErrorStream() : conn.getInputStream();
-		byte[] content = (is != null) ? readStream(is) : new byte[0];
-		Map<String, List<String>> responseHeaders = conn.getHeaderFields();
-
-		Log.print("Http Get Response code:" + responseCode);
-		return new HearseResponse(responseCode, content, responseHeaders);
 	}
 
 	private byte[] readStream(InputStream is) throws IOException {
-	        try {
+	        try (InputStream stream = is) {
 	                ByteArrayOutputStream bos = new ByteArrayOutputStream();
 	                byte[] buffer = new byte[8192];
 	                int read;
-	                while ((read = is.read(buffer)) != -1) {
+	                while ((read = stream.read(buffer)) != -1) {
 	                        bos.write(buffer, 0, read);
 	                }
 	                return bos.toByteArray();
-	        } finally {
-	                if (is != null) {
-	                        is.close();
-	                }
 	        }
 	}
 	HearseResponse doPost(String baseUrl, String action, List<HearseHeader> headers, byte[] data) throws IOException {
 		URL url = new URL(baseUrl + action);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setRequestMethod("POST");
-		conn.setDoOutput(true);
+		try {
+			conn.setRequestMethod("POST");
+			conn.setDoOutput(true);
 
-		for (HearseHeader h : headers) {
-			conn.setRequestProperty(h.getName(), h.getValue());
+			for (HearseHeader h : headers) {
+				conn.setRequestProperty(h.getName(), h.getValue());
+			}
+			conn.setRequestProperty(HEADER_HEARSE_CRC, HEARSE_CRC);
+			conn.setRequestProperty(HEADER_CLIENT, CLIENT_ID);
+
+			if (data != null) {
+				OutputStream os = conn.getOutputStream();
+				try {
+					os.write(data);
+				} finally {
+					os.close();
+				}
+			}
+
+			int responseCode = conn.getResponseCode();
+			InputStream is = (responseCode >= 400) ? conn.getErrorStream() : conn.getInputStream();
+			byte[] content = (is != null) ? readStream(is) : new byte[0];
+			Map<String, List<String>> responseHeaders = conn.getHeaderFields();
+
+			Log.print("Http Post Response code:" + responseCode);
+			return new HearseResponse(responseCode, content, responseHeaders);
+		} finally {
+			conn.disconnect();
 		}
-		conn.setRequestProperty(HEADER_HEARSE_CRC, HEARSE_CRC);
-		conn.setRequestProperty(HEADER_CLIENT, CLIENT_ID);
-
-		if (data != null) {
-			OutputStream os = conn.getOutputStream();
-			os.write(data);
-			os.close();
-		}
-
-		int responseCode = conn.getResponseCode();
-		InputStream is = (responseCode >= 400) ? conn.getErrorStream() : conn.getInputStream();
-		byte[] content = (is != null) ? readStream(is) : new byte[0];
-		Map<String, List<String>> responseHeaders = conn.getHeaderFields();
-
-		Log.print("Http Post Response code:" + responseCode);
-		return new HearseResponse(responseCode, content, responseHeaders);
 	}
 
 	private boolean isValidBonesFileName(String name) {
@@ -652,9 +630,7 @@ public class Hearse {
 	}
 
 	private void printContent(HearseResponse resp) {
-	        BufferedReader in = null;
-	        try {
-	                in = new BufferedReader(new InputStreamReader(resp.getInputStream()));
+	        try (BufferedReader in = new BufferedReader(new InputStreamReader(resp.getInputStream()))) {
 	                StringBuilder message = new StringBuilder();
 	                String line;
 	                while ((line = in.readLine()) != null) {
@@ -665,14 +641,6 @@ public class Hearse {
 	                showToast(message.toString());
 	        } catch (IOException e) {
 	                e.printStackTrace();
-	        } finally {
-	                if (in != null) {
-	                        try {
-	                                in.close();
-	                        } catch (IOException e) {
-	                                e.printStackTrace();
-	                        }
-	                }
 	        }
 	}
 	/**
