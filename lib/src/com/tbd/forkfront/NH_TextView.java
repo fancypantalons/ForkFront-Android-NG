@@ -21,6 +21,7 @@ public class NH_TextView extends TextView {
 	private int mRevision;
 	private Typeface mOriginalTypeface;
 	private float mOriginalSizePx;
+	private boolean mIsFittedMode = true;
 
 	public NH_TextView (Context context) {
 		super(context);
@@ -101,7 +102,7 @@ public class NH_TextView extends TextView {
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
 		boolean isMonospaceMode = prefs.getBoolean("monospace", false);
 		if(isMonospaceMode) {
-			updateMode(true, Typeface.MONOSPACE, FITTED_SIZE_PX);
+			updateMode(true, Typeface.MONOSPACE, mIsFittedMode ? FITTED_SIZE_PX : mOriginalSizePx);
 		} else {
 			updateMode(false, mOriginalTypeface, mOriginalSizePx);
 		}
@@ -136,6 +137,7 @@ public class NH_TextView extends TextView {
 
 	public void setBaseTextSize(int unit, float size) {
 		mOriginalSizePx = TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics());
+		mIsFittedMode = false;
 		update();
 	}
 }

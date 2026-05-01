@@ -3,7 +3,6 @@ package com.tbd.forkfront;
 import android.content.Context;
 import android.view.View;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,8 +10,8 @@ import java.util.List;
 public class MessageWidget extends ControlWidget implements NHW_Message.MessageUpdateListener
 {
 	private NHW_Message mMessageWindow;
-	private TextView mMessageView;
-	private TextView mMoreView;
+	private NH_TextView mMessageView;
+	private NH_TextView mMoreView;
 	private List<String> mRecentMessages;
 	private int mMoreCount;
 
@@ -25,8 +24,8 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 
 		// Initialize view references
 		LinearLayout container = (LinearLayout) getContentView();
-		mMessageView = (TextView) container.getChildAt(0);
-		mMoreView = (TextView) container.getChildAt(1);
+		mMessageView = (NH_TextView) container.getChildAt(0);
+		mMoreView = (NH_TextView) container.getChildAt(1);
 
 		// Register as listener
 		messageWindow.addListener(this);
@@ -43,7 +42,7 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 		));
 
 		// Create message TextView
-		TextView messageView = new TextView(context);
+		NH_TextView messageView = new NH_TextView(context);
 		messageView.setTextColor(0xFFFFFFFF);
 		messageView.setTextSize(15);
 		messageView.setLayoutParams(new LinearLayout.LayoutParams(
@@ -52,7 +51,7 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 		));
 
 		// Create --More-- TextView
-		TextView moreView = new TextView(context);
+		NH_TextView moreView = new NH_TextView(context);
 		moreView.setText("--More--");
 		moreView.setTextColor(0xFF000000);
 		moreView.setBackgroundColor(0xFFFFFFFF);
@@ -105,10 +104,10 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 	{
 		super.setFontSize(size);
 		if (mMessageView != null) {
-			mMessageView.setTextSize(size);
+			mMessageView.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
 		}
 		if (mMoreView != null) {
-			mMoreView.setTextSize(size);
+			mMoreView.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
 		}
 	}
 

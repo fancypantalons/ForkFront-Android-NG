@@ -408,7 +408,7 @@ public class NHW_Menu implements NH_Window
 		{
 			if(mMenu.mType == Type.Text && mRoot != null)
 			{
-				TextView tv = mRoot.findViewById(R.id.text_view);
+				NH_TextView tv = mRoot.findViewById(R.id.text_view);
 				if(tv != null && mMenu.mBuilder != null)
 					tv.setText(mMenu.mBuilder);
 			}
@@ -710,7 +710,7 @@ public class NHW_Menu implements NH_Window
 		private void updateText(View root)
 		{
 			if(mMenu.mBuilder != null)
-				((TextView)root.findViewById(R.id.text_view)).setText(mMenu.mBuilder);
+				((NH_TextView)root.findViewById(R.id.text_view)).setText(mMenu.mBuilder);
 		}
 
 		// ____________________________________________________________________________________
@@ -739,8 +739,8 @@ public class NHW_Menu implements NH_Window
 			}
 
 			if (mMenu.mTitle.length() > 0) {
-				((TextView) root.findViewById(R.id.title)).setVisibility(View.VISIBLE);
-				((TextView) root.findViewById(R.id.title)).setText(mMenu.mTitle);
+				((NH_TextView) root.findViewById(R.id.title)).setVisibility(View.VISIBLE);
+				((NH_TextView) root.findViewById(R.id.title)).setText(mMenu.mTitle);
 			}
 
 			return root;

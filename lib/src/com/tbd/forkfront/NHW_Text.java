@@ -197,7 +197,7 @@ public class NHW_Text implements NH_Window
 		public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
 		{
 			ScrollView scroll = (ScrollView) inflater.inflate(R.layout.textwindow, container, false);
-			TextView textView = scroll.findViewById(R.id.text_view);
+			NH_TextView textView = scroll.findViewById(R.id.text_view);
 
 			if(mParent.mBuilder.length() > 0)
 				textView.setText(mParent.mBuilder);
@@ -215,7 +215,7 @@ public class NHW_Text implements NH_Window
 			if(view instanceof ScrollView)
 			{
 				ScrollView scroll = (ScrollView) view;
-				TextView tv = scroll.findViewById(R.id.text_view);
+				NH_TextView tv = scroll.findViewById(R.id.text_view);
 				if(mParent.mBuilder.length() > 0)
 					tv.setText(mParent.mBuilder);
 				else
@@ -271,7 +271,7 @@ public class NHW_Text implements NH_Window
 
 			View view = getView();
 			ScrollView scroll = (view instanceof ScrollView) ? (ScrollView) view : null;
-			TextView textView = (scroll != null) ? scroll.findViewById(R.id.text_view) : null;
+			NH_TextView textView = (scroll != null) ? scroll.findViewById(R.id.text_view) : null;
 
 			switch(keyCode)
 			{
