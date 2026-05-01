@@ -9,7 +9,6 @@ import java.util.concurrent.Executors;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
@@ -39,15 +38,12 @@ public class UpdateAssets
 
 	private AssetManager mAM;
 	private SharedPreferences mPrefs;
-	private boolean mIsInitiating;
-	private ProgressDialog mProgress;
 	private File mDstPath;
 	private String mError;
 	private FileStatus mFileStatus;
 	private boolean mBackupDefaultsFile;
 	private boolean mDefaultsFileBackedUp;
 	private long mRequiredSpace;
-	private long mTotalRead;
 	private final WeakReference<AppCompatActivity> mActivityRef;
 	private final Listener mListener;
 	private final String mNativeDataDir;
@@ -64,8 +60,6 @@ public class UpdateAssets
 		mActivityRef = new WeakReference<>(activity);
 		mPrefs = PreferenceManager.getDefaultSharedPreferences(activity);
 		mAM = activity.getResources().getAssets();
-		mIsInitiating = true;
-		mTotalRead = 0;
 		mRequiredSpace = 0;
 		mListener = listener;
 		mNativeDataDir = activity.getResources().getString(R.string.nativeDataDir);
@@ -128,8 +122,6 @@ public class UpdateAssets
 			mMainHandler.post(() -> {
 				if (mIsCancelled) return;
 
-				if(mProgress != null)
-					mProgress.dismiss();
 				if(mDstPath == null)
 				{
 					showError();
@@ -150,50 +142,14 @@ public class UpdateAssets
 	// ____________________________________________________________________________________
 	/**
 	 * Cancel the asset update task.
-	 * Shuts down the executor and dismisses any dialogs.
+	 * Shuts down the executor.
 	 */
 	public void cancel()
 	{
 		mIsCancelled = true;
 		mExecutor.shutdownNow();
-		mMainHandler.post(() -> {
-			if (mProgress != null) {
-				mProgress.dismiss();
-			}
-		});
 	}
 
-	// ____________________________________________________________________________________
-	/**
-	 * Update progress on main thread.
-	 * Replaces AsyncTask.publishProgress() / onProgressUpdate() pattern.
-	 */
-    private void updateProgress()
-	{
-		if (mIsCancelled) return;
-
-		mMainHandler.post(() -> {
-			if (mIsCancelled) return;
-
-			AppCompatActivity activity = mActivityRef.get();
-			if (activity == null || activity.isFinishing()) return;
-
-			if(mTotalRead > 0 && mIsInitiating)
-			{
-				mIsInitiating = false;
-
-				mProgress = new ProgressDialog(activity);
-				mProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				mProgress.setMax((int)mRequiredSpace);
-				mProgress.setMessage("Preparing content...");
-				mProgress.setCancelable(false);
-				mProgress.show();
-			}
-			if (mProgress != null) {
-				mProgress.setProgress((int)mTotalRead);
-			}
-		});
-    }
 	
 	// ____________________________________________________________________________________
 	private File load()
@@ -371,8 +327,6 @@ public class UpdateAssets
 
 			// Don't overwrite defaults file if we're just fixing corruption
 			if(file.equals(mDefaultsFile) && dstFile.exists() && mFileStatus == FileStatus.CORRUPT) {
-				InputStream is = mAM.open(mNativeDataDir + "/" + file);
-				mTotalRead += is.skip(0x7fffffff);
 				continue;
 			}
 
@@ -386,8 +340,6 @@ public class UpdateAssets
 					os.write(buf, 0, nRead);
 				else
 					break;
-				mTotalRead += nRead;
-				updateProgress();
 			}
 
 			os.flush();
