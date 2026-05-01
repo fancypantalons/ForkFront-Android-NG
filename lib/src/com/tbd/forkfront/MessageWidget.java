@@ -117,8 +117,8 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 	public void setFontSize(int size)
 	{
 		super.setFontSize(size);
-		mMessageView.setTextSize(size);
-		mMoreView.setTextSize(size);
+		mMessageView.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
+		mMoreView.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
 	}
 
 	// ____________________________________________________________________________________
