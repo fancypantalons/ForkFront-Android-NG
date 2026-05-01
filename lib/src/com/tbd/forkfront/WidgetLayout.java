@@ -125,6 +125,9 @@ public class WidgetLayout extends FrameLayout {
             editor.putInt("widget_" + i + "_h", data.h);
             editor.putInt("widget_" + i + "_opacity", data.opacity);
             editor.putInt("widget_" + i + "_font_size", data.fontSize);
+            editor.putInt("widget_" + i + "_rows", data.rows);
+            editor.putInt("widget_" + i + "_columns", data.columns);
+            editor.putString("widget_" + i + "_category", data.category);
         }
         editor.apply();
     }
@@ -153,6 +156,9 @@ public class WidgetLayout extends FrameLayout {
             data.h = prefs.getInt("widget_" + i + "_h", 200);
             data.opacity = prefs.getInt("widget_" + i + "_opacity", 191); // Default 75%
             data.fontSize = prefs.getInt("widget_" + i + "_font_size", 15);
+            data.rows = prefs.getInt("widget_" + i + "_rows", 3);
+            data.columns = prefs.getInt("widget_" + i + "_columns", 3);
+            data.category = prefs.getString("widget_" + i + "_category", null);
 
             ControlWidget widget = createWidget(data);
             if (widget != null) {
@@ -235,6 +241,21 @@ public class WidgetLayout extends FrameLayout {
             if (mNHState != null && mNHState.getMapWindow() != null && mNHState.getTileset() != null) {
                 ControlWidget w = new MinimapWidget(getContext(), mNHState.getMapWindow(), mNHState.getTileset());
                 w.setPlaceholderText("Minimap");
+                return w;
+            }
+        } else if ("command_palette".equals(data.type)) {
+            if (mNHState != null) {
+                CmdRegistry.Category category = null;
+                if (data.category != null && !data.category.isEmpty()) {
+                    try {
+                        category = CmdRegistry.Category.valueOf(data.category);
+                    } catch (IllegalArgumentException e) {
+                        // Invalid category, use null (all categories)
+                    }
+                }
+                ControlWidget w = new CommandPaletteWidget(getContext(), mNHState,
+                        data.rows, data.columns, category, data.horizontal);
+                w.setPlaceholderText("Command Palette");
                 return w;
             }
         }

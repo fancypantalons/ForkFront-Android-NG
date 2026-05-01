@@ -691,7 +691,7 @@ public class NH_State
 	}
 
 	public void showAddWidgetDialog(AppCompatActivity activity) {
-		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Status Window", "Message Window", "Minimap"};
+		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Command Palette", "Status Window", "Message Window", "Minimap"};
 		new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
 			.setTitle("Add Widget")
 			.setItems(options, (dialog, which) -> {
@@ -702,8 +702,10 @@ public class NH_State
 				} else if (which == 2) {
 					addPaletteWidget(activity);
 				} else if (which == 3) {
-					addStatusWidget(activity);
+					addCommandPaletteWidget(activity);
 				} else if (which == 4) {
+					addStatusWidget(activity);
+				} else if (which == 5) {
 					addMessageWidget(activity);
 				} else {
 					addMinimapWidget(activity);
@@ -803,6 +805,27 @@ public class NH_State
 		mWidgetLayout.saveLayout();
 	}
 
+	private void addCommandPaletteWidget(AppCompatActivity activity) {
+		float density = activity.getResources().getDisplayMetrics().density;
+
+		ControlWidget.WidgetData paletteData = new ControlWidget.WidgetData();
+		paletteData.type = "command_palette";
+		paletteData.x = 100;
+		paletteData.y = 100;
+		paletteData.w = (int)(300 * density); // Default width for 3 columns
+		paletteData.h = (int)(200 * density); // Default height for scrolling
+		paletteData.rows = 3;
+		paletteData.columns = 3;
+		paletteData.category = null; // All categories by default
+		paletteData.horizontal = false; // Vertical scrolling by default
+
+		CommandPaletteWidget paletteWidget = new CommandPaletteWidget(activity, this,
+				paletteData.rows, paletteData.columns, null, paletteData.horizontal);
+		paletteWidget.setWidgetData(paletteData);
+		mWidgetLayout.addWidget(paletteWidget);
+		mWidgetLayout.saveLayout();
+	}
+
 	public void showCommandPalette(AppCompatActivity activity) {
 	    CommandPaletteFragment palette = CommandPaletteFragment.newInstance();
 	    palette.setOnCommandListener(cmd -> {
@@ -846,9 +869,12 @@ public class NH_State
 		ControlWidget.WidgetData data = widget.getWidgetData();
 		boolean isButton = "button".equals(data.type);
 		boolean isContextual = "contextual".equals(data.type);
+		boolean isCommandPalette = "command_palette".equals(data.type);
 		boolean isText = "status".equals(data.type) || "message".equals(data.type);
 
-		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton, isContextual, data.horizontal, data.opacity, isText, data.fontSize);
+		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(
+				data.label, isButton, isContextual, isCommandPalette, data.horizontal,
+				data.opacity, isText, data.fontSize, data.rows, data.columns, data.category);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
@@ -864,6 +890,16 @@ public class NH_State
 				data.horizontal = horizontal;
 				if (isContextual && widget.getContentView() instanceof ContextualActionBarView) {
 					((ContextualActionBarView) widget.getContentView()).setOrientation(horizontal);
+				} else if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+					CmdRegistry.Category category = null;
+					if (data.category != null && !data.category.isEmpty()) {
+						try {
+							category = CmdRegistry.Category.valueOf(data.category);
+						} catch (IllegalArgumentException e) {
+							// Invalid category, use null
+						}
+					}
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal);
 				}
 				mWidgetLayout.saveLayout();
 			}
@@ -879,6 +915,57 @@ public class NH_State
 			public void onFontSizeChanged(int fontSize) {
 				data.fontSize = fontSize;
 				widget.setFontSize(fontSize);
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
+			public void onRowsChanged(int rows) {
+				data.rows = rows;
+				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+					CmdRegistry.Category category = null;
+					if (data.category != null && !data.category.isEmpty()) {
+						try {
+							category = CmdRegistry.Category.valueOf(data.category);
+						} catch (IllegalArgumentException e) {
+							// Invalid category, use null
+						}
+					}
+					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal);
+				}
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
+			public void onColumnsChanged(int columns) {
+				data.columns = columns;
+				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+					CmdRegistry.Category category = null;
+					if (data.category != null && !data.category.isEmpty()) {
+						try {
+							category = CmdRegistry.Category.valueOf(data.category);
+						} catch (IllegalArgumentException e) {
+							// Invalid category, use null
+						}
+					}
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal);
+				}
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
+			public void onCategoryChanged(String category) {
+				data.category = category;
+				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+					CmdRegistry.Category cat = null;
+					if (category != null && !category.isEmpty()) {
+						try {
+							cat = CmdRegistry.Category.valueOf(category);
+						} catch (IllegalArgumentException e) {
+							// Invalid category, use null
+						}
+					}
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal);
+				}
 				mWidgetLayout.saveLayout();
 			}
 
