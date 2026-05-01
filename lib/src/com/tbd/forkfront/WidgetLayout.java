@@ -76,12 +76,10 @@ public class WidgetLayout extends FrameLayout {
     }
 
     public void addWidget(ControlWidget widget) {
-        android.util.Log.d("WidgetLayout", "addWidget called: " + widget + ", type=" + widget.getWidgetData().type);
         if (!mWidgets.contains(widget)) {
             mWidgets.add(widget);
             addView(widget);
             widget.setEditMode(mEditMode);
-            android.util.Log.d("WidgetLayout", "Widget added to layout, total widgets: " + mWidgets.size());
 
             widget.setOnWidgetChangeListener(new ControlWidget.OnWidgetChangeListener() {
                 @Override
@@ -108,64 +106,48 @@ public class WidgetLayout extends FrameLayout {
     }
 
     public void saveLayout() {
+        String layoutKey = LayoutConfiguration.getCurrentLayoutKey(getContext());
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
         android.content.SharedPreferences.Editor editor = prefs.edit();
         
-        editor.putInt("widget_count", mWidgets.size());
+        String prefix = "layouts/" + layoutKey + "/";
+        
+        editor.putInt(prefix + "widget_count", mWidgets.size());
         for (int i = 0; i < mWidgets.size(); i++) {
             ControlWidget widget = mWidgets.get(i);
             ControlWidget.WidgetData data = widget.getWidgetData();
-            editor.putString("widget_" + i + "_type", data.type);
-            editor.putString("widget_" + i + "_label", data.label);
-            editor.putString("widget_" + i + "_command", data.command);
-            editor.putBoolean("widget_" + i + "_horizontal", data.horizontal);
-            editor.putFloat("widget_" + i + "_x", data.x);
-            editor.putFloat("widget_" + i + "_y", data.y);
-            editor.putInt("widget_" + i + "_w", data.w);
-            editor.putInt("widget_" + i + "_h", data.h);
-            editor.putInt("widget_" + i + "_opacity", data.opacity);
-            editor.putInt("widget_" + i + "_font_size", data.fontSize);
-            editor.putInt("widget_" + i + "_rows", data.rows);
-            editor.putInt("widget_" + i + "_columns", data.columns);
-            editor.putString("widget_" + i + "_category", data.category);
+            editor.putString(prefix + "widget_" + i + "_type", data.type);
+            editor.putString(prefix + "widget_" + i + "_label", data.label);
+            editor.putString(prefix + "widget_" + i + "_command", data.command);
+            editor.putBoolean(prefix + "widget_" + i + "_horizontal", data.horizontal);
+            editor.putFloat(prefix + "widget_" + i + "_x", data.x);
+            editor.putFloat(prefix + "widget_" + i + "_y", data.y);
+            editor.putInt(prefix + "widget_" + i + "_w", data.w);
+            editor.putInt(prefix + "widget_" + i + "_h", data.h);
+            editor.putInt(prefix + "widget_" + i + "_opacity", data.opacity);
+            editor.putInt(prefix + "widget_" + i + "_font_size", data.fontSize);
+            editor.putInt(prefix + "widget_" + i + "_rows", data.rows);
+            editor.putInt(prefix + "widget_" + i + "_columns", data.columns);
+            editor.putString(prefix + "widget_" + i + "_category", data.category);
         }
         editor.apply();
     }
 
     public void loadLayout() {
-        android.util.Log.d("WidgetLayout", "loadLayout called");
-        // Clear existing dynamic widgets but keep XML children
-        for (ControlWidget w : mWidgets) {
-            removeView(w);
-        }
-        mWidgets.clear();
-
+        String layoutKey = LayoutConfiguration.getCurrentLayoutKey(getContext());
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
-        int count = prefs.getInt("widget_count", 0);
-        android.util.Log.d("WidgetLayout", "Loading " + count + " widgets from preferences");
-
-        for (int i = 0; i < count; i++) {
-            ControlWidget.WidgetData data = new ControlWidget.WidgetData();
-            data.type = prefs.getString("widget_" + i + "_type", "");
-            data.label = prefs.getString("widget_" + i + "_label", "");
-            data.command = prefs.getString("widget_" + i + "_command", "");
-            data.horizontal = prefs.getBoolean("widget_" + i + "_horizontal", true);
-            data.x = prefs.getFloat("widget_" + i + "_x", 0);
-            data.y = prefs.getFloat("widget_" + i + "_y", 0);
-            data.w = prefs.getInt("widget_" + i + "_w", 200);
-            data.h = prefs.getInt("widget_" + i + "_h", 200);
-            data.opacity = prefs.getInt("widget_" + i + "_opacity", 191); // Default 75%
-            data.fontSize = prefs.getInt("widget_" + i + "_font_size", 15);
-            data.rows = prefs.getInt("widget_" + i + "_rows", 3);
-            data.columns = prefs.getInt("widget_" + i + "_columns", 3);
-            data.category = prefs.getString("widget_" + i + "_category", null);
-
-            ControlWidget widget = createWidget(data);
-            if (widget != null) {
-                addWidget(widget);
-                widget.setWidgetData(data);
-                widget.setFontSize(data.fontSize);
-            }
+        
+        // Check for legacy layout (old "widget_count" key without "layouts/" prefix)
+        if (prefs.contains("widget_count") && !prefs.getBoolean("migrated_to_v3", false)) {
+            migrateLegacyLayout(prefs);
+        }
+        
+        String userLayoutKey = "layouts/" + layoutKey + "/widget_count";
+        
+        if (prefs.contains(userLayoutKey)) {
+            loadUserLayout(layoutKey, prefs);
+        } else {
+            loadStockLayout(layoutKey);
         }
     }
 
@@ -260,5 +242,204 @@ public class WidgetLayout extends FrameLayout {
             }
         }
         return null;
+    }
+
+    /**
+     * Load user's customized layout from SharedPreferences.
+     */
+    private void loadUserLayout(String layoutKey, android.content.SharedPreferences prefs) {
+        // Clear existing widgets
+        for (ControlWidget w : mWidgets) {
+            removeView(w);
+        }
+        mWidgets.clear();
+        
+        String prefix = "layouts/" + layoutKey + "/";
+        int count = prefs.getInt(prefix + "widget_count", 0);
+        
+        for (int i = 0; i < count; i++) {
+            ControlWidget.WidgetData data = new ControlWidget.WidgetData();
+            data.type = prefs.getString(prefix + "widget_" + i + "_type", "");
+            data.label = prefs.getString(prefix + "widget_" + i + "_label", "");
+            data.command = prefs.getString(prefix + "widget_" + i + "_command", "");
+            data.horizontal = prefs.getBoolean(prefix + "widget_" + i + "_horizontal", true);
+            data.x = prefs.getFloat(prefix + "widget_" + i + "_x", 0);
+            data.y = prefs.getFloat(prefix + "widget_" + i + "_y", 0);
+            data.w = prefs.getInt(prefix + "widget_" + i + "_w", 200);
+            data.h = prefs.getInt(prefix + "widget_" + i + "_h", 200);
+            data.opacity = prefs.getInt(prefix + "widget_" + i + "_opacity", 191);
+            data.fontSize = prefs.getInt(prefix + "widget_" + i + "_font_size", 15);
+            data.rows = prefs.getInt(prefix + "widget_" + i + "_rows", 3);
+            data.columns = prefs.getInt(prefix + "widget_" + i + "_columns", 3);
+            data.category = prefs.getString(prefix + "widget_" + i + "_category", null);
+            
+            ControlWidget widget = createWidget(data);
+            if (widget != null) {
+                widget.setWidgetData(data);
+                widget.setFontSize(data.fontSize);
+                addWidget(widget);
+            }
+        }
+        requestLayout();
+    }
+
+    /**
+     * Load stock layout from assets and evaluate to absolute positions.
+     */
+    private void loadStockLayout(String layoutKey) {
+        // Clear existing widgets
+        for (ControlWidget w : mWidgets) {
+            removeView(w);
+        }
+        mWidgets.clear();
+        
+        // Check if stock layout exists
+        if (!LayoutConfiguration.hasStockLayout(getContext(), layoutKey)) {
+            return;
+        }
+        
+        // Evaluate stock layout to absolute positions
+        StockLayoutEvaluator evaluator = new StockLayoutEvaluator(getContext());
+        List<ControlWidget.WidgetData> stockWidgets = evaluator.evaluateStockLayout(layoutKey);
+        
+        if (stockWidgets == null) {
+            return;
+        }
+        
+        // Create widgets from evaluated positions
+        for (ControlWidget.WidgetData data : stockWidgets) {
+            ControlWidget widget = createWidget(data);
+            if (widget != null) {
+                widget.setWidgetData(data);
+                widget.setFontSize(data.fontSize);
+                addWidget(widget);
+            }
+        }
+        requestLayout();
+    }
+
+    /**
+     * Reloads the appropriate layout for the new orientation.
+     * Called by NH_State when configuration changes, not by Android framework.
+     */
+    public void reloadForNewOrientation(android.content.res.Configuration newConfig) {
+        // Save current layout if in edit mode (preserve unsaved changes)
+        if (mEditMode) {
+            saveLayout();
+        }
+        
+        // Reload layout for new orientation
+        loadLayout();
+        
+        // Restore edit mode if it was active
+        if (mEditMode) {
+            setEditMode(true);
+        }
+    }
+
+    /**
+     * Reset the current orientation's layout to stock default.
+     * Deletes user customizations for the current orientation only.
+     */
+    public void resetToDefault() {
+        String layoutKey = LayoutConfiguration.getCurrentLayoutKey(getContext());
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        
+        String prefix = "layouts/" + layoutKey + "/";
+        
+        // Remove all user customizations for this layout
+        int count = prefs.getInt(prefix + "widget_count", 0);
+        for (int i = 0; i < count; i++) {
+            editor.remove(prefix + "widget_" + i + "_type");
+            editor.remove(prefix + "widget_" + i + "_label");
+            editor.remove(prefix + "widget_" + i + "_command");
+            editor.remove(prefix + "widget_" + i + "_horizontal");
+            editor.remove(prefix + "widget_" + i + "_x");
+            editor.remove(prefix + "widget_" + i + "_y");
+            editor.remove(prefix + "widget_" + i + "_w");
+            editor.remove(prefix + "widget_" + i + "_h");
+            editor.remove(prefix + "widget_" + i + "_opacity");
+            editor.remove(prefix + "widget_" + i + "_font_size");
+            editor.remove(prefix + "widget_" + i + "_rows");
+            editor.remove(prefix + "widget_" + i + "_columns");
+            editor.remove(prefix + "widget_" + i + "_category");
+        }
+        editor.remove(prefix + "widget_count");
+        editor.apply();
+        
+        // Reload stock layout
+        loadLayout();
+    }
+
+    /**
+     * Migrate legacy single-layout format to new orientation-based format.
+     * Copies the old layout to "layouts/portrait/" and sets migration flag.
+     */
+    private void migrateLegacyLayout(android.content.SharedPreferences prefs) {
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        
+        int count = prefs.getInt("widget_count", 0);
+        if (count == 0) {
+            // No legacy layout to migrate
+            editor.putBoolean("migrated_to_v3", true);
+            editor.apply();
+            return;
+        }
+        
+        // Copy to portrait layout (assume user set up in portrait)
+        String prefix = "layouts/portrait/";
+        editor.putInt(prefix + "widget_count", count);
+        
+        for (int i = 0; i < count; i++) {
+            // Copy each widget property
+            String type = prefs.getString("widget_" + i + "_type", "");
+            String label = prefs.getString("widget_" + i + "_label", "");
+            String command = prefs.getString("widget_" + i + "_command", "");
+            boolean horizontal = prefs.getBoolean("widget_" + i + "_horizontal", true);
+            float x = prefs.getFloat("widget_" + i + "_x", 0);
+            float y = prefs.getFloat("widget_" + i + "_y", 0);
+            int w = prefs.getInt("widget_" + i + "_w", 200);
+            int h = prefs.getInt("widget_" + i + "_h", 200);
+            int opacity = prefs.getInt("widget_" + i + "_opacity", 191);
+            int fontSize = prefs.getInt("widget_" + i + "_font_size", 15);
+            int rows = prefs.getInt("widget_" + i + "_rows", 3);
+            int columns = prefs.getInt("widget_" + i + "_columns", 3);
+            String category = prefs.getString("widget_" + i + "_category", null);
+            
+            editor.putString(prefix + "widget_" + i + "_type", type);
+            editor.putString(prefix + "widget_" + i + "_label", label);
+            editor.putString(prefix + "widget_" + i + "_command", command);
+            editor.putBoolean(prefix + "widget_" + i + "_horizontal", horizontal);
+            editor.putFloat(prefix + "widget_" + i + "_x", x);
+            editor.putFloat(prefix + "widget_" + i + "_y", y);
+            editor.putInt(prefix + "widget_" + i + "_w", w);
+            editor.putInt(prefix + "widget_" + i + "_h", h);
+            editor.putInt(prefix + "widget_" + i + "_opacity", opacity);
+            editor.putInt(prefix + "widget_" + i + "_font_size", fontSize);
+            editor.putInt(prefix + "widget_" + i + "_rows", rows);
+            editor.putInt(prefix + "widget_" + i + "_columns", columns);
+            editor.putString(prefix + "widget_" + i + "_category", category);
+            
+            // Remove old keys
+            editor.remove("widget_" + i + "_type");
+            editor.remove("widget_" + i + "_label");
+            editor.remove("widget_" + i + "_command");
+            editor.remove("widget_" + i + "_horizontal");
+            editor.remove("widget_" + i + "_x");
+            editor.remove("widget_" + i + "_y");
+            editor.remove("widget_" + i + "_w");
+            editor.remove("widget_" + i + "_h");
+            editor.remove("widget_" + i + "_opacity");
+            editor.remove("widget_" + i + "_font_size");
+            editor.remove("widget_" + i + "_rows");
+            editor.remove("widget_" + i + "_columns");
+            editor.remove("widget_" + i + "_category");
+        }
+        
+        // Remove old count key and set migration flag
+        editor.remove("widget_count");
+        editor.putBoolean("migrated_to_v3", true);
+        editor.apply();
     }
 }

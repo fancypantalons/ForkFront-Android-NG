@@ -146,129 +146,34 @@ public class NH_State
 		if (mWidgetLayout != null) {
 			mWidgetLayout.setNHState(this);
 
-			// Initialize default widgets if it's the first run of the new system (BEFORE loadLayout)
-			SharedPreferences ffPrefs = activity.getSharedPreferences("forkfront_ui", Context.MODE_PRIVATE);
-			android.util.Log.d("NH_State", "Checking initialization flag: " + ffPrefs.getBoolean("initialized_v2", false));
-			if (!ffPrefs.getBoolean("initialized_v2", false)) {
-				android.util.Log.d("NH_State", "Initializing default widgets");
-				android.util.DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
-				float density = metrics.density;
-				int dpadSize = (int)(180 * density);
-				int btnW = (int)(100 * density);
-				int btnH = (int)(60 * density);
-				int screenWidth = metrics.widthPixels;
-
-				// Get status bar height to avoid overlap
-				int statusBarHeight = 0;
-				int resourceId = activity.getResources().getIdentifier("status_bar_height", "dimen", "android");
-				if (resourceId > 0) {
-					statusBarHeight = activity.getResources().getDimensionPixelSize(resourceId);
-				}
-				android.util.Log.d("NH_State", "Screen width: " + screenWidth + ", density: " + density + ", statusBarHeight: " + statusBarHeight);
-
-				// Add Default Status Widget below status bar
-				ControlWidget.WidgetData statusData = new ControlWidget.WidgetData();
-				statusData.type = "status";
-				statusData.x = 0;
-				statusData.y = statusBarHeight; // Below Android status bar
-				statusData.w = screenWidth;
-				statusData.h = (int)(60 * density); // Two lines of status
-				android.util.Log.d("NH_State", "Creating StatusWidget: w=" + statusData.w + ", h=" + statusData.h + ", y=" + statusData.y);
-
-				StatusWidget statusWidget = new StatusWidget(activity, mStatus);
-				statusWidget.setWidgetData(statusData);
-				statusWidget.setPlaceholderText("Status Window");
-				android.util.Log.d("NH_State", "Adding StatusWidget to layout");
-				mWidgetLayout.addWidget(statusWidget);
-
-				// Add Default Message Widget below status
-				ControlWidget.WidgetData messageData = new ControlWidget.WidgetData();
-				messageData.type = "message";
-				messageData.x = 0;
-				messageData.y = statusBarHeight + (int)(60 * density); // Below status widget
-				messageData.w = screenWidth;
-				messageData.h = (int)(80 * density); // Room for 3 message lines + --More--
-
-				MessageWidget messageWidget = new MessageWidget(activity, mMessage);
-				messageWidget.setWidgetData(messageData);
-				messageWidget.setPlaceholderText("Message Window");
-				mWidgetLayout.addWidget(messageWidget);
-
-				// Add Default D-Pad
-				ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
-				dpadData.type = "dpad";
-				dpadData.x = 20 * density;
-				dpadData.y = statusBarHeight + (int)(200 * density); // Below status and messages
-				dpadData.w = dpadSize;
-				dpadData.h = dpadSize;
-
-				ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
-				dpadWidget.setWidgetData(dpadData);
-				mWidgetLayout.addWidget(dpadWidget);
-
-				// Add Default Search Button
-				ControlWidget.WidgetData searchData = new ControlWidget.WidgetData();
-				searchData.type = "button";
-				searchData.label = "Search";
-				searchData.command = "s";
-				searchData.x = 250 * density;
-				searchData.y = statusBarHeight + (int)(200 * density); // Below status and messages
-				searchData.w = btnW;
-				searchData.h = btnH;
-
-				MaterialButton searchBtn = new MaterialButton(activity);
-				searchBtn.setText("Search");
-				searchBtn.setOnClickListener(v -> sendKeyCmd('s'));
-				ControlWidget searchWidget = new ControlWidget(activity, searchBtn, "button");
-				searchWidget.setWidgetData(searchData);
-				// Buttons have labels, but we can set placeholder too if we want
-				mWidgetLayout.addWidget(searchWidget);
-
-				// Add Default Contextual Action Bar
-				ControlWidget.WidgetData contextualData = new ControlWidget.WidgetData();
-				contextualData.type = "contextual";
-				contextualData.horizontal = true;
-				contextualData.x = 0;
-				contextualData.y = statusBarHeight + (int)(140 * density); // Below status and messages
-				contextualData.w = screenWidth;
-				contextualData.h = (int)(50 * density);
-
-				ContextualActionBarView contextualView = new ContextualActionBarView(activity);
-				contextualView.setOrientation(true);
-				contextualView.setOnActionSelectedListener(cmd -> {
-					if (!isEditMode()) {
-						if (cmd.getCommand().startsWith("#")) {
-							sendStringCmd(cmd.getCommand() + "\n");
-						} else {
-							sendKeyCmd(cmd.getCommand().charAt(0));
-						}
-					}
-				});
-				contextualView.updateActions(null);
-				ControlWidget contextualWidget = new ControlWidget(activity, contextualView, "contextual");
-				contextualWidget.setWidgetData(contextualData);
-				contextualWidget.setPlaceholderText("Contextual Bar");
-				mWidgetLayout.addWidget(contextualWidget);
-
-				ffPrefs.edit().putBoolean("initialized_v2", true).apply();
-				mWidgetLayout.saveLayout();
-			}
-
-			// Now load the layout (which will either load saved layout or use the defaults we just created)
+			// Load layout (will use stock layout if user hasn't customized)
 			mWidgetLayout.loadLayout();
 
 			// Setup UI buttons
-			View emergencySettings = activity.findViewById(R.id.emergency_settings);
-			if (emergencySettings != null) {
-				emergencySettings.setOnClickListener(v -> startPreferences());
-			}
-
 			View btnAdd = activity.findViewById(R.id.btn_add_widget);
 			if (btnAdd != null) {
 				btnAdd.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
 				btnAdd.setOnClickListener(v -> {
 					if (mActivity != null) {
 						showAddWidgetDialog(mActivity);
+					}
+				});
+			}
+
+			View btnReset = activity.findViewById(R.id.btn_reset_layout);
+			if (btnReset != null) {
+				btnReset.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
+				btnReset.setOnClickListener(v -> {
+					if (mWidgetLayout != null) {
+						// Show confirmation dialog
+						new androidx.appcompat.app.AlertDialog.Builder(mActivity)
+								.setTitle(R.string.reset_layout_confirm_title)
+								.setMessage(R.string.reset_layout_confirm_message)
+								.setPositiveButton(R.string.reset_layout_positive, (dialog, which) -> {
+									mWidgetLayout.resetToDefault();
+								})
+								.setNegativeButton(R.string.cancel, null)
+								.show();
 					}
 				});
 			}
@@ -287,6 +192,7 @@ public class NH_State
 			}
 			if (btnSettings != null) {
 				btnSettings.setVisibility(isEditMode() ? View.GONE : View.VISIBLE);
+				btnSettings.setOnClickListener(v -> startPreferences());
 			}
 		}
 		if (mMap != null) {
@@ -334,9 +240,11 @@ public class NH_State
 			showKeyboard();
 		}
 
-		/*if (mWidgetLayout != null) {
-			mWidgetLayout.setOrientation(newConfig.orientation);
-		}*/
+		// Reload widget layout for new orientation
+		if (mWidgetLayout != null) {
+			mWidgetLayout.reloadForNewOrientation(newConfig);
+			updateContextualActions();
+		}
 
 		// Forward configuration changes to map for adaptive tile scaling
 		if(mMap != null)
@@ -693,7 +601,7 @@ public class NH_State
 	public void showAddWidgetDialog(AppCompatActivity activity) {
 		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Command Palette", "Status Window", "Message Window", "Minimap"};
 		new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-			.setTitle("Add Widget")
+				.setTitle(R.string.add_widget)
 			.setItems(options, (dialog, which) -> {
 				if (which == 0) {
 					addDPadWidget(activity);
@@ -1100,6 +1008,10 @@ public class NH_State
 			View btnAdd = mActivity.findViewById(R.id.btn_add_widget);
 			if (btnAdd != null) {
 				btnAdd.setVisibility(enabled ? View.VISIBLE : View.GONE);
+			}
+			View btnReset = mActivity.findViewById(R.id.btn_reset_layout);
+			if (btnReset != null) {
+				btnReset.setVisibility(enabled ? View.VISIBLE : View.GONE);
 			}
 			View btnSave = mActivity.findViewById(R.id.btn_save_layout);
 			if (btnSave != null) {
