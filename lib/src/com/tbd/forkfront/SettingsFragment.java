@@ -61,6 +61,18 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             });
         }
 
+        Preference editOverlay = findPreference("edit_overlay_action");
+        if (editOverlay != null) {
+            editOverlay.setOnPreferenceClickListener(preference -> {
+                // Set edit mode flag and close settings
+                SharedPreferences.Editor editor = getPreferenceManager().getSharedPreferences().edit();
+                editor.putBoolean("edit_mode", true);
+                editor.apply();
+                requireActivity().finish();
+                return true;
+            });
+        }
+
         updateTilesetVisibility();
 
         if(!getContext().getResources().getBoolean(R.bool.hearseAvailable)) {

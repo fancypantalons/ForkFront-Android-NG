@@ -163,7 +163,23 @@ public class NH_State
 					}
 				});
 			}
-			
+
+			View btnSave = activity.findViewById(R.id.btn_save_layout);
+			View btnSettings = activity.findViewById(R.id.emergency_settings);
+			if (btnSave != null) {
+				btnSave.setVisibility(isEditMode() ? View.VISIBLE : View.GONE);
+				btnSave.setOnClickListener(v -> {
+					// Save layout and exit edit mode
+					if (mWidgetLayout != null) {
+						mWidgetLayout.saveLayout();
+					}
+					setEditMode(false);
+				});
+			}
+			if (btnSettings != null) {
+				btnSettings.setVisibility(isEditMode() ? View.GONE : View.VISIBLE);
+			}
+
 			// Initialize default widgets if it's the first run of the new system
 			SharedPreferences ffPrefs = activity.getSharedPreferences("forkfront_ui", Context.MODE_PRIVATE);
 			if (!ffPrefs.getBoolean("initialized_v2", false)) {
@@ -867,6 +883,14 @@ public class NH_State
 			View btnAdd = mActivity.findViewById(R.id.btn_add_widget);
 			if (btnAdd != null) {
 				btnAdd.setVisibility(enabled ? View.VISIBLE : View.GONE);
+			}
+			View btnSave = mActivity.findViewById(R.id.btn_save_layout);
+			if (btnSave != null) {
+				btnSave.setVisibility(enabled ? View.VISIBLE : View.GONE);
+			}
+			View btnSettings = mActivity.findViewById(R.id.emergency_settings);
+			if (btnSettings != null) {
+				btnSettings.setVisibility(enabled ? View.GONE : View.VISIBLE);
 			}
 		}
 	}
