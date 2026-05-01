@@ -231,6 +231,12 @@ public class WidgetLayout extends FrameLayout {
                 w.setPlaceholderText("Message Window");
                 return w;
             }
+        } else if ("minimap".equals(data.type)) {
+            if (mNHState != null && mNHState.getMapWindow() != null && mNHState.getTileset() != null) {
+                ControlWidget w = new MinimapWidget(getContext(), mNHState.getMapWindow(), mNHState.getTileset());
+                w.setPlaceholderText("Minimap");
+                return w;
+            }
         }
         return null;
     }
