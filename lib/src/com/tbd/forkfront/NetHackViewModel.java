@@ -124,16 +124,12 @@ public class NetHackViewModel extends ViewModel {
     public void runOnActivity(Runnable operation) {
         synchronized (this) {
             if (mCurrentActivity != null && !mCurrentActivity.isFinishing()) {
-                // Post to UI thread even if already attached
                 mCurrentActivity.runOnUiThread(operation);
                 Log.d(TAG, "Posted UI operation to current Activity");
-            } else {
-                // Queue for when Activity becomes available
-                synchronized (mPendingUIOperations) {
-                    mPendingUIOperations.add(operation);
-                    Log.d(TAG, "Queued UI operation (queue depth: " + mPendingUIOperations.size() + ")");
-                }
+                return;
             }
+            mPendingUIOperations.add(operation);
+            Log.d(TAG, "Queued UI operation (queue depth: " + mPendingUIOperations.size() + ")");
         }
     }
 

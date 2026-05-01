@@ -147,18 +147,18 @@ public class NH_State
 		if(mUiContextArbiter != null) mUiContextArbiter.remove(ctx);
 	}
 
-	public NH_Window topVisibleWindow()
-	{
-		for(int i = mWindows.size() - 1; i >= 0; i--)
-		{
-			NH_Window w = mWindows.get(i);
-			if (w instanceof NHW_Map || w instanceof NHW_Message || w instanceof NHW_Status)
-				continue;
-			if(w.isVisible())
-				return w;
-		}
-		return null;
-	}
+    public NH_Window topVisibleWindow()
+    {
+        for(int i = mWindows.size() - 1; i >= 0; i--)
+        {
+            NH_Window w = mWindows.get(i);
+            if (isSystemWindow(w))
+                continue;
+            if(w.isVisible())
+                return w;
+        }
+        return null;
+    }
 
 	// ____________________________________________________________________________________
 	public UiCapture getGameUiCapture() {
@@ -685,29 +685,23 @@ public class NH_State
 		showAddWidgetDialogForLayout(activity, mPrimaryWidgetLayout);
 	}
 
-	public void showAddWidgetDialogForLayout(AppCompatActivity activity, final WidgetLayout layout) {
-		String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Command Palette", "Status Window", "Message Window", "Minimap"};
-		new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-				.setTitle(R.string.add_widget)
-			.setItems(options, (dialog, which) -> {
-				if (which == 0) {
-					addDPadWidgetForLayout(activity, layout);
-				} else if (which == 1) {
-					showCommandPaletteForLayout(activity, layout);
-				} else if (which == 2) {
-					addPaletteWidgetForLayout(activity, layout);
-				} else if (which == 3) {
-					addCommandPaletteWidgetForLayout(activity, layout);
-				} else if (which == 4) {
-					addStatusWidgetForLayout(activity, layout);
-				} else if (which == 5) {
-					addMessageWidgetForLayout(activity, layout);
-				} else {
-					addMinimapWidgetForLayout(activity, layout);
-				}
-			})
-			.show();
-	}
+    public void showAddWidgetDialogForLayout(AppCompatActivity activity, final WidgetLayout layout) {
+        String[] options = {"Directional Pad", "Custom Action Button", "Command List", "Command Palette", "Status Window", "Message Window", "Minimap"};
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+                .setTitle(R.string.add_widget)
+            .setItems(options, (dialog, which) -> {
+                switch (which) {
+                    case 0:  addDPadWidgetForLayout(activity, layout); break;
+                    case 1:  showCommandPaletteForLayout(activity, layout); break;
+                    case 2:  addPaletteWidgetForLayout(activity, layout); break;
+                    case 3:  addCommandPaletteWidgetForLayout(activity, layout); break;
+                    case 4:  addStatusWidgetForLayout(activity, layout); break;
+                    case 5:  addMessageWidgetForLayout(activity, layout); break;
+                    case 6:  addMinimapWidgetForLayout(activity, layout); break;
+                }
+            })
+            .show();
+    }
 
 	private void addPaletteWidget(AppCompatActivity activity) {
 		addPaletteWidgetForLayout(activity, mPrimaryWidgetLayout);
@@ -863,24 +857,14 @@ public class NH_State
 
 	            MaterialButton btn = ThemeUtils.createButtonText(activity);
 	            btn.setText(data.label);
-	            btn.setOnClickListener(v -> {
-	                if (cmd.getCommand().startsWith("#")) {
-	                    sendStringCmd(cmd.getCommand() + "\n");
-	                } else {
-	                    sendKeyCmd(cmd.getCommand().charAt(0));
-	                }
-	            });
+            btn.setOnClickListener(v -> executeCommand(cmd));
 
 	            ControlWidget widget = new ControlWidget(activity, btn, "button");
 	            widget.setWidgetData(data);
 	            layout.addWidget(widget);
-	        } else {
-	            if (cmd.getCommand().startsWith("#")) {
-	                sendStringCmd(cmd.getCommand() + "\n");
-	            } else {
-	                sendKeyCmd(cmd.getCommand().charAt(0));
-	            }
-	        }
+        } else {
+            executeCommand(cmd);
+        }
 	    });
 	}
 
@@ -912,15 +896,7 @@ public class NH_State
 			public void onOrientationChanged(boolean horizontal) {
 				data.horizontal = horizontal;
 				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
-					CmdRegistry.Category category = null;
-					if (data.category != null && !data.category.isEmpty()) {
-						try {
-							category = CmdRegistry.Category.valueOf(data.category);
-						} catch (IllegalArgumentException e) {
-							// Invalid category, use null
-						}
-					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal, data.contextualOnly, data.pinnedCommands);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, parseCategory(data.category), horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
@@ -943,15 +919,7 @@ public class NH_State
 			public void onRowsChanged(int rows) {
 				data.rows = rows;
 				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
-					CmdRegistry.Category category = null;
-					if (data.category != null && !data.category.isEmpty()) {
-						try {
-							category = CmdRegistry.Category.valueOf(data.category);
-						} catch (IllegalArgumentException e) {
-							// Invalid category, use null
-						}
-					}
-					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal, data.contextualOnly, data.pinnedCommands);
+					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, parseCategory(data.category), data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
@@ -960,15 +928,7 @@ public class NH_State
 			public void onColumnsChanged(int columns) {
 				data.columns = columns;
 				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
-					CmdRegistry.Category category = null;
-					if (data.category != null && !data.category.isEmpty()) {
-						try {
-							category = CmdRegistry.Category.valueOf(data.category);
-						} catch (IllegalArgumentException e) {
-							// Invalid category, use null
-						}
-					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal, data.contextualOnly, data.pinnedCommands);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, parseCategory(data.category), data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
@@ -977,15 +937,7 @@ public class NH_State
 			public void onCategoryChanged(String category) {
 				data.category = category;
 				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
-					CmdRegistry.Category cat = null;
-					if (category != null && !category.isEmpty()) {
-						try {
-							cat = CmdRegistry.Category.valueOf(category);
-						} catch (IllegalArgumentException e) {
-							// Invalid category, use null
-						}
-					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly, data.pinnedCommands);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, parseCategory(category), data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
@@ -994,15 +946,7 @@ public class NH_State
 			public void onContextualOnlyChanged(boolean contextualOnly) {
 				data.contextualOnly = contextualOnly;
 				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
-					CmdRegistry.Category cat = null;
-					if (data.category != null && !data.category.isEmpty()) {
-						try {
-							cat = CmdRegistry.Category.valueOf(data.category);
-						} catch (IllegalArgumentException e) {
-							// Invalid category, use null
-						}
-					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, contextualOnly, data.pinnedCommands);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, parseCategory(data.category), data.horizontal, contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
@@ -1011,15 +955,7 @@ public class NH_State
 			public void onPinnedCommandsChanged(java.util.Set<String> pinnedCommands) {
 				data.pinnedCommands = pinnedCommands;
 				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
-					CmdRegistry.Category cat = null;
-					if (data.category != null && !data.category.isEmpty()) {
-						try {
-							cat = CmdRegistry.Category.valueOf(data.category);
-						} catch (IllegalArgumentException e) {
-							// Invalid category, use null
-						}
-					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly, pinnedCommands);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, parseCategory(data.category), data.horizontal, data.contextualOnly, pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
@@ -1133,49 +1069,20 @@ public class NH_State
 		}
 	}
 	// ____________________________________________________________________________________
-	public void setEditMode(boolean enabled)
-	{
-		if (enabled) {
-			if (mPrimaryWidgetLayout != null) {
-				mPrimaryWidgetLayout.enterEditMode();
-				mPrimaryWidgetLayout.loadLayout();
-				mPrimaryWidgetLayout.setEditMode(true);
-			}
-			if (mSecondaryWidgetLayout != null) {
-				mSecondaryWidgetLayout.enterEditMode();
-				mSecondaryWidgetLayout.loadLayout();
-				mSecondaryWidgetLayout.setEditMode(true);
-				if (mSecondaryWidgetLayout.getParent() instanceof View) {
-					View secondaryEditBar = ((View) mSecondaryWidgetLayout.getParent()).findViewById(R.id.secondary_edit_bar);
-					if (secondaryEditBar != null) {
-						secondaryEditBar.setVisibility(View.VISIBLE);
-					}
-				}
-			}
-		} else {
-			if (mPrimaryWidgetLayout != null) {
-				mPrimaryWidgetLayout.setEditMode(false);
-			}
-			if (mSecondaryWidgetLayout != null) {
-				mSecondaryWidgetLayout.setEditMode(false);
-				if (mSecondaryWidgetLayout.getParent() instanceof View) {
-					View secondaryEditBar = ((View) mSecondaryWidgetLayout.getParent()).findViewById(R.id.secondary_edit_bar);
-					if (secondaryEditBar != null) {
-						secondaryEditBar.setVisibility(View.GONE);
-					}
-				}
-			}
-		}
-		if (mActivity instanceof ForkFront) {
-			((ForkFront) mActivity).setDrawerEditMode(enabled);
-		}
-		// Clear the edit_mode preference when disabling edit mode
-		if (!enabled) {
-			SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(mApp).edit();
-			editor.putBoolean("edit_mode", false);
-			editor.apply();
-		}
-	}
+    public void setEditMode(boolean enabled)
+    {
+        setLayoutEditMode(mPrimaryWidgetLayout, enabled, false);
+        setLayoutEditMode(mSecondaryWidgetLayout, enabled, true);
+
+        if (mActivity instanceof ForkFront) {
+            ((ForkFront) mActivity).setDrawerEditMode(enabled);
+        }
+        if (!enabled) {
+            PreferenceManager.getDefaultSharedPreferences(mApp).edit()
+                .putBoolean("edit_mode", false)
+                .apply();
+        }
+    }
 
 	public void saveLayoutAndExitEditMode()
 	{
@@ -1283,8 +1190,62 @@ public class NH_State
 		mViewModel = viewModel;
 	}
 
-	// ____________________________________________________________________________________
-	private NH_Handler NhHandler = new NH_Handler() {
+    private static CmdRegistry.Category parseCategory(String category) {
+        if (category == null || category.isEmpty()) {
+            return null;
+        }
+        try {
+            return CmdRegistry.Category.valueOf(category);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static ControlWidget findDpadWidget(WidgetLayout layout) {
+        if (layout == null) return null;
+        for (int i = 0; i < layout.getChildCount(); i++) {
+            View child = layout.getChildAt(i);
+            if (child instanceof ControlWidget) {
+                ControlWidget cw = (ControlWidget) child;
+                if ("dpad".equals(cw.getWidgetData().type)) {
+                    return cw;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void executeCommand(CmdRegistry.CmdInfo cmd) {
+        String command = cmd.getCommand();
+        if (command.startsWith("#")) {
+            sendStringCmd(command + "\n");
+        } else if (!command.isEmpty()) {
+            sendKeyCmd(command.charAt(0));
+        }
+    }
+
+    private static boolean isSystemWindow(NH_Window w) {
+        return w instanceof NHW_Map || w instanceof NHW_Message || w instanceof NHW_Status;
+    }
+
+    private void setLayoutEditMode(WidgetLayout layout, boolean enabled, boolean showEditBar) {
+        if (layout == null) return;
+        if (enabled) {
+            layout.enterEditMode();
+            layout.loadLayout();
+        }
+        layout.setEditMode(enabled);
+
+        if (showEditBar && layout.getParent() instanceof View) {
+            View bar = ((View) layout.getParent()).findViewById(R.id.secondary_edit_bar);
+            if (bar != null) {
+                bar.setVisibility(enabled ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    // ____________________________________________________________________________________
+    private NH_Handler NhHandler = new NH_Handler() {
 		@Override
 		public void setLastUsername(String username) {
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
@@ -1469,13 +1430,17 @@ public class NH_State
 		}
 
 		// ____________________________________________________________________________________
-		@Override
-		public void destroyWindow(final int wid)
-		{
-			int i = getWindowI(wid);
-			mWindows.get(i).destroy();
-			mWindows.remove(i);
-		}
+        @Override
+        public void destroyWindow(final int wid)
+        {
+            int i = getWindowI(wid);
+            if (i < 0) {
+                Log.print("destroyWindow: unknown wid " + wid);
+                return;
+            }
+            mWindows.get(i).destroy();
+            mWindows.remove(i);
+        }
 
 		// ____________________________________________________________________________________
 		@Override
@@ -1558,42 +1523,25 @@ public class NH_State
 		}
 
 		// ____________________________________________________________________________________
-		@Override
-		public void highlightDPad()
-		{
-			mIsDPadActive = true;
-			if (mViewModel != null) {
-				mViewModel.runOnActivity(() -> {
-					if (mActivity != null && (mPrimaryWidgetLayout != null || mSecondaryWidgetLayout != null)) {
-						// Check if we already have a D-pad on screen
-						ControlWidget existingDPad = null;
-						if (mPrimaryWidgetLayout != null) {
-							for (int i = 0; i < mPrimaryWidgetLayout.getChildCount(); i++) {
-								View child = mPrimaryWidgetLayout.getChildAt(i);
-								if (child instanceof ControlWidget && "dpad".equals(((ControlWidget) child).getWidgetData().type)) {
-									existingDPad = (ControlWidget) child;
-									break;
-								}
-							}
-						}
-						if (existingDPad == null && mSecondaryWidgetLayout != null) {
-							for (int i = 0; i < mSecondaryWidgetLayout.getChildCount(); i++) {
-								View child = mSecondaryWidgetLayout.getChildAt(i);
-								if (child instanceof ControlWidget && "dpad".equals(((ControlWidget) child).getWidgetData().type)) {
-									existingDPad = (ControlWidget) child;
-									break;
-								}
-							}
-						}
+        @Override
+        public void highlightDPad()
+        {
+            mIsDPadActive = true;
+            if (mViewModel != null) {
+                mViewModel.runOnActivity(() -> {
+                    if (mActivity != null && (mPrimaryWidgetLayout != null || mSecondaryWidgetLayout != null)) {
+                        ControlWidget existingDPad = findDpadWidget(mPrimaryWidgetLayout);
+                        if (existingDPad == null) {
+                            existingDPad = findDpadWidget(mSecondaryWidgetLayout);
+                        }
 
-						if (existingDPad != null) {
-							// Pulse existing D-pad to draw attention
-							existingDPad.pulseAttention();
-						}
-					}
-				});
-			}
-		}
+                        if (existingDPad != null) {
+                            existingDPad.pulseAttention();
+                        }
+                    }
+                });
+            }
+        }
 
 		// ____________________________________________________________________________________
 		@Override

@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import android.app.Application;
 import android.os.Environment;
@@ -20,8 +22,9 @@ public class NetHackIO
 	private final ConcurrentLinkedQueue<Cmd> mCmdQue;
 	private int mNextWinId;
 	private int mMessageWid;
-	private volatile Integer mIsReady = 0;
-	private final Object mReadyMonitor = new Object();
+    private volatile int mIsReady;
+    private final Object mReadyMonitor = new Object();
+    private volatile CountDownLatch mSaveStateLatch;
 	private String mDataDir;
 
 	// ____________________________________________________________________________________ //
@@ -187,45 +190,34 @@ public class NetHackIO
 	}
 
 	// ____________________________________________________________________________________
-	public void saveState()
-	{
-		mCmdQue.add(new SaveStateCmd());
-		// give it some time
-		for(int i = 0; i < 5; i++)
-		{
-			try
-			{
-				Thread.sleep(150);
-				break;
-			}
-			catch(InterruptedException e)
-			{
-			}
-		}
-	}
+    public synchronized void saveState()
+    {
+        CountDownLatch latch = new CountDownLatch(1);
+        mSaveStateLatch = latch;
+        mCmdQue.add(new SaveStateCmd());
+        try {
+            latch.await(750, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
 	// ____________________________________________________________________________________
-	public void saveAndQuit()
-	{
-		// send a few abort commands to cancel ongoing operations
-		sendAbortCmd();
-		sendAbortCmd();
-		sendAbortCmd();
-		sendAbortCmd();
+    public void saveAndQuit()
+    {
+        for (int i = 0; i < 4; i++) {
+            sendAbortCmd();
+        }
+        sleepQuietly(150);
+    }
 
-		// give it some time
-		for(int i = 0; i < 5; i++)
-		{
-			try
-			{
-				Thread.sleep(150);
-				break;
-			}
-			catch(InterruptedException e)
-			{
-			}
-		}
-	}
+    private static void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
 	// ____________________________________________________________________________________
 	public void waitReady()
@@ -261,47 +253,53 @@ public class NetHackIO
 	}
 
 	// ____________________________________________________________________________________
-	private Runnable ThreadMain = new Runnable()
-	{
-		@Override
-		public void run()
-		{
-			Log.print("start native process");
+    private Runnable ThreadMain = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            Log.print("start native process");
 
-			try
-			{
-				System.loadLibrary(mLibraryName);
-				RunNetHack(mDataDir);
-			}
-			catch(Exception e)
-			{
-				Log.print("EXCEPTED");
-			}
-			Log.print("native process finished");
-			System.exit(0);
-		}
-	};
-
-	// ____________________________________________________________________________________
-	public void sendKeyCmd(char key)
-	{
-		mNhHandler.hideDPad();
-		mCmdQue.add(new KeyCmd(key));
-	}
+            try
+            {
+                System.loadLibrary(mLibraryName);
+                RunNetHack(mDataDir);
+            }
+            catch(Exception e)
+            {
+                Log.print("Native thread exception: " + e.toString());
+            }
+            Log.print("native process finished");
+            System.exit(0);
+        }
+    };
 
 	// ____________________________________________________________________________________
-	public void sendDirKeyCmd(char key)
-	{
-		mNhHandler.hideDPad();
-		mCmdQue.add(new PosCmd(key));
-	}
+    public void sendKeyCmd(char key)
+    {
+        if (mNhHandler != null) {
+            mNhHandler.hideDPad();
+        }
+        mCmdQue.add(new KeyCmd(key));
+    }
 
 	// ____________________________________________________________________________________
-	public void sendPosCmd(int x, int y)
-	{
-		mNhHandler.hideDPad();
-		mCmdQue.add(new PosCmd(x, y));
-	}
+    public void sendDirKeyCmd(char key)
+    {
+        if (mNhHandler != null) {
+            mNhHandler.hideDPad();
+        }
+        mCmdQue.add(new PosCmd(key));
+    }
+
+	// ____________________________________________________________________________________
+    public void sendPosCmd(int x, int y)
+    {
+        if (mNhHandler != null) {
+            mNhHandler.hideDPad();
+        }
+        mCmdQue.add(new PosCmd(x, y));
+    }
 
 	// ____________________________________________________________________________________
 	public void sendLineCmd(String str)
@@ -362,15 +360,19 @@ public class NetHackIO
 	}
 
 	// ____________________________________________________________________________________
-	private void handleSpecialCmds(Cmd cmd)
-	{
-		switch(cmd.type())
-		{
-		case SAVE_STATE:
-			SaveNetHackState();
-		break;
-		}
-	}
+    private void handleSpecialCmds(Cmd cmd)
+    {
+        switch(cmd.type())
+        {
+        case SAVE_STATE:
+            SaveNetHackState();
+            CountDownLatch latch = mSaveStateLatch;
+            if (latch != null) {
+                latch.countDown();
+            }
+        break;
+        }
+    }
 
 	// ____________________________________________________________________________________
 	private Cmd discardUntil(CmdType cmd0)

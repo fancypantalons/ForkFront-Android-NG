@@ -123,27 +123,33 @@ public class ForkFront extends AppCompatActivity
 			}
 		};
 
-	private final int REQUEST_EXTERNAL_STORAGE = 43;
+    // Modern Activity Result API for settings
+    private final ActivityResultLauncher<Intent> mSettingsLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        // Called when Settings activity returns
+                        if (mUiContextArbiter != null) {
+                            mUiContextArbiter.remove(UiContext.SETTINGS_OPEN);
+                        }
+                        NH_State state = getState();
+                        if (state != null) {
+                            state.preferencesUpdated();
+                        }
+                    }
+            );
 
-	// Modern Activity Result API for settings
-	private final ActivityResultLauncher<Intent> mSettingsLauncher =
-			registerForActivityResult(
-					new ActivityResultContracts.StartActivityForResult(),
-					result -> {
-						// Called when Settings activity returns
-						if (mUiContextArbiter != null) {
-							mUiContextArbiter.remove(UiContext.SETTINGS_OPEN);
-						}
-						if (mViewModel != null && mViewModel.getState() != null) {
-							mViewModel.getState().preferencesUpdated();
-						}
-					}
-			);
-	public interface RequestExternalStorageResult {
-		void onGranted();
-		void onDenied();
-	}
-	private RequestExternalStorageResult mRequestExternalStorageResult;
+    private final ActivityResultLauncher<String> mPermissionLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    goodToGo();
+                } else {
+                    finish();
+                }
+            }
+        );
 
 	// ____________________________________________________________________________________
 	@Override
@@ -333,17 +339,7 @@ public class ForkFront extends AppCompatActivity
 			});
 		}
 
-		ensureReadWritePermissions(new RequestExternalStorageResult() {
-			@Override
-			public void onGranted() {
-				goodToGo();
-			}
-
-			@Override
-			public void onDenied() {
-				finish();
-			}
-		});
+        ensureReadWritePermissions();
 	}
 
 	private void goodToGo() {
@@ -416,13 +412,9 @@ public class ForkFront extends AppCompatActivity
 				if (mCommandPaletteListener != null) {
 					mCommandPaletteListener.onCommandExecute(cmd);
 				} else {
-					NH_State s = mViewModel != null ? mViewModel.getState() : null;
+					NH_State s = getState();
 					if (s != null) {
-						if (cmd.getCommand().startsWith("#")) {
-							s.sendStringCmd(cmd.getCommand() + "\n");
-						} else {
-							s.sendKeyCmd(cmd.getCommand().charAt(0));
-						}
+						s.executeCommand(cmd);
 					}
 				}
 				collapseCommandPalette();
@@ -521,17 +513,9 @@ public class ForkFront extends AppCompatActivity
 			new CommandPickerFragment.OnCommandPickedListener() {
 			@Override
 			public void onCommandPicked(CmdRegistry.CmdInfo cmd) {
-				if (mViewModel != null) {
-					NH_State state = mViewModel.getState();
-					if (state != null) {
-						if (cmd.getCommand().startsWith("#")) {
-							state.sendStringCmd(
-								cmd.getCommand() + "\n");
-						} else {
-							state.sendKeyCmd(
-								cmd.getCommand().charAt(0));
-						}
-					}
+				NH_State state = getState();
+				if (state != null) {
+					state.executeCommand(cmd);
 				}
 				dismissCommandPicker();
 			}
@@ -566,72 +550,21 @@ public class ForkFront extends AppCompatActivity
 		}
 	}
 
-	@RequiresApi(Build.VERSION_CODES.M)
-	public void ensureReadWritePermissions(final RequestExternalStorageResult requestExternalStorageResult)	{
-		// On Android 10+ (API 29+), WRITE_EXTERNAL_STORAGE is deprecated and apps use
-		// scoped storage (getExternalFilesDir) which doesn't require permissions
-		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-		{
-			requestExternalStorageResult.onGranted();
-			return;
-		}
-
-		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-		{
-			if(checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED)
-			{
-				if(mRequestExternalStorageResult == null)
-				{
-					mRequestExternalStorageResult = requestExternalStorageResult;
-					requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_EXTERNAL_STORAGE);
-				}
-				else
-				{
-					// Chain callbacks if several requests are activated in parallel. This shouldn't happen though.
-					final RequestExternalStorageResult prevRequest = mRequestExternalStorageResult;
-					mRequestExternalStorageResult = new RequestExternalStorageResult()
-					{
-						@Override
-						public void onGranted()
-						{
-							prevRequest.onGranted();
-							requestExternalStorageResult.onGranted();
-						}
-
-						@Override
-						public void onDenied()
-						{
-							prevRequest.onDenied();
-							requestExternalStorageResult.onDenied();
-						}
-					};
-				}
-			}
-			else
-			{
-				requestExternalStorageResult.onGranted();
-			}
-		}
-		else
-		{
-			requestExternalStorageResult.onGranted();
-		}
-	}
-
-	@Override
-	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-		Log.print("onRequestPermissionsResult");
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		if(requestCode == REQUEST_EXTERNAL_STORAGE)
-		{
-			if(permissions.length == 1 && permissions[0].equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-			&& grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-				mRequestExternalStorageResult.onGranted();
-			} else {
-				mRequestExternalStorageResult.onDenied();
-			}
-		}
-	}
+    public void ensureReadWritePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            goodToGo();
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+                mPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            } else {
+                goodToGo();
+            }
+        } else {
+            goodToGo();
+        }
+    }
 
 	// ____________________________________________________________________________________
 	@Override
@@ -641,7 +574,7 @@ public class ForkFront extends AppCompatActivity
 		// Let AppCompat update the theme/night-mode override on the
 		// configuration before widgets query it for their colors.
 		super.onConfigurationChanged(newConfig);
-		NH_State nhState = mViewModel.getState();
+		NH_State nhState = getState();
 		if (nhState != null) {
 			nhState.onConfigurationChanged(newConfig);
 		}
@@ -828,13 +761,15 @@ public class ForkFront extends AppCompatActivity
 	{
 
 		super.onCreateContextMenu(menu, v, menuInfo);
-		mViewModel.getState().onCreateContextMenu(menu, v);
+		NH_State state = getState();
+		if (state != null) state.onCreateContextMenu(menu, v);
 	}
 
 	// ____________________________________________________________________________________
 	public void onContextMenuClosed(Menu menu) {
 		super.onContextMenuClosed(menu);
-		mViewModel.getState().onContextMenuClosed();
+		NH_State state = getState();
+		if (state != null) state.onContextMenuClosed();
 	}
 
 	// ____________________________________________________________________________________
@@ -842,7 +777,8 @@ public class ForkFront extends AppCompatActivity
 	public boolean onContextItemSelected(MenuItem item)
 	{
 
-		mViewModel.getState().onContextItemSelected(item);
+		NH_State state = getState();
+		if (state != null) state.onContextItemSelected(item);
 		return super.onContextItemSelected(item);
 	}
 
@@ -866,8 +802,8 @@ public class ForkFront extends AppCompatActivity
 	{
 		super.onSaveInstanceState(outState);
 		Log.print("onSaveInstanceState(Bundle outState)");
-		if(mViewModel != null && mViewModel.getState() != null)
-			mViewModel.getState().saveState();
+		NH_State state = getState();
+		if (state != null) state.saveState();
 	}
 
 	// ____________________________________________________________________________________
@@ -881,12 +817,12 @@ public class ForkFront extends AppCompatActivity
 		mUiContextArbiter = new UiContextArbiter(new UiContextArbiter.ContextOverrideQuery() {
 			@Override
 			public boolean expectsDirection() {
-				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				NH_State s = getState();
 				return s != null && s.expectsDirection();
 			}
 			@Override
 			public boolean isMouseLocked() {
-				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				NH_State s = getState();
 				return s != null && s.isMouseLocked();
 			}
 		});
@@ -922,16 +858,16 @@ public class ForkFront extends AppCompatActivity
 				}
 			}
 			@Override public void zoomIn() {
-				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				NH_State s = getState();
 				if (s != null) s.zoomIn();
 			}
 			@Override public void zoomOut() {
-				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				NH_State s = getState();
 				if (s != null) s.zoomOut();
 			}
 			@Override public void toggleMapLock() { /* TODO */ }
 			@Override public void recenterMap() {
-				NH_State s = mViewModel != null ? mViewModel.getState() : null;
+				NH_State s = getState();
 				if (s != null) s.recenterMap();
 			}
 			@Override public void resendLastCmd() { /* TODO */ }
@@ -1010,31 +946,37 @@ public class ForkFront extends AppCompatActivity
 	public boolean dispatchKeyEvent(KeyEvent event)
 	{
 		// Handle back key long press manually
-		if(event.getKeyCode() == KeyEvent.KEYCODE_BACK)
-		{
-			if(event.getAction() == KeyEvent.ACTION_DOWN)
-			{
-				if(event.getRepeatCount() == 0)
-				{
-					mBackTracking = true;
-				}
-				else if(mBackTracking && event.isLongPress())
-				{
-					launchSettings();
-					mBackTracking = false;
-				}
-			}
-			else if(event.getAction() == KeyEvent.ACTION_UP)
-			{
-				if(mBackTracking && !event.isCanceled())
-				{
-					EnumSet<Modifier> modifiers = Input.modifiersFromKeyEvent(event);
-					handleKeyDown(event.getKeyCode(), event.getUnicodeChar(), event.getRepeatCount(), modifiers);
-				}
-				mBackTracking = false;
-			}
-			return true;
-		}
+        if(event.getKeyCode() == KeyEvent.KEYCODE_BACK)
+        {
+            boolean overlaysOpen = (mCommandPickerFragment != null && mCommandPickerFragment.isAdded())
+                    || isCommandPaletteExpanded();
+            if (overlaysOpen) {
+                mBackTracking = false;
+                return super.dispatchKeyEvent(event);
+            }
+            if(event.getAction() == KeyEvent.ACTION_DOWN)
+            {
+                if(event.getRepeatCount() == 0)
+                {
+                    mBackTracking = true;
+                }
+                else if(mBackTracking && event.isLongPress())
+                {
+                    launchSettings();
+                    mBackTracking = false;
+                }
+            }
+            else if(event.getAction() == KeyEvent.ACTION_UP)
+            {
+                if(mBackTracking && !event.isCanceled())
+                {
+                    EnumSet<Modifier> modifiers = Input.modifiersFromKeyEvent(event);
+                    handleKeyDown(event.getKeyCode(), event.getUnicodeChar(), event.getRepeatCount(), modifiers);
+                }
+                mBackTracking = false;
+            }
+            return true;
+        }
 		mBackTracking = false;
 
 		// Gamepad pre-pass: intercept before the existing key-down chain.
@@ -1072,27 +1014,34 @@ public class ForkFront extends AppCompatActivity
 	}
 
 	// ____________________________________________________________________________________
-	public boolean handleKeyDown(int keyCode, int unicodeChar, int repeatCount, EnumSet<Modifier> modifiers)
-	{
-		int fixedCode = Input.keyCodeToAction(keyCode, this);
+    private NH_State getState() {
+        return mViewModel != null ? mViewModel.getState() : null;
+    }
 
-		if(fixedCode == KeyEvent.KEYCODE_VOLUME_DOWN || fixedCode == KeyEvent.KEYCODE_VOLUME_UP)
-			return false;
+    public boolean handleKeyDown(int keyCode, int unicodeChar, int repeatCount, EnumSet<Modifier> modifiers)
+    {
+        NH_State state = getState();
+        if (state == null) return false;
 
-		char ch = (char)unicodeChar;
+        int fixedCode = Input.keyCodeToAction(keyCode, this);
 
-		int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, mViewModel.getState().isNumPadOn());
+        if(fixedCode == KeyEvent.KEYCODE_VOLUME_DOWN || fixedCode == KeyEvent.KEYCODE_VOLUME_UP)
+            return false;
 
-		if(mViewModel.getState().handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount))
-			return true;
+        char ch = (char)unicodeChar;
 
-		if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
-		{
-			// Prevent default system sound from playing
-			return true;
-		}
-		return false;
-	}
+        int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, state.isNumPadOn());
+
+        if(state.handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount))
+            return true;
+
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
+        {
+            // Prevent default system sound from playing on remapped volume keys
+            return true;
+        }
+        return false;
+    }
 
 	// ____________________________________________________________________________________
 	@Override
@@ -1106,23 +1055,25 @@ public class ForkFront extends AppCompatActivity
 	}
 
 	// ____________________________________________________________________________________
-	@Override
-	public boolean onKeyUp(int keyCode, KeyEvent event)
-	{
-		int fixedCode = Input.keyCodeToAction(keyCode, this);
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event)
+    {
+        int fixedCode = Input.keyCodeToAction(keyCode, this);
 
-		if(fixedCode == KeyEvent.KEYCODE_VOLUME_DOWN || fixedCode == KeyEvent.KEYCODE_VOLUME_UP)
-			return false;
+        if(fixedCode == KeyEvent.KEYCODE_VOLUME_DOWN || fixedCode == KeyEvent.KEYCODE_VOLUME_UP)
+            return false;
 
-		if(mViewModel.getState().handleKeyUp(Input.keyCodeToAction(keyCode, this)))
-			return true;
-		if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
-		{
-			// Prevent default system sound from playing
-			return true;
-		}
-		return super.onKeyUp(keyCode, event);
-	}
+        NH_State state = getState();
+        if(state != null && state.handleKeyUp(fixedCode))
+            return true;
+
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
+        {
+            // Prevent default system sound from playing on remapped volume keys
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
+    }
 
 	// ____________________________________________________________________________________
 	public void setDrawerEditMode(boolean editMode)
@@ -1136,7 +1087,7 @@ public class ForkFront extends AppCompatActivity
 	// ____________________________________________________________________________________
 	private void handleNavigationItemSelected(int itemId)
 	{
-		NH_State state = mViewModel != null ? mViewModel.getState() : null;
+		NH_State state = getState();
 		if (state == null) return;
 
 		if (itemId == R.id.nav_settings) {
@@ -1169,8 +1120,9 @@ public class ForkFront extends AppCompatActivity
 			.setTitle("Save and Quit")
 			.setMessage("Save your game and quit?")
 			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-				if (mViewModel != null && mViewModel.getState() != null) {
-					mViewModel.getState().saveAndQuit();
+				NH_State state = getState();
+				if (state != null) {
+					state.saveAndQuit();
 				}
 			})
 			.setNegativeButton(android.R.string.cancel, null)
@@ -1184,8 +1136,9 @@ public class ForkFront extends AppCompatActivity
 			.setTitle("Quit without Saving")
 			.setMessage("Are you sure? All progress since last save will be lost!")
 			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-				if (mViewModel != null && mViewModel.getState() != null) {
-					mViewModel.getState().sendStringCmd("#quit\n");
+				NH_State state = getState();
+				if (state != null) {
+					state.sendStringCmd("#quit\n");
 				}
 			})
 			.setNegativeButton(android.R.string.cancel, null)
