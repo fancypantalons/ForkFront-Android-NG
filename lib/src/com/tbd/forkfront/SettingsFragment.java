@@ -14,6 +14,8 @@ import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import com.tbd.forkfront.gamepad.KeyBindingDefaultsLoader;
+import com.tbd.forkfront.gamepad.KeyBindingStore;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -62,6 +64,20 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         }
 
         updateTilesetVisibility();
+
+        Preference gamepadReset = findPreference("gamepad_reset_defaults");
+        if (gamepadReset != null) {
+            gamepadReset.setOnPreferenceClickListener(pref -> {
+                SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
+                if (prefs != null) {
+                    KeyBindingStore.clear(prefs);
+                    // Also clear the "defaults applied" tracker so all defaults re-apply cleanly
+                    prefs.edit().remove("gamepad_defaults_applied_v1").apply();
+                    Toast.makeText(getContext(), "Gamepad bindings reset to defaults", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            });
+        }
 
         if(!getContext().getResources().getBoolean(R.bool.hearseAvailable)) {
             PreferenceCategory advancedParent = findPreference("advanced");
