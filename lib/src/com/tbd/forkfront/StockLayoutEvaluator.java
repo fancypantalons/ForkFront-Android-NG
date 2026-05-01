@@ -66,29 +66,36 @@ public class StockLayoutEvaluator {
      */
     private ControlWidget.WidgetData evaluateWidget(JSONObject def) throws Exception {
         ControlWidget.WidgetData data = new ControlWidget.WidgetData();
-        
+
         // Basic properties
         data.type = def.getString("type");
         data.label = def.optString("label", "");
         data.command = def.optString("command", "");
-        
-        // Evaluate size first (needed for position calculation)
+
+        // Get size and anchor specs
         JSONObject sizeObj = def.getJSONObject("size");
-        data.w = evaluateSize(sizeObj.getString("width"), true);
-        data.h = evaluateSize(sizeObj.getString("height"), false);
-        
-        // Evaluate position from anchor
         JSONObject anchorObj = def.getJSONObject("anchor");
         String hAnchor = anchorObj.getString("horizontal");
         String vAnchor = anchorObj.getString("vertical");
-        
+
         int marginLeft = dpToPx(anchorObj.optString("marginLeft", "0dp"));
         int marginTop = dpToPx(anchorObj.optString("marginTop", "0dp"));
         int marginRight = dpToPx(anchorObj.optString("marginRight", "0dp"));
         int marginBottom = dpToPx(anchorObj.optString("marginBottom", "0dp"));
-        
+
+        // Evaluate size with margin awareness
+        String widthSpec = sizeObj.getString("width");
+        String heightSpec = sizeObj.getString("height");
+        boolean isWidthMatchParent = "MATCH_PARENT".equals(widthSpec);
+        boolean isHeightMatchParent = "MATCH_PARENT".equals(heightSpec);
+
+        data.w = evaluateSize(widthSpec, true, marginLeft, marginRight);
+        data.h = evaluateSize(heightSpec, false, marginTop, marginBottom);
+
         // Calculate x position
-        // Safe bounds provides absolute screen coordinates, so use left/right edges
+        // When MATCH_PARENT is used, margins are insets (defining available space),
+        // so positioning is always at the start margin regardless of anchor.
+        // For fixed sizes, margins are positioning offsets applied per anchor.
         switch (hAnchor) {
             case "LEFT":
                 data.x = mWindowBounds.left + marginLeft;
@@ -97,7 +104,13 @@ public class StockLayoutEvaluator {
                 data.x = mWindowBounds.right - data.w - marginRight;
                 break;
             case "CENTER":
-                data.x = mWindowBounds.centerX() - data.w / 2 + marginLeft - marginRight;
+                if (isWidthMatchParent) {
+                    // With MATCH_PARENT, widget fills available space between margins
+                    data.x = mWindowBounds.left + marginLeft;
+                } else {
+                    // With fixed size, margins are offsets from center
+                    data.x = mWindowBounds.centerX() - data.w / 2 + marginLeft - marginRight;
+                }
                 break;
             default:
                 android.util.Log.w("StockLayoutEvaluator", "Unknown horizontal anchor: " + hAnchor);
@@ -105,7 +118,6 @@ public class StockLayoutEvaluator {
         }
 
         // Calculate y position
-        // Safe bounds provides absolute screen coordinates, so use top/bottom edges
         switch (vAnchor) {
             case "TOP":
                 data.y = mWindowBounds.top + marginTop;
@@ -114,7 +126,13 @@ public class StockLayoutEvaluator {
                 data.y = mWindowBounds.bottom - data.h - marginBottom;
                 break;
             case "CENTER":
-                data.y = mWindowBounds.centerY() - data.h / 2 + marginTop - marginBottom;
+                if (isHeightMatchParent) {
+                    // With MATCH_PARENT, widget fills available space between margins
+                    data.y = mWindowBounds.top + marginTop;
+                } else {
+                    // With fixed size, margins are offsets from center
+                    data.y = mWindowBounds.centerY() - data.h / 2 + marginTop - marginBottom;
+                }
                 break;
             default:
                 android.util.Log.w("StockLayoutEvaluator", "Unknown vertical anchor: " + vAnchor);
@@ -143,11 +161,15 @@ public class StockLayoutEvaluator {
      *
      * @param spec Size specification: "MATCH_PARENT", "XXdp", or "XX%" (percentage)
      * @param isWidth true for width, false for height
+     * @param marginStart Left margin (for width) or top margin (for height) in pixels
+     * @param marginEnd Right margin (for width) or bottom margin (for height) in pixels
      * @return Size in pixels
      */
-    private int evaluateSize(String spec, boolean isWidth) {
+    private int evaluateSize(String spec, boolean isWidth, int marginStart, int marginEnd) {
         if ("MATCH_PARENT".equals(spec)) {
-            return isWidth ? mWindowBounds.width() : mWindowBounds.height();
+            // MATCH_PARENT with margins: margins define insets, reducing available space
+            int fullSize = isWidth ? mWindowBounds.width() : mWindowBounds.height();
+            return fullSize - marginStart - marginEnd;
         } else if (spec.endsWith("dp")) {
             return dpToPx(spec);
         } else if (spec.endsWith("%")) {
