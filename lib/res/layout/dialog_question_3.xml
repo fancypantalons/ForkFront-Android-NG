@@ -18,7 +18,7 @@
 			style="@style/DialogText"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:padding="12dp"/>
+			android:padding="@dimen/padding_medium"/>
 
 		<LinearLayout
 			style="@android:style/ButtonBar"
@@ -28,19 +28,19 @@
 			    style="@style/ButtonText"
 				android:id="@+id/btn_0"
 				android:layout_weight="1"
-				android:layout_width="0dp"
+				android:layout_width="@dimen/padding_small"
 				android:layout_height="wrap_content"/>
 			<Button
 			    style="@style/ButtonText"
 				android:id="@+id/btn_1"
 				android:layout_weight="1"
-				android:layout_width="0dp"
+				android:layout_width="@dimen/padding_small"
 				android:layout_height="wrap_content"/>
 			<Button
 			    style="@style/ButtonText"
 				android:id="@+id/btn_2"
 				android:layout_weight="1"
-				android:layout_width="0dp"
+				android:layout_width="@dimen/padding_small"
 				android:layout_height="wrap_content"/>
 		</LinearLayout>
 	</LinearLayout>
