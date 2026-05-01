@@ -130,4 +130,9 @@ public class NH_TextView extends TextView {
 	protected float getOriginalTextSize() {
 		return mOriginalSizePx;
 	}
+
+	public void setBaseTextSize(int unit, float size) {
+		mOriginalSizePx = TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics());
+		update();
+	}
 }

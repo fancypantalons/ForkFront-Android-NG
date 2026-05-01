@@ -19,6 +19,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         void onLabelChanged(String newLabel);
         void onOrientationChanged(boolean horizontal);
         void onOpacityChanged(int opacity);
+        void onFontSizeChanged(int fontSize);
         void onDelete();
     }
 
@@ -27,9 +28,11 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private boolean mIsButton;
     private boolean mIsContextual;
     private boolean mIsHorizontal;
+    private boolean mShowFontSize;
     private int mOpacity;
+    private int mFontSize;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isHorizontal, int opacity) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
@@ -37,6 +40,8 @@ public class WidgetPropertiesFragment extends DialogFragment {
         args.putBoolean("isContextual", isContextual);
         args.putBoolean("isHorizontal", isHorizontal);
         args.putInt("opacity", opacity);
+        args.putBoolean("showFontSize", showFontSize);
+        args.putInt("fontSize", fontSize);
         f.setArguments(args);
         return f;
     }
@@ -54,6 +59,8 @@ public class WidgetPropertiesFragment extends DialogFragment {
             mIsContextual = getArguments().getBoolean("isContextual");
             mIsHorizontal = getArguments().getBoolean("isHorizontal");
             mOpacity = getArguments().getInt("opacity", 191);
+            mShowFontSize = getArguments().getBoolean("showFontSize", false);
+            mFontSize = getArguments().getInt("fontSize", 15);
         }
     }
 
@@ -116,6 +123,26 @@ public class WidgetPropertiesFragment extends DialogFragment {
                 mListener.onOpacityChanged(opacity);
             }
         });
+
+        // Font size slider
+        View fontSizeLayout = view.findViewById(R.id.font_size_layout);
+        com.google.android.material.slider.Slider fontSizeSlider = view.findViewById(R.id.font_size_slider);
+        android.widget.TextView fontSizeValueText = view.findViewById(R.id.font_size_value);
+        
+        if (mShowFontSize) {
+            fontSizeLayout.setVisibility(View.VISIBLE);
+            fontSizeSlider.setValue(mFontSize);
+            fontSizeValueText.setText(String.format("%dsp", mFontSize));
+            fontSizeSlider.addOnChangeListener((slider, value, fromUser) -> {
+                int size = (int) value;
+                fontSizeValueText.setText(String.format("%dsp", size));
+                if (mListener != null) {
+                    mListener.onFontSizeChanged(size);
+                }
+            });
+        } else {
+            fontSizeLayout.setVisibility(View.GONE);
+        }
 
         view.findViewById(R.id.btn_delete).setOnClickListener(v -> {
             if (mListener != null) {

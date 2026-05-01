@@ -824,8 +824,9 @@ public class NH_State
 		ControlWidget.WidgetData data = widget.getWidgetData();
 		boolean isButton = "button".equals(data.type);
 		boolean isContextual = "contextual".equals(data.type);
+		boolean isText = "status".equals(data.type) || "message".equals(data.type);
 
-		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton, isContextual, data.horizontal, data.opacity);
+		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton, isContextual, data.horizontal, data.opacity, isText, data.fontSize);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
@@ -849,6 +850,13 @@ public class NH_State
 			public void onOpacityChanged(int opacity) {
 				data.opacity = opacity;
 				applyWidgetOpacity(widget, opacity);
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
+			public void onFontSizeChanged(int fontSize) {
+				data.fontSize = fontSize;
+				widget.setFontSize(fontSize);
 				mWidgetLayout.saveLayout();
 			}
 

@@ -124,6 +124,7 @@ public class WidgetLayout extends FrameLayout {
             editor.putInt("widget_" + i + "_w", data.w);
             editor.putInt("widget_" + i + "_h", data.h);
             editor.putInt("widget_" + i + "_opacity", data.opacity);
+            editor.putInt("widget_" + i + "_font_size", data.fontSize);
         }
         editor.apply();
     }
@@ -151,11 +152,13 @@ public class WidgetLayout extends FrameLayout {
             data.w = prefs.getInt("widget_" + i + "_w", 200);
             data.h = prefs.getInt("widget_" + i + "_h", 200);
             data.opacity = prefs.getInt("widget_" + i + "_opacity", 191); // Default 75%
+            data.fontSize = prefs.getInt("widget_" + i + "_font_size", 15);
 
             ControlWidget widget = createWidget(data);
             if (widget != null) {
                 addWidget(widget);
                 widget.setWidgetData(data);
+                widget.setFontSize(data.fontSize);
             }
         }
     }

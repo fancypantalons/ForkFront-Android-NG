@@ -106,6 +106,24 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 		updateMoreButton();
 	}
 
+	@Override
+	public void setFontSize(int size)
+	{
+		super.setFontSize(size);
+		if (mMessageView != null) {
+			mMessageView.setTextSize(size);
+		}
+		if (mMoreView != null) {
+			mMoreView.setTextSize(size);
+		}
+	}
+
+	@Override
+	public void setWidgetData(WidgetData data) {
+		super.setWidgetData(data);
+		setFontSize(data.fontSize);
+	}
+
 	// ____________________________________________________________________________________
 	private void updateDisplay()
 	{

@@ -100,6 +100,12 @@ public class AutoFitTextView extends NH_TextView {
 	}
 
 	@Override
+	public void setBaseTextSize(int unit, float size) {
+		mMeasuredTextSize = android.util.TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics());
+		super.setBaseTextSize(unit, size);
+	}
+
+	@Override
 	protected void updateMode(boolean monospaceMode, Typeface typeface, float size) {
 		mIsMonospaceMode = monospaceMode;
 		setTypeface(typeface);

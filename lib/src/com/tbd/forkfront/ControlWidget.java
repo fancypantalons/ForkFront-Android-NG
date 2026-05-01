@@ -48,9 +48,15 @@ public class ControlWidget extends FrameLayout {
         public float x, y;
         public int w, h;
         public int opacity = 191; // Default to 75% opacity (191/255)
+        public int fontSize = 15; // Default font size (matching StatusWidget/MessageWidget default)
     }
 
     private WidgetData mData = new WidgetData();
+
+    public void setFontSize(int size) {
+        mData.fontSize = size;
+        // Subclasses will override to apply to their text views
+    }
 
     public ControlWidget(@NonNull Context context, View contentView, String type) {
         super(context);
