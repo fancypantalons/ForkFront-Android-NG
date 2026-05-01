@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import android.annotation.TargetApi;
+import android.app.Application;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -26,8 +27,10 @@ public class NH_State
 		Keyboard,
 	}
 
-	private AppCompatActivity mContext;
+	private Application mApp;  // Application context (never leaks, survives Activity)
+	private AppCompatActivity mActivity;  // Activity context (updated via setContext())
 	private NetHackIO mIO;
+	private ByteDecoder mDecoder;  // Stored for deferred initialization
 	private NHW_Message mMessage;
 	private NHW_Status mStatus;
 	private NHW_Map mMap;
@@ -50,44 +53,102 @@ public class NH_State
 	private SoundPlayer mSoundPlayer;
 
 	// ____________________________________________________________________________________
-	public NH_State(AppCompatActivity context, ByteDecoder decoder)
+	/**
+	 * Backward-compatible constructor for Phase 4.3.
+	 * Creates NetHackIO internally with Activity context.
+	 * @deprecated Use constructor with Application and NetHackIO parameters
+	 */
+	@Deprecated
+	public NH_State(AppCompatActivity activity, ByteDecoder decoder)
 	{
-		mIO = new NetHackIO(context, NhHandler, decoder);
-		mTileset = new Tileset(context);
-		mWindows = new ArrayList<>();
-		mGetLine = new NH_GetLine(mIO, this);
-		mQuestion = new NH_Question(mIO, this);
-		mMessage = new NHW_Message(context, mIO);
-		mStatus = new NHW_Status(context, mIO);
-		mMap = new NHW_Map(context, mTileset, mStatus, this, decoder);
-		mCmdPanelLayout = (CmdPanelLayout)context.findViewById(R.id.cmdPanelLayout1);
-		mDPad = new DPadOverlay(this);
-		mKeyboard = new SoftKeyboard(context, this);
-		mSoundPlayer = new SoundPlayer();
-		mMode = CmdMode.Panel;
-
-		setContext(context);
+		this(activity.getApplication(), decoder, new NetHackIO(activity, null, decoder));
+		// Now we need to inject the handler into mIO
+		// This is a temporary workaround until Phase 4.5
+		try {
+			java.lang.reflect.Field handlerField = NetHackIO.class.getDeclaredField("mNhHandler");
+			handlerField.setAccessible(true);
+			handlerField.set(mIO, NhHandler);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to inject NhHandler into NetHackIO", e);
+		}
+		setContext(activity);
 	}
 
 	// ____________________________________________________________________________________
-	public void setContext(AppCompatActivity context)
+	/**
+	 * New constructor for ViewModel-based lifecycle management (Phase 4.3+).
+	 * Requires external creation of NetHackIO with proper NH_Handler.
+	 */
+	public NH_State(Application app, ByteDecoder decoder, NetHackIO io)
 	{
-		mContext = context;
+		mApp = app;
+		mIO = io;
+		mDecoder = decoder;
+		mTileset = new Tileset(app);
+		mWindows = new ArrayList<>();
+		mGetLine = new NH_GetLine(mIO, this);
+		mQuestion = new NH_Question(mIO, this);
+		mDPad = new DPadOverlay(this);
+		mSoundPlayer = new SoundPlayer();
+		mMode = CmdMode.Panel;
+
+		// Components requiring Activity context will be initialized in setContext()
+		// when an Activity is available: mMessage, mStatus, mMap, mKeyboard, mCmdPanelLayout
+	}
+
+	// ____________________________________________________________________________________
+	public void setContext(AppCompatActivity activity)
+	{
+		mActivity = activity;
+
+		// Initialize Activity-dependent components on first call
+		if (activity != null) {
+			if (mMessage == null) {
+				mMessage = new NHW_Message(activity, mIO);
+			}
+			if (mStatus == null) {
+				mStatus = new NHW_Status(activity, mIO);
+			}
+			if (mKeyboard == null) {
+				mKeyboard = new SoftKeyboard(activity, this);
+			}
+			if (mMap == null) {
+				mMap = new NHW_Map(activity, mTileset, mStatus, this, mDecoder);
+			}
+			if (mCmdPanelLayout == null) {
+				mCmdPanelLayout = (CmdPanelLayout)activity.findViewById(R.id.cmdPanelLayout1);
+			}
+		}
+
+		// Update all child components with new Activity context
 		for(NH_Window w : mWindows)
-			w.setContext(context);
-		mGetLine.setContext(context);
-		mQuestion.setContext(context);
-		mMessage.setContext(context);
-		mStatus.setContext(context);
-		mCmdPanelLayout.setContext(context, this);
-		mDPad.setContext(context);
-		mMap.setContext(context);
-		mTileset.setContext(context);
+			w.setContext(activity);
+		mGetLine.setContext(activity);
+		mQuestion.setContext(activity);
+		if (mMessage != null) {
+			mMessage.setContext(activity);
+		}
+		if (mStatus != null) {
+			mStatus.setContext(activity);
+		}
+		if (mCmdPanelLayout != null) {
+			mCmdPanelLayout.setContext(activity, this);
+		}
+		mDPad.setContext(activity);
+		if (mMap != null) {
+			mMap.setContext(activity);
+		}
+		mTileset.setContext(activity);
 	}
 
 	// ____________________________________________________________________________________
 	public void startNetHack(String path)
 	{
+		// Ensure Activity context has been set before starting
+		if (mActivity == null || mMap == null) {
+			throw new IllegalStateException("setContext() must be called with an Activity before starting NetHack");
+		}
+
 		mIO.start(path);
 
 		preferencesUpdated();
@@ -96,21 +157,21 @@ public class NH_State
 		mMap.loadZoomLevel();
 
 		// I have preferences already, might as well pass them in...
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-		mHearse = new Hearse(mContext, prefs, path);
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
+		mHearse = new Hearse(mActivity, prefs, path);
 	}
 
 	// ____________________________________________________________________________________
 	private String getLastUsername()
 	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
 		return prefs.getString("lastUsername", "");
 	}
 
 	// ____________________________________________________________________________________
 	public void onConfigurationChanged(Configuration newConfig)
 	{
-		if(mMode == CmdMode.Keyboard)
+		if(mMode == CmdMode.Keyboard && mKeyboard != null)
 		{
 			// Since the keyboard refuses to change its layout when the orientation changes
 			// we recreate a new keyboard every time
@@ -118,7 +179,9 @@ public class NH_State
 			showKeyboard();
 		}
 
-		mCmdPanelLayout.setOrientation(newConfig.orientation);
+		if (mCmdPanelLayout != null) {
+			mCmdPanelLayout.setOrientation(newConfig.orientation);
+		}
 		mDPad.setOrientation(newConfig.orientation);
 
 		// Forward configuration changes to map for adaptive tile scaling
@@ -130,9 +193,11 @@ public class NH_State
 	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 	public void preferencesUpdated()
 	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
 
-		mCmdPanelLayout.preferencesUpdated(prefs);
+		if (mCmdPanelLayout != null) {
+			mCmdPanelLayout.preferencesUpdated(prefs);
+		}
 		mDPad.preferencesUpdated(prefs);
 		mMap.preferencesUpdated(prefs);
 		mStatus.preferencesUpdated(prefs);
@@ -143,10 +208,10 @@ public class NH_State
 				w.preferencesUpdated(prefs);
 		}
 
-		if(mMode == CmdMode.Panel)
+		if(mMode == CmdMode.Panel && mCmdPanelLayout != null)
 			mCmdPanelLayout.show();
 
-		mTileset.updateTileset(prefs, mContext.getResources());
+		mTileset.updateTileset(prefs, mApp.getResources());
 		mMap.updateZoomLimits();
 		updateSystemUiVisibilityFlags(prefs);
 	}
@@ -154,35 +219,44 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void onCreateContextMenu(ContextMenu menu, View v)
 	{
-		mCmdPanelLayout.onCreateContextMenu(menu, v);
+		if (mCmdPanelLayout != null) {
+			mCmdPanelLayout.onCreateContextMenu(menu, v);
+		}
 	}
 
 	// ____________________________________________________________________________________
 	public void onContextMenuClosed() {
-		mCmdPanelLayout.onContextMenuClosed();
-		updateSystemUiVisibilityFlags(PreferenceManager.getDefaultSharedPreferences(mContext));
+		if (mCmdPanelLayout != null) {
+			mCmdPanelLayout.onContextMenuClosed();
+		}
+		updateSystemUiVisibilityFlags(PreferenceManager.getDefaultSharedPreferences(mApp));
 	}
 
 	// ____________________________________________________________________________________
 	private void updateSystemUiVisibilityFlags(SharedPreferences prefs)
 	{
+		// Window operations require Activity context
+		if (mActivity == null) return;
+
 		boolean isFullscreen = prefs.getBoolean("fullscreen", false);
 		int fullscreenFlag = isFullscreen ? WindowManager.LayoutParams.FLAG_FULLSCREEN : 0;
-		mContext.getWindow().setFlags(fullscreenFlag, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		mActivity.getWindow().setFlags(fullscreenFlag, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
 		{
 			boolean isImmersive = prefs.getBoolean("immersive", false);
 			int uiVisibilityFlags = isImmersive ?
 					(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
 					: 0;
-			mContext.getWindow().getDecorView().setSystemUiVisibility(uiVisibilityFlags);
+			mActivity.getWindow().getDecorView().setSystemUiVisibility(uiVisibilityFlags);
 		}
 	}
 
 	// ____________________________________________________________________________________
 	public void onContextItemSelected(android.view.MenuItem item)
 	{
-		mCmdPanelLayout.onContextItemSelected(item);
+		if (mCmdPanelLayout != null) {
+			mCmdPanelLayout.onContextItemSelected(item);
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -241,7 +315,7 @@ public class NH_State
 		}
 		else if(keyCode == KeyAction.Control || keyCode == KeyAction.Meta)
 		{
-			if(!Util.hasPhysicalKeyboard(mContext))
+			if(!Util.hasPhysicalKeyboard(mApp))
 			{
 				saveRegularKeyboard();
 				if(mMode != CmdMode.Keyboard)
@@ -295,7 +369,7 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public boolean handleKeyUp(int keyCode)
 	{
-		if(mMap.handleKeyUp(keyCode))
+		if(mMap != null && mMap.handleKeyUp(keyCode))
 			return true;
 
 		if(keyCode == KeyAction.Keyboard)
@@ -383,7 +457,9 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void clickCursorPos()
 	{
-		mMap.onCursorPosClicked();
+		if (mMap != null) {
+			mMap.onCursorPosClicked();
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -438,27 +514,34 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void setMetaKeyboard()
 	{
-		mKeyboard.setMetaKeyboard();
+		if (mKeyboard != null) {
+			mKeyboard.setMetaKeyboard();
+		}
 	}
 
 	// ____________________________________________________________________________________
 	private void saveRegularKeyboard()
 	{
-		mRegularKeyboard = mKeyboard.getKeyboard();
+		if (mKeyboard != null) {
+			mRegularKeyboard = mKeyboard.getKeyboard();
+		}
 	}
 
 	// ____________________________________________________________________________________
 	private void restoreRegularKeyboard()
 	{
-		if(mRegularKeyboard != null)
+		if(mRegularKeyboard != null && mKeyboard != null) {
 			mKeyboard.setKeyboard(mRegularKeyboard);
+		}
 		mRegularKeyboard = null;
 	}
 
 	// ____________________________________________________________________________________
 	public void setCtrlKeyboard()
 	{
-		mKeyboard.setCtrlKeyboard();
+		if (mKeyboard != null) {
+			mKeyboard.setCtrlKeyboard();
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -474,30 +557,44 @@ public class NH_State
 		{
 			if(mMode == CmdMode.Panel)
 			{
-				mKeyboard.hide();
+				if (mKeyboard != null) {
+					mKeyboard.hide();
+				}
 				if(mIsDPadActive)
 				{
 					mDPad.showDirectional(true);
-					mCmdPanelLayout.hide();
+					if (mCmdPanelLayout != null) {
+						mCmdPanelLayout.hide();
+					}
 				}
 				else
 				{
 					mDPad.showDirectional(false);
-					mCmdPanelLayout.show();
+					if (mCmdPanelLayout != null) {
+						mCmdPanelLayout.show();
+					}
 				}
 			}
 			else
 			{
-				mKeyboard.show();
-				mCmdPanelLayout.hide();
+				if (mKeyboard != null) {
+					mKeyboard.show();
+				}
+				if (mCmdPanelLayout != null) {
+					mCmdPanelLayout.hide();
+				}
 				//mDPad.setVisible(false);
 				mDPad.forceHide();
 			}
 		}
 		else
 		{
-			mCmdPanelLayout.hide();
-			mKeyboard.hide();
+			if (mCmdPanelLayout != null) {
+				mCmdPanelLayout.hide();
+			}
+			if (mKeyboard != null) {
+				mKeyboard.hide();
+			}
 			mDPad.forceHide();
 		}
 	}
@@ -505,7 +602,9 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void viewAreaChanged(Rect viewRect)
 	{
-		mMap.viewAreaChanged(viewRect);
+		if (mMap != null) {
+			mMap.viewAreaChanged(viewRect);
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -517,15 +616,18 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void startPreferences()
 	{
-		Intent prefsActivity = new Intent(mContext.getBaseContext(), Settings.class);
-		mContext.startActivityForResult(prefsActivity, 42);
+		// Starting activities requires Activity context
+		if (mActivity == null) return;
+
+		Intent prefsActivity = new Intent(mApp, Settings.class);
+		mActivity.startActivityForResult(prefsActivity, 42);
 	}
 
 	// ____________________________________________________________________________________
 	private NH_Handler NhHandler = new NH_Handler() {
 		@Override
 		public void setLastUsername(String username) {
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
 			prefs.edit().putString("lastUsername", username).commit();
 		}
 
@@ -543,7 +645,9 @@ public class NH_State
 			NH_Window wnd = getWindow(wid);
 			if(wnd == null) {
 				Log.print("[no wnd] " + msg);
-				mMessage.printString(attr, msg, append, color);
+				if (mMessage != null) {
+					mMessage.printString(attr, msg, append, color);
+				}
 			} else
 				wnd.printString(attr, msg, append, color);
 		}
@@ -558,42 +662,52 @@ public class NH_State
 		// ____________________________________________________________________________________
 		@Override
 		public void rawPrint(int attr, String msg) {
-			mMessage.printString(attr, msg, 0, -1);
+			if (mMessage != null) {
+				mMessage.printString(attr, msg, 0, -1);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void printTile(int wid, int x, int y, int tile, int ch, int col, int special) {
-			mMap.printTile(x, y, tile, ch, col, special);
+			if (mMap != null) {
+				mMap.printTile(x, y, tile, ch, col, special);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void ynFunction(String question, byte[] choices, int def) {
-			mQuestion.show(mContext, question, choices, def);
+			if (mActivity != null) {
+				mQuestion.show(mActivity, question, choices, def);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void getLine(String title, int nMaxChars, boolean showLog) {
-			if(showLog)
-				mGetLine.show(mContext, mMessage.getLogLine(2) + title, nMaxChars);
-			else
-				mGetLine.show(mContext, title, nMaxChars);
+			if (mActivity != null) {
+				if(showLog && mMessage != null)
+					mGetLine.show(mActivity, mMessage.getLogLine(2) + title, nMaxChars);
+				else
+					mGetLine.show(mActivity, title, nMaxChars);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void askName(int nMaxChars, String[] saves) {
-			String last = getLastUsername();
-			List<String> list = new ArrayList<>();
-			for(String s : saves) {
-				if(last.equals(s))
-					list.add(0, s);
-				else
-					list.add(s);
+			if (mActivity != null) {
+				String last = getLastUsername();
+				List<String> list = new ArrayList<>();
+				for(String s : saves) {
+					if(last.equals(s))
+						list.add(0, s);
+					else
+						list.add(s);
+				}
+				mGetLine.showWhoAreYou(mActivity, nMaxChars, list);
 			}
-			mGetLine.showWhoAreYou(mContext, nMaxChars, list);
 		}
 
 		// ____________________________________________________________________________________
@@ -616,26 +730,36 @@ public class NH_State
 			switch(type)
 			{
 			case 1: // #define NHW_MESSAGE 1
-				mMessage.setId(wid);
-				mWindows.add(mMessage);
+				if (mMessage != null) {
+					mMessage.setId(wid);
+					mWindows.add(mMessage);
+				}
 			break;
 
 			case 2: // #define NHW_STATUS 2
-				mStatus.setId(wid);
-				mWindows.add(mStatus);
+				if (mStatus != null) {
+					mStatus.setId(wid);
+					mWindows.add(mStatus);
+				}
 			break;
 
 			case 3: // #define NHW_MAP 3
-				mMap.setId(wid);
-				mWindows.add(mMap);
+				if (mMap != null) {
+					mMap.setId(wid);
+					mWindows.add(mMap);
+				}
 			break;
 
 			case 4: // #define NHW_MENU 4
-				mWindows.add(new NHW_Menu(wid, mContext, mIO, mTileset));
+				if (mActivity != null) {
+					mWindows.add(new NHW_Menu(wid, mActivity, mIO, mTileset));
+				}
 			break;
 
 			case 5: // #define NHW_TEXT 5
-				mWindows.add(new NHW_Text(wid, mContext, mIO));
+				if (mActivity != null) {
+					mWindows.add(new NHW_Text(wid, mActivity, mIO));
+				}
 			break;
 			}
 		}
@@ -657,7 +781,7 @@ public class NH_State
 			if(wnd != null)
 			{
 				wnd.clear();
-				if(wnd == mMap)
+				if(wnd == mMap && mMap != null)
 					mMap.setRogueLevel(isRogueLevel != 0);
 			}
 		}
@@ -703,14 +827,18 @@ public class NH_State
 		@Override
 		public void cliparound(int x, int y, int playerX, int playerY)
 		{
-			mMap.cliparound(x, y, playerX, playerY);
+			if (mMap != null) {
+				mMap.cliparound(x, y, playerX, playerY);
+			}
 		}
 
 		// ____________________________________________________________________________________
 		@Override
 		public void showLog(final int bBlocking)
 		{
-			mMessage.showLog(bBlocking != 0);
+			if (mMessage != null) {
+				mMessage.showLog(bBlocking != 0);
+			}
 		}
 
 		// ____________________________________________________________________________________
@@ -753,7 +881,9 @@ public class NH_State
 		@Override
 		public void redrawStatus()
 		{
-			mStatus.redraw();
+			if (mStatus != null) {
+				mStatus.redraw();
+			}
 		}
 	};
 }
