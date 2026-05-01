@@ -16,6 +16,7 @@ import androidx.preference.PreferenceManager;
 class MapRenderer
 {
 	private final NHW_Map mMap;
+	private MapViewport mViewport;
 	TextPaint mPaint;
 	Typeface mTypeface;
 	final float mBaseTextSize;
@@ -52,6 +53,12 @@ class MapRenderer
 				}
 			}
 		};
+	}
+
+	// ____________________________________________________________________________________
+	void setViewport(MapViewport viewport)
+	{
+		mViewport = viewport;
 	}
 
 	// ____________________________________________________________________________________
@@ -109,14 +116,14 @@ class MapRenderer
 			clipRect.set(0, 0, canvas.getWidth(), canvas.getHeight());
 		}
 
-		int minTileX = NHW_Map.clamp((int) ((clipRect.left - mMap.mViewport.mViewOffset.x) / tileW), 0, NHW_Map.TileCols - 1);
-		int maxTileX = NHW_Map.clamp((int) Math.ceil((clipRect.right - mMap.mViewport.mViewOffset.x) / tileW), minTileX, NHW_Map.TileCols - 1);
-		int minTileY = NHW_Map.clamp((int) ((clipRect.top - mMap.mViewport.mViewOffset.y) / tileH), 0, NHW_Map.TileRows - 1);
-		int maxTileY = NHW_Map.clamp((int) Math.ceil((clipRect.bottom - mMap.mViewport.mViewOffset.y) / tileH), minTileY, NHW_Map.TileRows - 1);
+		int minTileX = NHW_Map.clamp((int) ((clipRect.left - mViewport.mViewOffset.x) / tileW), 0, NHW_Map.TileCols - 1);
+		int maxTileX = NHW_Map.clamp((int) Math.ceil((clipRect.right - mViewport.mViewOffset.x) / tileW), minTileX, NHW_Map.TileCols - 1);
+		int minTileY = NHW_Map.clamp((int) ((clipRect.top - mViewport.mViewOffset.y) / tileH), 0, NHW_Map.TileRows - 1);
+		int maxTileY = NHW_Map.clamp((int) Math.ceil((clipRect.bottom - mViewport.mViewOffset.y) / tileH), minTileY, NHW_Map.TileRows - 1);
 
-		float left = (float)Math.floor(mMap.mViewport.mViewOffset.x + minTileX * tileW);
+		float left = (float)Math.floor(mViewport.mViewOffset.x + minTileX * tileW);
 		float x = left;
-		float y = (float)Math.floor(mMap.mViewport.mViewOffset.y + minTileY * tileH);
+		float y = (float)Math.floor(mViewport.mViewOffset.y + minTileY * tileH);
 
 		mPaint.setAntiAlias(false);
 
@@ -152,8 +159,8 @@ class MapRenderer
 	// ____________________________________________________________________________________
 	void drawCursor(Canvas canvas, float tileW, float tileH)
 	{
-		float x = (float)Math.floor(mMap.mViewport.mViewOffset.x);
-		float y = (float)Math.floor(mMap.mViewport.mViewOffset.y);
+		float x = (float)Math.floor(mViewport.mViewOffset.x);
+		float y = (float)Math.floor(mViewport.mViewOffset.y);
 
 		if(mMap.mCursorPos.x >= 0 && (mMap.mHealthColor != 0 || mMap.mIsGamepadCursorMode))
 		{
@@ -211,13 +218,13 @@ class MapRenderer
 			clipRect.set(0, 0, canvas.getWidth(), canvas.getHeight());
 		}
 
-		int minTileX = NHW_Map.clamp((int) ((clipRect.left - mMap.mViewport.mViewOffset.x) / tileW), 0, NHW_Map.TileCols - 1);
-		int maxTileX = NHW_Map.clamp((int) Math.ceil((clipRect.right - mMap.mViewport.mViewOffset.x) / tileW), minTileX, NHW_Map.TileCols - 1);
-		int minTileY = NHW_Map.clamp((int) ((clipRect.top - mMap.mViewport.mViewOffset.y) / tileH), 0, NHW_Map.TileRows - 1);
-		int maxTileY = NHW_Map.clamp((int) Math.ceil((clipRect.bottom - mMap.mViewport.mViewOffset.y) / tileH), minTileY, NHW_Map.TileRows - 1);
+		int minTileX = NHW_Map.clamp((int) ((clipRect.left - mViewport.mViewOffset.x) / tileW), 0, NHW_Map.TileCols - 1);
+		int maxTileX = NHW_Map.clamp((int) Math.ceil((clipRect.right - mViewport.mViewOffset.x) / tileW), minTileX, NHW_Map.TileCols - 1);
+		int minTileY = NHW_Map.clamp((int) ((clipRect.top - mViewport.mViewOffset.y) / tileH), 0, NHW_Map.TileRows - 1);
+		int maxTileY = NHW_Map.clamp((int) Math.ceil((clipRect.bottom - mViewport.mViewOffset.y) / tileH), minTileY, NHW_Map.TileRows - 1);
 
-		float x = (float)Math.floor(mMap.mViewport.mViewOffset.x + minTileX * tileW);
-		float y = (float)Math.floor(mMap.mViewport.mViewOffset.y + minTileY * tileH);
+		float x = (float)Math.floor(mViewport.mViewOffset.x + minTileX * tileW);
+		float y = (float)Math.floor(mViewport.mViewOffset.y + minTileY * tileH);
 
 		dst.set(x, y, x + tileW, y + tileH);
 
@@ -284,8 +291,8 @@ class MapRenderer
 			clipRect.set(0, 0, canvas.getWidth(), canvas.getHeight());
 		}
 
-		float x = (float)Math.floor(mMap.mViewport.mViewOffset.x - 2 * borderSize);
-		float y = (float)Math.floor(mMap.mViewport.mViewOffset.y - 2 * borderSize);
+		float x = (float)Math.floor(mViewport.mViewOffset.x - 2 * borderSize);
+		float y = (float)Math.floor(mViewport.mViewOffset.y - 2 * borderSize);
 		float w = (float)Math.ceil(tileW * NHW_Map.TileCols + 4 * borderSize);
 		float h = (float)Math.ceil(tileH * NHW_Map.TileRows + 4 * borderSize);
 
@@ -344,38 +351,38 @@ class MapRenderer
 	// ____________________________________________________________________________________
 	float tileToScreenX(int tileX)
 	{
-		return mMap.mViewport.mViewOffset.x + tileX * getScaledTileWidth();
+		return mViewport.mViewOffset.x + tileX * getScaledTileWidth();
 	}
 
 	// ____________________________________________________________________________________
 	float tileToScreenY(int tileY)
 	{
-		return mMap.mViewport.mViewOffset.y + tileY * getScaledTileHeight();
+		return mViewport.mViewOffset.y + tileY * getScaledTileHeight();
 	}
 
 	// ____________________________________________________________________________________
 	int screenToTileX(float screenX)
 	{
-		return (int)((screenX - mMap.mViewport.mViewOffset.x) / getScaledTileWidth());
+		return (int)((screenX - mViewport.mViewOffset.x) / getScaledTileWidth());
 	}
 
 	// ____________________________________________________________________________________
 	int screenToTileY(float screenY)
 	{
-		return (int)((screenY - mMap.mViewport.mViewOffset.y) / getScaledTileHeight());
+		return (int)((screenY - mViewport.mViewOffset.y) / getScaledTileHeight());
 	}
 
 	// ____________________________________________________________________________________
 	private void updateTextMetrics()
 	{
-		if(mMap.mViewport.mScale != mCachedScale)
+		if(mViewport.mScale != mCachedScale)
 		{
-			mPaint.setTextSize(mBaseTextSize * mMap.mViewport.mScale);
+			mPaint.setTextSize(mBaseTextSize * mViewport.mScale);
 			float w = mPaint.measureText("\u2550");
 			mCachedTileWidth = (float)Math.floor(w) - 1;
 			FontMetrics metrics = mPaint.getFontMetrics();
 			mCachedTileHeight = (float)Math.floor(metrics.descent - metrics.ascent);
-			mCachedScale = mMap.mViewport.mScale;
+			mCachedScale = mViewport.mScale;
 		}
 	}
 
@@ -388,7 +395,7 @@ class MapRenderer
 			return mCachedTileWidth;
 		}
 
-		return mMap.mTileset.getTileWidth() * mMap.mViewport.mScale;
+		return mMap.mTileset.getTileWidth() * mViewport.mScale;
 	}
 
 	// ____________________________________________________________________________________
@@ -400,7 +407,7 @@ class MapRenderer
 			return mCachedTileHeight;
 		}
 
-		return mMap.mTileset.getTileHeight() * mMap.mViewport.mScale;
+		return mMap.mTileset.getTileHeight() * mViewport.mScale;
 	}
 
 	// ____________________________________________________________________________________

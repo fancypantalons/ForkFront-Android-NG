@@ -11,10 +11,6 @@ import java.util.Locale;
 class MapViewport
 {
 	private static final double ZOOM_BASE = 1.005;
-	@SuppressWarnings("unused")
-	private static final float MIN_TILE_SIZE_FACTOR = 5;
-	@SuppressWarnings("unused")
-	private static final float MAX_TILE_SIZE_FACTOR = 100;
 
 	// ____________________________________________________________________________________
 	enum Travel
@@ -69,9 +65,21 @@ class MapViewport
 		mMap = map;
 		mView = view;
 		mRenderer = renderer;
+
 		mScale = 1.f;
-		mViewOffset = new PointF();
+		mScaleCount = 0.f;
+		mMinScaleCount = -200.f;
+		mMaxScaleCount = 200.f;
+		mZoomStep = 20.f;
+		mStickyZoom = 0;
+		mIsStickyZoom = true;
+		mViewOffset = new PointF(0, 0);
 		mCanvasRect = new RectF();
+
+		mRenderer.setViewport(this);
+		mView.mGestures.setViewport(this);
+
+		loadZoomLevel();
 	}
 
 	// ____________________________________________________________________________________
@@ -252,7 +260,8 @@ class MapViewport
 	// ____________________________________________________________________________________
 	void viewAreaChanged(Rect viewRect)
 	{
-		mView.viewAreaChanged(viewRect);
+		mCanvasRect.set(viewRect);
+		mMap.centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
 	}
 
 	// ____________________________________________________________________________________

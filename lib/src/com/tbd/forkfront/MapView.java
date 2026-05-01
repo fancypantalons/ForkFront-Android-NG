@@ -32,7 +32,7 @@ class MapView extends TextureView implements TextureView.SurfaceTextureListener
 		super(map.mContext);
 		mMap = map;
 		mRenderer = new MapRenderer(map);
-		mGestures = new MapGestureController(map, this);
+		mGestures = new MapGestureController(map, this, mRenderer);
 		setFocusable(false);
 		setFocusableInTouchMode(false);
 
@@ -240,13 +240,6 @@ class MapView extends TextureView implements TextureView.SurfaceTextureListener
 				mMap.centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
 			}
 		});
-	}
-
-	// ____________________________________________________________________________________
-	public void viewAreaChanged(Rect viewRect)
-	{
-		mMap.mViewport.mCanvasRect.set(viewRect);
-		mMap.centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
 	}
 
 	// ____________________________________________________________________________________

@@ -19,6 +19,8 @@ class MapGestureController
 
 	private final NHW_Map mMap;
 	private final MapView mView;
+	private final MapRenderer mRenderer;
+	private MapViewport mViewport;
 	private final Handler mHandler;
 	private Runnable mLongPressRunnable;
 	private final PointF mPointer0;
@@ -35,16 +37,23 @@ class MapGestureController
 	private List<Character> mCancelKeys = Arrays.asList('\033', (char)0x80);
 
 	// ____________________________________________________________________________________
-	MapGestureController(NHW_Map map, MapView view)
+	MapGestureController(NHW_Map map, MapView view, MapRenderer renderer)
 	{
 		mMap = map;
 		mView = view;
+		mRenderer = renderer;
 		mHandler = new Handler(Looper.getMainLooper());
 		mPointer0 = new PointF();
 		mPointer1 = new PointF();
 		mPointerId0 = -1;
 		mPointerId1 = -1;
 		mZoomPanMode = ZoomPanMode.Idle;
+	}
+
+	// ____________________________________________________________________________________
+	void setViewport(MapViewport viewport)
+	{
+		mViewport = viewport;
 	}
 
 	// ____________________________________________________________________________________
@@ -158,7 +167,7 @@ class MapGestureController
 					mHandler.removeCallbacks(mLongPressRunnable);
 				setZoomPanMode(ZoomPanMode.Zooming);
 				mIsViewPanned = false;
-				mMap.mViewport.mIsStickyZoom = false;
+				mViewport.mIsStickyZoom = false;
 				idx = getActionIndex(event);
 				mPointerId1 = event.getPointerId(idx);
 				mPointer1.set(event.getX(idx), event.getY(idx));
@@ -299,40 +308,39 @@ class MapGestureController
 		if(newDist > 5)
 		{
 			float zoomAmount = (int)(1.5f * (newDist - mPointerDist) / mMap.mDisplayDensity);
-			int newScale = (int)(mMap.mViewport.mScaleCount + zoomAmount);
 
 			if(zoomAmount != 0)
 			{
-				if(mMap.mViewport.mIsStickyZoom)
+				if(mViewport.mIsStickyZoom)
 				{
-					int oldScaleSign = (int)Math.signum(mMap.mViewport.mScaleCount);
-					int newScaleSign = (int)Math.signum(mMap.mViewport.mScaleCount + zoomAmount);
+					int oldScaleSign = (int)Math.signum(mViewport.mScaleCount);
+					int newScaleSign = (int)Math.signum(mViewport.mScaleCount + zoomAmount);
 					int zoomSign = (int)Math.signum(zoomAmount);
-					int stickySign = (int)Math.signum(mMap.mViewport.mStickyZoom);
+					int stickySign = (int)Math.signum(mViewport.mStickyZoom);
 
 					boolean crossedZero = oldScaleSign != 0 && newScaleSign != 0
 						&& oldScaleSign != newScaleSign;
-					boolean sameDirAsSticky = mMap.mViewport.mStickyZoom != 0
+					boolean sameDirAsSticky = mViewport.mStickyZoom != 0
 						&& stickySign == zoomSign;
 
-					if((crossedZero && mMap.mViewport.mStickyZoom == 0) || sameDirAsSticky)
+					if((crossedZero && mViewport.mStickyZoom == 0) || sameDirAsSticky)
 					{
-						mMap.mViewport.mStickyZoom += zoomAmount;
-						if(Math.abs(mMap.mViewport.mStickyZoom) < 50)
-							zoomAmount = -mMap.mViewport.mScaleCount;
+						mViewport.mStickyZoom += zoomAmount;
+						if(Math.abs(mViewport.mStickyZoom) < 50)
+							zoomAmount = -mViewport.mScaleCount;
 						else
-							mMap.mViewport.mStickyZoom = 0;
+							mViewport.mStickyZoom = 0;
 					}
 					else
 					{
-						mMap.mViewport.mStickyZoom = 0;
-						mMap.mViewport.mIsStickyZoom = true;
+						mViewport.mStickyZoom = 0;
+						mViewport.mIsStickyZoom = true;
 					}
 				}
 				else
 				{
-					mMap.mViewport.mStickyZoom = 0;
-					mMap.mViewport.mIsStickyZoom = true;
+					mViewport.mStickyZoom = 0;
+					mViewport.mIsStickyZoom = true;
 				}
 
 				mMap.zoom(zoomAmount);
@@ -366,13 +374,13 @@ class MapGestureController
 			return;
 		}
 
-		int tileX = mView.mRenderer.screenToTileX(x);
-		int tileY = mView.mRenderer.screenToTileY(y);
+		int tileX = mRenderer.screenToTileX(x);
+		int tileY = mRenderer.screenToTileY(y);
 
-		float tileW = mView.mRenderer.getScaledTileWidth();
-		float tileH = mView.mRenderer.getScaledTileHeight();
-		float cx = mView.mRenderer.tileToScreenX(mMap.mPlayerPos.x) + tileW * 0.5f;
-		float cy = mView.mRenderer.tileToScreenY(mMap.mPlayerPos.y) + tileH * 0.5f;
+		float tileW = mRenderer.getScaledTileWidth();
+		float tileH = mRenderer.getScaledTileHeight();
+		float cx = mRenderer.tileToScreenX(mMap.mPlayerPos.x) + tileW * 0.5f;
+		float cy = mRenderer.tileToScreenY(mMap.mPlayerPos.y) + tileH * 0.5f;
 
 		float dx = x - cx;
 		float dy = y - cy;
