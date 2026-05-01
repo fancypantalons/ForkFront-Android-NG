@@ -15,6 +15,8 @@
  */
 package com.tbd.forkfront;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -50,8 +52,19 @@ public class ForkFront extends AppCompatActivity
 	private boolean mMetaDown;
 	private boolean mBackTracking;
 
-	private final int SETTINGS_ACTIVITY_CODE = 42;
 	private final int REQUEST_EXTERNAL_STORAGE = 43;
+
+	// Modern Activity Result API for settings
+	private final ActivityResultLauncher<Intent> mSettingsLauncher =
+		registerForActivityResult(
+			new ActivityResultContracts.StartActivityForResult(),
+			result -> {
+				// Called when Settings activity returns
+				if (mViewModel != null && mViewModel.getState() != null) {
+					mViewModel.getState().preferencesUpdated();
+				}
+			}
+		);
 
 	public interface RequestExternalStorageResult {
 		void onGranted();
@@ -370,8 +383,7 @@ public class ForkFront extends AppCompatActivity
 		Log.print(String.format("onOptionsItemSelected(item=%d)", item.getItemId()));
 		if(item.getItemId() == 1)
 		{
-			Intent prefsActivity = new Intent(getBaseContext(), Settings.class);
-			startActivityForResult(prefsActivity, SETTINGS_ACTIVITY_CODE);
+			launchSettings();
 			return true;
 		}
 
@@ -407,17 +419,14 @@ public class ForkFront extends AppCompatActivity
 	}
 
 	// ____________________________________________________________________________________
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	/**
+	 * Launch the settings activity.
+	 * Public method for use by NH_State and other components.
+	 */
+	public void launchSettings()
 	{
-		mCtrlDown = false;
-		mMetaDown = false;
-
-		if(requestCode == SETTINGS_ACTIVITY_CODE)
-		{
-			mViewModel.getState().preferencesUpdated();
-		}
-		super.onActivityResult(requestCode, resultCode, data);
+		Intent prefsActivity = new Intent(getBaseContext(), Settings.class);
+		mSettingsLauncher.launch(prefsActivity);
 	}
 
 	// ____________________________________________________________________________________
@@ -447,8 +456,7 @@ public class ForkFront extends AppCompatActivity
 				}
 				else if(mBackTracking && event.isLongPress())
 				{
-					Intent prefsActivity = new Intent(getBaseContext(), Settings.class);
-					startActivityForResult(prefsActivity, SETTINGS_ACTIVITY_CODE);
+					launchSettings();
 					mBackTracking = false;
 				}
 			}

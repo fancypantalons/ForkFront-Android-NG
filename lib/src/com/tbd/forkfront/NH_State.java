@@ -624,8 +624,10 @@ public class NH_State
 		// Starting activities requires Activity context
 		if (mActivity == null) return;
 
-		Intent prefsActivity = new Intent(mApp, Settings.class);
-		mActivity.startActivityForResult(prefsActivity, 42);
+		// Use the modern Activity Result API via ForkFront's launchSettings method
+		if (mActivity instanceof ForkFront) {
+			((ForkFront) mActivity).launchSettings();
+		}
 	}
 
 	// ____________________________________________________________________________________
