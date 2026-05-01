@@ -19,6 +19,23 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content">
 
+			<LinearLayout
+				android:orientation="horizontal"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:gravity="end">
+
+				<ImageButton
+					android:id="@+id/btn_close"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:src="@drawable/ic_close"
+					android:background="?attr/selectableItemBackgroundBorderless"
+					android:contentDescription="@string/close"
+					android:padding="@dimen/padding_small"/>
+
+			</LinearLayout>
+
 			<ScrollView
 				android:id="@+id/scrollview"
 				android:layout_gravity="center"
