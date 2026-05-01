@@ -53,36 +53,21 @@ public class NHW_Map implements NH_Window
 	// / | \
 	// b j n
 	
-	private char getLEFT() {
-		return mNHState.isNumPadOn() ? '4' : 'h';
-	}
+	private static final int DIR_LEFT = 0;
+	private static final int DIR_DOWN = 1;
+	private static final int DIR_UP = 2;
+	private static final int DIR_RIGHT = 3;
+	private static final int DIR_UL = 4;
+	private static final int DIR_UR = 5;
+	private static final int DIR_DL = 6;
+	private static final int DIR_DR = 7;
 
-	private char getRIGHT() {
-		return mNHState.isNumPadOn() ? '6' : 'l';
-	}
+	private static final char[] VI_DIRS = {'h', 'j', 'k', 'l', 'y', 'u', 'b', 'n'};
+	private static final char[] NUM_DIRS = {'4', '2', '8', '6', '7', '9', '1', '3'};
 
-	private char getUP() {
-		return mNHState.isNumPadOn() ? '8' : 'k';
-	}
-
-	private char getDOWN() {
-		return mNHState.isNumPadOn() ? '2' : 'j';
-	}
-
-	private char getUL() {
-		return mNHState.isNumPadOn() ? '7' : 'y';
-	}
-
-	private char getUR() {
-		return mNHState.isNumPadOn() ? '9' : 'u';
-	}
-
-	private char getDL() {
-		return mNHState.isNumPadOn() ? '1' : 'b';
-	}
-
-	private char getDR() {
-		return mNHState.isNumPadOn() ? '3' : 'n';
+	private char getDirChar(int dir)
+	{
+		return mNHState.isNumPadOn() ? NUM_DIRS[dir] : VI_DIRS[dir];
 	}
 	
 	private enum ZoomPanMode
@@ -224,6 +209,13 @@ public class NHW_Map implements NH_Window
 		mSelfRadius = SELF_RADIUS_FACTOR * mDisplayDensity;
 		mSelfRadiusSquared = mSelfRadius * mSelfRadius;
 		mLockTopMargin = mStatus.getHeight();
+		if(mUI != null)
+		{
+			mUI.hideInternal();
+			ViewGroup parent = (ViewGroup)mUI.getParent();
+			if(parent != null)
+				parent.removeView(mUI);
+		}
 		mUI = new UI();
 		if(mIsVisible)
 			show(mIsBlocking);
@@ -573,9 +565,9 @@ public class NHW_Map implements NH_Window
 	{
 		int d;
 		int l = Character.toLowerCase(c);
-		if(l == getUL() || l == getLEFT() || l == getDL())
+		if(l == getDirChar(DIR_UL) || l == getDirChar(DIR_LEFT) || l == getDirChar(DIR_DL))
 			d = -1;
-		else if(l == getUR() || l == getRIGHT() || l == getDR())
+		else if(l == getDirChar(DIR_UR) || l == getDirChar(DIR_RIGHT) || l == getDirChar(DIR_DR))
 			d = 1;
 		else
 			d = 0;
@@ -589,9 +581,9 @@ public class NHW_Map implements NH_Window
 	{
 		int d;
 		int l = Character.toLowerCase(c);
-		if(l == getUL() || l == getUP() || l == getUR())
+		if(l == getDirChar(DIR_UL) || l == getDirChar(DIR_UP) || l == getDirChar(DIR_UR))
 			d = -1;
-		else if(l == getDL() || l == getDOWN() || l == getDR())
+		else if(l == getDirChar(DIR_DL) || l == getDirChar(DIR_DOWN) || l == getDirChar(DIR_DR))
 			d = 1;
 		else
 			d = 0;
@@ -1459,14 +1451,23 @@ public class NHW_Map implements NH_Window
 
 				char dir = 0;
 
-				if(event.getX() >= axis0)
-					dir = event.getY() >= axis1 ? getDR() : event.getY() <= -axis1 ? getUR() : getRIGHT();
-				else if(event.getX() <= -axis0)
-					dir = event.getY() >= axis1 ? getDL() : event.getY() <= -axis1 ? getUL() : getLEFT();
-				else if(event.getY() >= axis0)
-					dir = event.getX() >= axis1 ? getDR() : event.getX() <= -axis1 ? getDL() : getDOWN();
-				else if(event.getY() <= -axis0)
-					dir = event.getX() >= axis1 ? getUR() : event.getX() <= -axis1 ? getUL() : getUP();
+				if(event.getX() >= axis0) {
+					if(event.getY() >= axis1)      dir = getDirChar(DIR_DR);
+					else if(event.getY() <= -axis1) dir = getDirChar(DIR_UR);
+					else                           dir = getDirChar(DIR_RIGHT);
+				} else if(event.getX() <= -axis0) {
+					if(event.getY() >= axis1)      dir = getDirChar(DIR_DL);
+					else if(event.getY() <= -axis1) dir = getDirChar(DIR_UL);
+					else                           dir = getDirChar(DIR_LEFT);
+				} else if(event.getY() >= axis0) {
+					if(event.getX() >= axis1)      dir = getDirChar(DIR_DR);
+					else if(event.getX() <= -axis1) dir = getDirChar(DIR_DL);
+					else                           dir = getDirChar(DIR_DOWN);
+				} else if(event.getY() <= -axis0) {
+					if(event.getX() >= axis1)      dir = getDirChar(DIR_UR);
+					else if(event.getX() <= -axis1) dir = getDirChar(DIR_UL);
+					else                           dir = getDirChar(DIR_UP);
+				}
 
 				if(dir != 0)
 					sendDirKeyCmd(dir);
@@ -1805,13 +1806,13 @@ public class NHW_Map implements NH_Window
 
 			char dir;
 			if(ady < PIE_SLICE * adx)
-				dir = dx > 0 ? getRIGHT() : getLEFT();
+				dir = dx > 0 ? getDirChar(DIR_RIGHT) : getDirChar(DIR_LEFT);
 			else if(adx < PIE_SLICE * ady)
-				dir = dy < 0 ? getUP() : getDOWN();
+				dir = dy < 0 ? getDirChar(DIR_UP) : getDirChar(DIR_DOWN);
 			else if(dx > 0)
-				dir = dy < 0 ? getUR() : getDR();
+				dir = dy < 0 ? getDirChar(DIR_UR) : getDirChar(DIR_DR);
 			else
-				dir = dy < 0 ? getUL() : getDL();
+				dir = dy < 0 ? getDirChar(DIR_UL) : getDirChar(DIR_DL);
 
 			return dir;
 		}

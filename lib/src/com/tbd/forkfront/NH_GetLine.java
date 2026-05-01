@@ -128,8 +128,8 @@ public class NH_GetLine
 			return;
 		history.remove(newString);
 		history.add(0, newString);
-		if(history.size() > MAX_HISTORY)
-			history = history.subList(0, MAX_HISTORY);
+		while(history.size() > MAX_HISTORY)
+			history.remove(history.size() - 1);
 		StringBuilder builder = new StringBuilder();
 		for(String h : history)
 		{

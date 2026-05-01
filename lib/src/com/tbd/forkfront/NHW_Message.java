@@ -107,6 +107,8 @@ public class NHW_Message implements NH_Window
 	public void clear()
 	{
 		mDispCount = 0;
+		mLogCount = 0;
+		mCurrentIdx = 0;
 		mUI.clear();
 		notifyMessagesCleared();
 	}

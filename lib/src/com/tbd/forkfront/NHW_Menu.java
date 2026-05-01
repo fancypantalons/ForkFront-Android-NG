@@ -81,7 +81,8 @@ public class NHW_Menu implements NH_Window
 	@Override
 	public void clear()
 	{
-		throw new UnsupportedOperationException();
+		// Menus are ephemeral and do not support clear.
+		// This is a safe no-op to satisfy the NH_Window contract.
 	}
 
 	// ____________________________________________________________________________________
@@ -102,7 +103,7 @@ public class NHW_Menu implements NH_Window
 			mContext.getSupportFragmentManager()
 				.beginTransaction()
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
-				.commit();
+				.commitAllowingStateLoss();
 		}
 		mState.pushContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 	}
@@ -168,7 +169,7 @@ public class NHW_Menu implements NH_Window
 			mContext.getSupportFragmentManager()
 				.beginTransaction()
 				.remove(mFragment)
-				.commit();
+				.commitAllowingStateLoss();
 		}
 		mFragment = null;
 	}

@@ -92,7 +92,7 @@ public class NHW_Text implements NH_Window
 			mContext.getSupportFragmentManager()
 				.beginTransaction()
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
-				.commit();
+				.commitAllowingStateLoss();
 		}
 		mState.pushContext(UiContext.TEXT_WINDOW);
 	}
@@ -160,7 +160,7 @@ public class NHW_Text implements NH_Window
 			mContext.getSupportFragmentManager()
 				.beginTransaction()
 				.remove(mFragment)
-				.commit();
+				.commitAllowingStateLoss();
 		}
 		mFragment = null;
 	}
@@ -358,8 +358,8 @@ public class NHW_Text implements NH_Window
 
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
-				int actionIndex = (event.getAction() & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
-				int action = event.getAction() & MotionEvent.ACTION_MASK;
+				int actionIndex = event.getActionIndex();
+				int action = event.getActionMasked();
 
 				switch(action) {
 					case MotionEvent.ACTION_DOWN:

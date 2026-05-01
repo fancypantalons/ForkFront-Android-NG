@@ -232,6 +232,7 @@ public class NHW_Status implements NH_Window
 		// Initialize field storage
 		mFields.clear();
 		mConditionMask = 0;
+		notifyReset();
 	}
 
 	public void statusEnableField(int fieldIdx, String name, String fmt, boolean enable)
@@ -355,7 +356,7 @@ public class NHW_Status implements NH_Window
 	@Override
 	public boolean isVisible()
 	{
-		return true;
+		return mIsVisible;
 	}
 
 	@Override

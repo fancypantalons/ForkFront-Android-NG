@@ -192,6 +192,8 @@ public class NH_Question
 				{
 					public void onClick(View v)
 					{
+						if(mIsDisabled)
+							return;
 						select(mChoices[0]);
 					}
 				});
@@ -210,6 +212,8 @@ public class NH_Question
 					{
 						public void onClick(View v)
 						{
+							if(mIsDisabled)
+								return;
 							Log.print("select: " + Integer.toString(mChoices[a]));
 							select(mChoices[a]);
 						}
