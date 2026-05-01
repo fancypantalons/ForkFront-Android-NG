@@ -865,6 +865,9 @@ public class NHW_Map implements NH_Window
 							canvas = mSurfaceHolder.lockCanvas();
 							if (canvas != null)
 							{
+								// Clear the canvas before drawing
+								canvas.drawColor(0xFF000000); // Black background
+
 								// Synchronized block will be added in next task
 								synchronized (mTiles)
 								{
