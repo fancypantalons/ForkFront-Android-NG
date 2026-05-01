@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,6 +24,7 @@ import com.tbd.forkfront.R;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -43,12 +45,15 @@ public class GamepadBindingsFragment extends Fragment {
     private List<KeyBinding> mDefaults;
     // Flat list for the RecyclerView (HeaderItem or BindingItem)
     private List<Object> mListItems;
+    // Full unfiltered list for search reset
+    private List<Object> mAllListItems;
 
     // Editing state
     private int mEditingIndex = -1;               // index into mBindings being edited; -1 = new
     private CmdRegistry.CmdInfo mPendingCmd;       // command selected for new binding
 
     private BindingsAdapter mAdapter;
+    private SearchView mSearchView;
     private View mEmptyView;
 
     // --- Lifecycle --------------------------------------------------------------
@@ -67,7 +72,28 @@ public class GamepadBindingsFragment extends Fragment {
 
         if (getActivity() != null) getActivity().setTitle("Configure Bindings");
 
+        mSearchView = view.findViewById(R.id.bindings_search);
         mEmptyView = view.findViewById(R.id.bindings_empty);
+
+        mSearchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) showSearchKeyboard();
+        });
+
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                mAdapter.filter(query);
+                updateEmptyState();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                mAdapter.filter(newText);
+                updateEmptyState();
+                return true;
+            }
+        });
 
         RecyclerView recycler = view.findViewById(R.id.bindings_recycler);
         recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -89,6 +115,7 @@ public class GamepadBindingsFragment extends Fragment {
 
         loadBindings();
         buildListItems();
+        mAllListItems = new ArrayList<>(mListItems);
         mAdapter.notifyDataSetChanged();
         updateEmptyState();
     }
@@ -157,7 +184,9 @@ public class GamepadBindingsFragment extends Fragment {
 
     private void rebuildAndRefresh() {
         buildListItems();
-        mAdapter.notifyDataSetChanged();
+        mAllListItems = new ArrayList<>(mListItems);
+        String query = mSearchView != null ? mSearchView.getQuery().toString() : "";
+        mAdapter.filter(query);
         updateEmptyState();
     }
 
@@ -345,6 +374,17 @@ public class GamepadBindingsFragment extends Fragment {
         return -1;
     }
 
+    private void showSearchKeyboard() {
+        android.util.Log.d("NH_IME", "showSearchKeyboard called");
+        View edit = mSearchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        android.util.Log.d("NH_IME", "edit view=" + edit + " hasFocus=" + (edit != null ? edit.hasFocus() : "null"));
+        if (edit != null) {
+            boolean focused = edit.requestFocus();
+            android.util.Log.d("NH_IME", "requestFocus returned: " + focused);
+            com.tbd.forkfront.Util.showKeyboard(requireContext(), edit);
+        }
+    }
+
     // --- Data classes -----------------------------------------------------------
 
     private static class HeaderItem {
@@ -402,6 +442,38 @@ public class GamepadBindingsFragment extends Fragment {
             }
         }
 
+        public void filter(String query) {
+            if (query == null || query.trim().isEmpty()) {
+                mListItems = new ArrayList<>(mAllListItems);
+                notifyDataSetChanged();
+                return;
+            }
+            String lower = query.toLowerCase(Locale.getDefault());
+            List<Object> filtered = new ArrayList<>();
+            String lastHeader = null;
+            for (Object obj : mAllListItems) {
+                if (obj instanceof HeaderItem) {
+                    lastHeader = ((HeaderItem) obj).title;
+                } else if (obj instanceof BindingItem) {
+                    BindingItem bi = (BindingItem) obj;
+                    String displayName = getDisplayName(bi.binding).toLowerCase(Locale.getDefault());
+                    String cmdKey = bi.binding.sourceCmdKey != null
+                        ? bi.binding.sourceCmdKey.toLowerCase(Locale.getDefault()) : "";
+                    String chordName = bi.binding.chord.displayName().toLowerCase(Locale.getDefault());
+                    if (displayName.contains(lower) || cmdKey.contains(lower) || chordName.contains(lower)) {
+                        // Add header if not already added for this section
+                        if (lastHeader != null && (filtered.isEmpty() ||
+                            !(filtered.get(filtered.size() - 1) instanceof HeaderItem) ||
+                            !((HeaderItem) filtered.get(filtered.size() - 1)).title.equals(lastHeader))) {
+                            filtered.add(new HeaderItem(lastHeader));
+                        }
+                        filtered.add(bi);
+                    }
+                }
+            }
+            mListItems = filtered;
+            notifyDataSetChanged();
+        }
     }
 
     private static class HeaderViewHolder extends RecyclerView.ViewHolder {
