@@ -82,6 +82,7 @@ public class NHW_Map implements NH_Window
 	private class Tile
 	{
 		public int glyph;
+		public int bkglyph;
 		public short overlay;
 		public char[] ch = { 0 };
 		public int color;
@@ -298,6 +299,41 @@ public class NHW_Map implements NH_Window
 				for(int i = 0; i < row.length; i++)
 					row[i].glyph = -1;
 			}
+		}
+	}
+
+	public Point getPlayerPos()
+	{
+		return mPlayerPos;
+	}
+
+	public int getTileGlyph(int x, int y)
+	{
+		if(x < 0 || x >= TileCols || y < 0 || y >= TileRows)
+			return -1;
+		synchronized (mTiles)
+		{
+			return mTiles[y][x].glyph;
+		}
+	}
+
+	public int getTileBkGlyph(int x, int y)
+	{
+		if(x < 0 || x >= TileCols || y < 0 || y >= TileRows)
+			return -1;
+		synchronized (mTiles)
+		{
+			return mTiles[y][x].bkglyph;
+		}
+	}
+
+	public char getTileChar(int x, int y)
+	{
+		if(x < 0 || x >= TileCols || y < 0 || y >= TileRows)
+			return ' ';
+		synchronized (mTiles)
+		{
+			return mTiles[y][x].ch[0];
 		}
 	}
 
@@ -605,11 +641,12 @@ public class NHW_Map implements NH_Window
 	}
 
 	// ____________________________________________________________________________________
-	public void printTile(final int x, final int y, final int tile, final int ch, final int col, final int special)
+	public void printTile(final int x, final int y, final int tile, final int bkglyph, final int ch, final int col, final int special)
 	{
 		synchronized (mTiles)
 		{
 			mTiles[y][x].glyph = tile;
+			mTiles[y][x].bkglyph = bkglyph;
 			mTiles[y][x].ch[0] = mDecoder.decode(ch);
 			mTiles[y][x].color = col;
 			mTiles[y][x].overlay = (short)special;

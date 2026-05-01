@@ -10,25 +10,30 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class WidgetPropertiesFragment extends DialogFragment {
 
     public interface OnPropertiesListener {
         void onLabelChanged(String newLabel);
+        void onOrientationChanged(boolean horizontal);
         void onDelete();
     }
 
     private OnPropertiesListener mListener;
     private String mCurrentLabel;
     private boolean mIsButton;
+    private boolean mIsContextual;
+    private boolean mIsHorizontal;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isHorizontal) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
         args.putBoolean("isButton", isButton);
+        args.putBoolean("isContextual", isContextual);
+        args.putBoolean("isHorizontal", isHorizontal);
         f.setArguments(args);
         return f;
     }
@@ -43,14 +48,14 @@ public class WidgetPropertiesFragment extends DialogFragment {
         if (getArguments() != null) {
             mCurrentLabel = getArguments().getString("label");
             mIsButton = getArguments().getBoolean("isButton");
+            mIsContextual = getArguments().getBoolean("isContextual");
+            mIsHorizontal = getArguments().getBoolean("isHorizontal");
         }
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Standard DialogFragment uses onCreateView or onCreateDialog. 
-        // We'll use onCreateView but wrap it in a Material shape via the style.
         return inflater.inflate(R.layout.widget_properties, container, false);
     }
 
@@ -81,6 +86,20 @@ public class WidgetPropertiesFragment extends DialogFragment {
             labelLayout.setVisibility(View.GONE);
         }
 
+        View orientationLayout = view.findViewById(R.id.orientation_layout);
+        MaterialSwitch switchOrientation = view.findViewById(R.id.switch_orientation);
+        if (mIsContextual) {
+            orientationLayout.setVisibility(View.VISIBLE);
+            switchOrientation.setChecked(mIsHorizontal);
+            switchOrientation.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (mListener != null) {
+                    mListener.onOrientationChanged(isChecked);
+                }
+            });
+        } else {
+            orientationLayout.setVisibility(View.GONE);
+        }
+
         view.findViewById(R.id.btn_delete).setOnClickListener(v -> {
             if (mListener != null) {
                 mListener.onDelete();
@@ -96,7 +115,6 @@ public class WidgetPropertiesFragment extends DialogFragment {
         super.onStart();
         Dialog dialog = getDialog();
         if (dialog != null) {
-            // Constrain width in landscape
             int width = ViewGroup.LayoutParams.MATCH_PARENT;
             if (getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
                 width = (int)(400 * getResources().getDisplayMetrics().density);

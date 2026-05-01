@@ -54,6 +54,7 @@ public class NH_State
 	private Hearse mHearse;
 	private SoftKeyboard.KEYBOARD mRegularKeyboard;
 	private SoundPlayer mSoundPlayer;
+	private int mPlayerObjectFlags;
 
 	// ____________________________________________________________________________________
 	/**
@@ -715,7 +716,9 @@ public class NH_State
 	public void showWidgetProperties(AppCompatActivity activity, ControlWidget widget) {
 		ControlWidget.WidgetData data = widget.getWidgetData();
 		boolean isButton = "button".equals(data.type);
-		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton);
+		boolean isContextual = "contextual".equals(data.type);
+		
+		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(data.label, isButton, isContextual, data.horizontal);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
@@ -727,11 +730,110 @@ public class NH_State
 			}
 
 			@Override
+			public void onOrientationChanged(boolean horizontal) {
+				data.horizontal = horizontal;
+				if (isContextual && widget.getContentView() instanceof ContextualActionBarView) {
+					((ContextualActionBarView) widget.getContentView()).setOrientation(horizontal);
+				}
+				mWidgetLayout.saveLayout();
+			}
+
+			@Override
 			public void onDelete() {
 				mWidgetLayout.removeWidget(widget);
 			}
 		});
 		fragment.show(activity.getSupportFragmentManager(), "widget_properties");
+	}
+
+	public void updateContextualActions() {
+		if (mWidgetLayout == null || mMap == null) return;
+
+		android.graphics.Point pos = mMap.getPlayerPos();
+		if (pos == null) return;
+
+		java.util.Set<String> actionKeys = new java.util.LinkedHashSet<>();
+		
+		// NetHack 3.6 definitive glyph offsets
+		final int GLYPH_MON_OFF = 0;
+		final int GLYPH_PET_OFF = 381;
+		final int GLYPH_INVIS_OFF = 762;
+		final int GLYPH_DETECT_OFF = 763;
+		final int GLYPH_BODY_OFF = 1144;
+		final int GLYPH_RIDDEN_OFF = 1525;
+		final int GLYPH_OBJ_OFF = 1906;
+		final int GLYPH_CMAP_OFF = 2359;
+		
+		int centerGlyph = mMap.getTileGlyph(pos.x, pos.y);
+		int bkGlyph = mMap.getTileBkGlyph(pos.x, pos.y);
+		char centerChar = mMap.getTileChar(pos.x, pos.y);
+
+		// 1. Check for objects at player's position (using native flags)
+		if ((mPlayerObjectFlags & 1) != 0) {
+			actionKeys.add(","); // Pick up
+			if ((mPlayerObjectFlags & 2) != 0) {
+				actionKeys.add("#loot");
+			}
+			if ((mPlayerObjectFlags & 4) != 0) {
+				actionKeys.add("e"); // Eat
+			}
+		}
+		
+		// 2. Check tile features at player's position
+		if (centerChar == '<') actionKeys.add("<");
+		if (centerChar == '>') actionKeys.add(">");
+		if (centerChar == '_') { actionKeys.add("#pray"); actionKeys.add("#offer"); }
+		if (centerChar == '{' || centerChar == '#') { actionKeys.add("q"); actionKeys.add("D"); }
+		if (centerChar == '\\') actionKeys.add("#sit");
+
+		// 3. Check 8 surrounding tiles
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				if (dx == 0 && dy == 0) continue;
+				int nx = pos.x + dx;
+				int ny = pos.y + dy;
+				char tile = mMap.getTileChar(nx, ny);
+				int glyph = mMap.getTileGlyph(nx, ny);
+				
+				// Doors
+				if (tile == '+' ) { // Closed door
+					actionKeys.add("o");
+					actionKeys.add(String.valueOf((char)4)); // Kick
+				}
+				if (tile == '-' || tile == '|') { // Open door
+					if (glyph >= GLYPH_CMAP_OFF) {
+						actionKeys.add("c");
+					}
+				}
+				
+				// Monsters
+				if ((glyph >= GLYPH_MON_OFF && glyph < GLYPH_INVIS_OFF) || 
+				    (glyph >= GLYPH_RIDDEN_OFF && glyph < GLYPH_OBJ_OFF)) {
+					actionKeys.add("#chat");
+				}
+			}
+		}
+
+		// Always show search
+		actionKeys.add("s");
+
+		List<CmdRegistry.CmdInfo> actions = new ArrayList<>();
+		for (String key : actionKeys) {
+			CmdRegistry.CmdInfo info = CmdRegistry.get(key);
+			if (info != null) {
+				actions.add(info);
+			}
+		}
+		
+		for (int i = 0; i < mWidgetLayout.getChildCount(); i++) {
+			View child = mWidgetLayout.getChildAt(i);
+			if (child instanceof ControlWidget) {
+				ControlWidget w = (ControlWidget) child;
+				if ("contextual".equals(w.getWidgetData().type) && w.getContentView() instanceof ContextualActionBarView) {
+					((ContextualActionBarView) w.getContentView()).updateActions(actions);
+				}
+			}
+		}
 	}
 	// ____________________________________________________________________________________
 	public void setCtrlKeyboard()
@@ -906,9 +1008,9 @@ public class NH_State
 
 		// ____________________________________________________________________________________
 		@Override
-		public void printTile(int wid, int x, int y, int tile, int ch, int col, int special) {
+		public void printTile(int wid, int x, int y, int tile, int bkglyph, int ch, int col, int special) {
 			if (mMap != null) {
-				mMap.printTile(x, y, tile, ch, col, special);
+				mMap.printTile(x, y, tile, bkglyph, ch, col, special);
 			}
 		}
 
@@ -1109,11 +1211,12 @@ public class NH_State
 
 		// ____________________________________________________________________________________
 		@Override
-		public void cliparound(int x, int y, int playerX, int playerY)
+		public void cliparound(int x, int y, int playerX, int playerY, int objectFlags)
 		{
-			if (mMap != null) {
+			mPlayerObjectFlags = objectFlags;
+			if(mMap != null)
 				mMap.cliparound(x, y, playerX, playerY);
-			}
+			updateContextualActions();
 		}
 
 		// ____________________________________________________________________________________

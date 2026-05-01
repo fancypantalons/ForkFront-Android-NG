@@ -44,6 +44,7 @@ public class ControlWidget extends FrameLayout {
         public String type;
         public String label;
         public String command;
+        public boolean horizontal = true;
         public float x, y;
         public int w, h;
     }
