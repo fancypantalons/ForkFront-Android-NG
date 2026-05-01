@@ -1532,19 +1532,16 @@ public class NHW_Map implements NH_Window
 				break;
 
 				case SEND_DIR:
-					if(allowDirectionalInput())
-					{
-						char dir = getDir(tileX, tileY, dx, dy, distFromSelfSquared);
+					char dir = getDir(tileX, tileY, dx, dy, distFromSelfSquared);
 
-						if(bLongClick && !mNHState.expectsDirection())
-						{
-							mNHState.sendKeyCmd('g');
-							mNHState.sendKeyCmd(dir);
-						}
-						else
-						{
-							mNHState.sendDirKeyCmd(dir);
-						}
+					if(bLongClick && !mNHState.expectsDirection())
+					{
+						mNHState.sendKeyCmd('g');
+						mNHState.sendKeyCmd(dir);
+					}
+					else
+					{
+						mNHState.sendDirKeyCmd(dir);
 					}
 				break;
 			}
@@ -1587,13 +1584,6 @@ public class NHW_Map implements NH_Window
 			{
 				mNHState.sendDirKeyCmd(c);
 			}
-		}
-
-		// ____________________________________________________________________________________
-		private boolean allowDirectionalInput()
-		{
-			// Old overlay system removed - always allow map directional input
-			return true;
 		}
 
 		// ____________________________________________________________________________________
