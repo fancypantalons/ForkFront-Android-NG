@@ -69,14 +69,18 @@ public class AxisNormalizer {
         mRTriggerDown = rtNow;
     }
 
+    private static int classifyHat(float v) {
+        return v < -0.5f ? -1 : v > 0.5f ? 1 : 0;
+    }
+
     private void processHat(MotionEvent ev, EventSink sink) {
         float hatX = ev.getAxisValue(MotionEvent.AXIS_HAT_X);
         float hatY = ev.getAxisValue(MotionEvent.AXIS_HAT_Y);
         if (hatX == mLastHatX && hatY == mLastHatY) return;
 
         // Only emit events for axes whose state class actually changed.
-        int oldX = mLastHatX < -0.5f ? -1 : mLastHatX > 0.5f ? 1 : 0;
-        int newX = hatX      < -0.5f ? -1 : hatX      > 0.5f ? 1 : 0;
+        int oldX = classifyHat(mLastHatX);
+        int newX = classifyHat(hatX);
         if (oldX != newX) {
             if (oldX == -1) sink.onSynthRelease(ButtonId.AXIS_HAT_LEFT_PSEUDO);
             else if (oldX ==  1) sink.onSynthRelease(ButtonId.AXIS_HAT_RIGHT_PSEUDO);
@@ -84,8 +88,8 @@ public class AxisNormalizer {
             else if (newX ==  1) sink.onSynthPress(ButtonId.AXIS_HAT_RIGHT_PSEUDO);
         }
 
-        int oldY = mLastHatY < -0.5f ? -1 : mLastHatY > 0.5f ? 1 : 0;
-        int newY = hatY      < -0.5f ? -1 : hatY      > 0.5f ? 1 : 0;
+        int oldY = classifyHat(mLastHatY);
+        int newY = classifyHat(hatY);
         if (oldY != newY) {
             if (oldY == -1) sink.onSynthRelease(ButtonId.AXIS_HAT_UP_PSEUDO);
             else if (oldY ==  1) sink.onSynthRelease(ButtonId.AXIS_HAT_DOWN_PSEUDO);

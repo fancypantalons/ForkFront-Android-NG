@@ -195,14 +195,17 @@ public class GamepadDispatcher {
 
     // ─── Event source detection ───────────────────────────────────────────────
 
+    private static boolean isGamepadSource(int source) {
+        return (source & (InputDevice.SOURCE_GAMEPAD | InputDevice.SOURCE_JOYSTICK |
+                          InputDevice.SOURCE_DPAD)) != 0;
+    }
+
     public boolean isGamepadEvent(KeyEvent ev) {
         // Reject synthetic re-injected events
         if ((ev.getSource() & SOURCE_SYNTHETIC) == SOURCE_SYNTHETIC) return false;
         // BACK is always system-handled and never appears in the binding map
         if (ev.getKeyCode() == KeyEvent.KEYCODE_BACK) return false;
-        int src = ev.getSource();
-        return (src & (InputDevice.SOURCE_GAMEPAD | InputDevice.SOURCE_JOYSTICK |
-                       InputDevice.SOURCE_DPAD)) != 0;
+        return isGamepadSource(ev.getSource());
     }
 
     public boolean isGamepadEvent(MotionEvent ev) {
@@ -451,10 +454,12 @@ public class GamepadDispatcher {
                 mRepeatHelper.cancelRepeat();
                 return true;
             }
+            // First key of the diagonal released: deactivate and consume.
             mDiagonalActive = false;
             mDiagonalSecondKey = -1;
             mDiagonalChar = 0;
             mRepeatHelper.cancelRepeat();
+            return true;
         }
         return mChordTracker.onKeyUp(dpadKeycode) == ChordTracker.Result.HANDLED;
     }

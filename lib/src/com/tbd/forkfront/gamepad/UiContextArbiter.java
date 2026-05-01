@@ -55,11 +55,11 @@ public final class UiContextArbiter {
             mStack.pop();
             // Ensure base GAMEPLAY is always present
             if (mStack.isEmpty()) mStack.push(UiContext.GAMEPLAY);
+            notifyListeners();
         } else {
             android.util.Log.w("UiContextArbiter",
                 "pop(" + expected + ") called but top is " + top + " — ignoring");
         }
-        notifyListeners();
     }
 
     /** Removes specific context from anywhere in the stack. Used for out-of-order cleanup (e.g. Settings vs Drawer). */

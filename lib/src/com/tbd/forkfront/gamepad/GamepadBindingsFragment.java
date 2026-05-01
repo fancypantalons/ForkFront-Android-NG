@@ -31,7 +31,8 @@ import java.util.TreeSet;
  * Fragment for viewing and editing gamepad key bindings.
  * Hosted by the Settings activity via the "Configure bindings..." preference.
  */
-public class GamepadBindingsFragment extends Fragment {
+public class GamepadBindingsFragment extends Fragment
+    implements BindingCaptureDialogFragment.ConflictChecker {
 
     // RecyclerView item types
     private static final int TYPE_HEADER = 0;
@@ -41,6 +42,8 @@ public class GamepadBindingsFragment extends Fragment {
     private List<KeyBinding> mBindings;
     // Default bindings for reset support
     private List<KeyBinding> mDefaults;
+    // Map<sourceCmdKey, KeyBinding> for O(1) default lookups
+    private Map<String, KeyBinding> mDefaultMap;
     // Flat list for the RecyclerView (HeaderItem or BindingItem)
     private List<Object> mListItems;
 
@@ -64,6 +67,12 @@ public class GamepadBindingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        if (savedInstanceState != null) {
+            mEditingIndex = savedInstanceState.getInt("editingIndex", -1);
+            String pendingCmd = savedInstanceState.getString("pendingCmd");
+            if (pendingCmd != null) mPendingCmd = CmdRegistry.get(pendingCmd);
+        }
 
         if (getActivity() != null) getActivity().setTitle("Configure Bindings");
 
@@ -93,6 +102,15 @@ public class GamepadBindingsFragment extends Fragment {
         updateEmptyState();
     }
 
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("editingIndex", mEditingIndex);
+        if (mPendingCmd != null) {
+            outState.putString("pendingCmd", mPendingCmd.getCommand());
+        }
+    }
+
     // --- Data loading / saving --------------------------------------------------
 
     private void loadBindings() {
@@ -105,6 +123,12 @@ public class GamepadBindingsFragment extends Fragment {
         }
         String deviceKey = DeviceProfile.detect(requireContext());
         mDefaults = KeyBindingDefaultsLoader.loadDefaults(requireContext(), deviceKey);
+        mDefaultMap = new LinkedHashMap<>();
+        for (KeyBinding def : mDefaults) {
+            if (def.sourceCmdKey != null) {
+                mDefaultMap.put(def.sourceCmdKey, def);
+            }
+        }
     }
 
     private void saveAndNotify() {
@@ -175,7 +199,7 @@ public class GamepadBindingsFragment extends Fragment {
         mPendingCmd = null;
         String label = getDisplayName(kb);
         BindingCaptureDialogFragment dialog =
-            BindingCaptureDialogFragment.newInstance(label, buildConflictChecker());
+            BindingCaptureDialogFragment.newInstance(label);
         dialog.show(getParentFragmentManager(), "capture");
     }
 
@@ -209,19 +233,17 @@ public class GamepadBindingsFragment extends Fragment {
             mPendingCmd = cmd;
             mEditingIndex = -1;
             BindingCaptureDialogFragment capture =
-                BindingCaptureDialogFragment.newInstance(
-                    cmd.getDisplayName(), buildConflictChecker());
+                BindingCaptureDialogFragment.newInstance(cmd.getDisplayName());
             capture.show(getParentFragmentManager(), "capture");
         });
         dialog.show(getParentFragmentManager(), "command_picker");
     }
 
-    private BindingCaptureDialogFragment.ConflictChecker buildConflictChecker() {
-        return chord -> {
-            int idx = findChordConflict(chord, mEditingIndex);
-            if (idx < 0) return null;
-            return getDisplayName(mBindings.get(idx));
-        };
+    @Override
+    public String getConflictCommand(@NonNull Chord chord) {
+        int idx = findChordConflict(chord, mEditingIndex);
+        if (idx < 0) return null;
+        return getDisplayName(mBindings.get(idx));
     }
 
     private void onChordCaptured(int primaryCode, int[] modCodes) {
@@ -290,11 +312,8 @@ public class GamepadBindingsFragment extends Fragment {
     }
 
     private KeyBinding getDefaultBinding(KeyBinding kb) {
-        if (kb.sourceCmdKey == null || mDefaults == null) return null;
-        for (KeyBinding def : mDefaults) {
-            if (kb.sourceCmdKey.equals(def.sourceCmdKey)) return def;
-        }
-        return null;
+        if (kb.sourceCmdKey == null || mDefaultMap == null) return null;
+        return mDefaultMap.get(kb.sourceCmdKey);
     }
 
     private boolean isModified(KeyBinding kb) {

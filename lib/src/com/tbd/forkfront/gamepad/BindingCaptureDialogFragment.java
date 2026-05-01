@@ -10,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
 import com.google.android.material.button.MaterialButton;
 import com.tbd.forkfront.R;
 
@@ -56,22 +57,18 @@ public class BindingCaptureDialogFragment extends DialogFragment {
     private Chord mFinalChord;
 
     public static BindingCaptureDialogFragment newInstance(@Nullable String commandLabel) {
-        return newInstance(commandLabel, null);
-    }
-
-    public static BindingCaptureDialogFragment newInstance(@Nullable String commandLabel,
-                                                            @Nullable ConflictChecker checker) {
         BindingCaptureDialogFragment f = new BindingCaptureDialogFragment();
         Bundle args = new Bundle();
         args.putString(ARG_LABEL, commandLabel);
         f.setArguments(args);
-        f.mConflictChecker = checker;
         return f;
     }
 
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        resolveConflictChecker();
+
         String label = getArguments() != null ? getArguments().getString(ARG_LABEL) : null;
 
         View content = getLayoutInflater()
@@ -156,6 +153,16 @@ public class BindingCaptureDialogFragment extends DialogFragment {
             }
         }
         updatePreview();
+    }
+
+    private void resolveConflictChecker() {
+        if (mConflictChecker != null) return;
+        for (Fragment f : getParentFragmentManager().getFragments()) {
+            if (f instanceof ConflictChecker) {
+                mConflictChecker = (ConflictChecker) f;
+                break;
+            }
+        }
     }
 
     private void clearCapture() {

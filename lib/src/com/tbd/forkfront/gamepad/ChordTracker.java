@@ -19,6 +19,9 @@ public class ChordTracker {
     private final SortedSet<ButtonId> held = new TreeSet<>();
     private final Set<ButtonId> suppressedDown = new HashSet<>();
     private final Set<ButtonId> chordModifiersConsumed = new HashSet<>();
+    /** Caches the binding dispatched for each primary key so auto-repeat
+     *  re-fires the exact same binding even if held set changes. */
+    private final java.util.Map<ButtonId, KeyBinding> activeBindings = new java.util.HashMap<>();
 
     public enum Result { HANDLED, IGNORED }
 
@@ -40,7 +43,7 @@ public class ChordTracker {
         if (repeatCount > 0) {
             // Auto-repeat: re-fire if this key was the primary in a previously fired binding
             if (suppressedDown.contains(k)) {
-                KeyBinding binding = mMap.findLongestMatch(held, k);
+                KeyBinding binding = activeBindings.get(k);
                 if (binding != null && binding.chord.primary.code == keycode) {
                     mDispatcher.dispatch(binding, true);
                 }
@@ -53,6 +56,7 @@ public class ChordTracker {
         KeyBinding binding = mMap.findLongestMatch(held, k);
         if (binding != null) {
             suppressedDown.add(k);
+            activeBindings.put(k, binding);
             for (ButtonId mod : binding.chord.modifiers()) {
                 chordModifiersConsumed.add(mod);
             }
@@ -74,6 +78,7 @@ public class ChordTracker {
     public Result onKeyUp(int keycode) {
         ButtonId k = new ButtonId(keycode);
         held.remove(k);
+        activeBindings.remove(k);
 
         if (suppressedDown.remove(k)) {
             return Result.HANDLED;
@@ -100,6 +105,7 @@ public class ChordTracker {
         held.clear();
         suppressedDown.clear();
         chordModifiersConsumed.clear();
+        activeBindings.clear();
     }
 
     public Set<ButtonId> getHeld() {

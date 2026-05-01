@@ -60,9 +60,13 @@ public class KeyBindingDefaultsLoader {
         InputStream is = openAsset(ctx, deviceKey);
         if (is == null) return hardcodedFallback();
         try {
-            byte[] buf = new byte[is.available()];
-            int read = is.read(buf);
-            return parseJsonDefaults(new String(buf, 0, read, "UTF-8"));
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] chunk = new byte[4096];
+            int read;
+            while ((read = is.read(chunk)) != -1) {
+                baos.write(chunk, 0, read);
+            }
+            return parseJsonDefaults(new String(baos.toByteArray(), "UTF-8"));
         } catch (Exception e) {
             android.util.Log.e("KeyBindingDefaultsLoader", "Failed to load defaults asset", e);
             return hardcodedFallback();
