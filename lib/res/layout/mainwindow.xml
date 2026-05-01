@@ -142,13 +142,6 @@
 
     </FrameLayout>
 
-    <LinearLayout
-        android:id="@+id/kbd_frame"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_gravity="bottom" />
-
     <!-- Asset Loading Overlay -->
     <FrameLayout
         android:id="@+id/loading_overlay"

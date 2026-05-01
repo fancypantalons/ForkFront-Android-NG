@@ -11,9 +11,7 @@ public class Input
 {
 	public enum Modifier
 	{
-		Shift,
-		Control,
-		Meta
+		Shift
 	}
 	
 	// ____________________________________________________________________________________
@@ -26,11 +24,6 @@ public class Input
 		//if(event.isAltPressed())
 		//	mod.add(Modifiers.Meta);
 
-		// The CTRL key is not supported until API level 11
-		int metaCtrlMask = 0x00007000; // KeyEvent.META_CTRL_LEFT_ON | KeyEvent.META_CTRL_RIGHT_ON | KeyEvent.META_CTRL_ON;
-		if((event.getMetaState() & metaCtrlMask) != 0)
-			mod.add(Modifier.Control);
-		
 		// Some users have reported that they can't use the hardware shift key. I suspect
 		// that the "isShiftPressed" function is broken on those devices. Checking for
 		// META_SHIFT might work, otherwise I'll have to manually track the shift keys
@@ -45,10 +38,6 @@ public class Input
 	
 	public static int nhKeyFromMod(char ch, EnumSet<Modifier> modifiers)
 	{
-		if(modifiers.contains(Input.Modifier.Meta))
-			return ch | 0x80;
-		if(modifiers.contains(Input.Modifier.Control))
-			return ch & 0x1f;
 		if(modifiers.contains(Input.Modifier.Shift))
 			return Character.toUpperCase(ch);
 		return ch;
@@ -91,11 +80,7 @@ public class Input
 			nhKey = ch;
 			if(nhKey != 0)
 			{
-				if(mod.contains(Modifier.Meta))
-					nhKey = 0x80 | Character.toLowerCase(nhKey);
-				else if(mod.contains(Modifier.Control))
-					nhKey = 0x1f & Character.toLowerCase(nhKey);
-				else if(mod.contains(Modifier.Shift))
+				if(mod.contains(Modifier.Shift))
 					nhKey = Character.toUpperCase(nhKey);
 			}
 			return nhKey;
@@ -132,8 +117,6 @@ public class Input
 			if(action == KeyAction.SystemDefault)
 				action = keyCode;
 		break;
-		case /*KeyEvent.KEYCODE_CTRL_LEFT*/ 113: action = KeyAction.Control; break;
-		case /*KeyEvent.KEYCODE_CTRL_RIGHT*/ 114: action = KeyAction.Control; break;
 		case /*KeyEvent.KEYCODE_ZOOM_IN*/ 168: action = KeyAction.ZoomIn; break;
 		case /*KeyEvent.KEYCODE_ZOOM_OUT*/ 169: action = KeyAction.ZoomOut; break;
 		default:
