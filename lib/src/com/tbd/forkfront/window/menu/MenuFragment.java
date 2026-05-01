@@ -72,7 +72,23 @@ public class MenuFragment extends Fragment implements AmountSelector.Listener {
 
 		if (mListView != null) {
 			mListView.setAdapter(new MenuItemAdapter((AppCompatActivity) requireActivity(), R.layout.menu_item, (ArrayList<MenuItem>) mController.mItems, mController.mTileset, mController.mHow));
-			mListView.setOnItemClickListener((parent, view, position, id) -> toggleItemOrGroupAt(position));
+			mListView.setOnItemClickListener((parent, view, position, id) -> {
+				switch (mController.mHow) {
+					case PickNone:
+						mController.sendSelectNone();
+						mController.close();
+						break;
+					case PickOne:
+						MenuItem item = (MenuItem) mListView.getItemAtPosition(position);
+						if (!item.isHeader() && item.isSelectable()) {
+							dispatchSelectOne(item, mController.mKeyboardCount);
+						}
+						break;
+					case PickMany:
+						toggleItemOrGroupAt(position);
+						break;
+				}
+			});
 			mListView.setOnItemLongClickListener((parent, view, position, id) -> {
 				MenuItem item = (MenuItem) mListView.getItemAtPosition(position);
 				if (item.isSelectable() && item.getMaxCount() > 1) {

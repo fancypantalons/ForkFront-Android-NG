@@ -34,6 +34,16 @@ public class MenuTextFragment extends Fragment {
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		mRoot = inflater.inflate(R.layout.dialog_text, container, false);
 		
+		View okBtn = mRoot.findViewById(R.id.btn_ok);
+		View closeBtn = mRoot.findViewById(R.id.btn_close);
+
+		if (okBtn != null) {
+			okBtn.setOnClickListener(v -> mController.close());
+		}
+		if (closeBtn != null) {
+			closeBtn.setOnClickListener(v -> mController.close());
+		}
+
 		refresh();
 		mRoot.requestFocus();
 
