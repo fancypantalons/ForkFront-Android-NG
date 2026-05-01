@@ -65,17 +65,24 @@ public class AxisNormalizer {
         float hatY = ev.getAxisValue(MotionEvent.AXIS_HAT_Y);
         if (hatX == mLastHatX && hatY == mLastHatY) return;
 
-        // Release old hat state
-        if (mLastHatX < -0.5f) sink.onSynthRelease(ButtonId.AXIS_HAT_LEFT_PSEUDO);
-        else if (mLastHatX > 0.5f) sink.onSynthRelease(ButtonId.AXIS_HAT_RIGHT_PSEUDO);
-        if (mLastHatY < -0.5f) sink.onSynthRelease(ButtonId.AXIS_HAT_UP_PSEUDO);
-        else if (mLastHatY > 0.5f) sink.onSynthRelease(ButtonId.AXIS_HAT_DOWN_PSEUDO);
+        // Only emit events for axes whose state class actually changed.
+        int oldX = mLastHatX < -0.5f ? -1 : mLastHatX > 0.5f ? 1 : 0;
+        int newX = hatX      < -0.5f ? -1 : hatX      > 0.5f ? 1 : 0;
+        if (oldX != newX) {
+            if (oldX == -1) sink.onSynthRelease(ButtonId.AXIS_HAT_LEFT_PSEUDO);
+            else if (oldX ==  1) sink.onSynthRelease(ButtonId.AXIS_HAT_RIGHT_PSEUDO);
+            if (newX == -1) sink.onSynthPress(ButtonId.AXIS_HAT_LEFT_PSEUDO);
+            else if (newX ==  1) sink.onSynthPress(ButtonId.AXIS_HAT_RIGHT_PSEUDO);
+        }
 
-        // Press new hat state
-        if (hatX < -0.5f) sink.onSynthPress(ButtonId.AXIS_HAT_LEFT_PSEUDO);
-        else if (hatX > 0.5f) sink.onSynthPress(ButtonId.AXIS_HAT_RIGHT_PSEUDO);
-        if (hatY < -0.5f) sink.onSynthPress(ButtonId.AXIS_HAT_UP_PSEUDO);
-        else if (hatY > 0.5f) sink.onSynthPress(ButtonId.AXIS_HAT_DOWN_PSEUDO);
+        int oldY = mLastHatY < -0.5f ? -1 : mLastHatY > 0.5f ? 1 : 0;
+        int newY = hatY      < -0.5f ? -1 : hatY      > 0.5f ? 1 : 0;
+        if (oldY != newY) {
+            if (oldY == -1) sink.onSynthRelease(ButtonId.AXIS_HAT_UP_PSEUDO);
+            else if (oldY ==  1) sink.onSynthRelease(ButtonId.AXIS_HAT_DOWN_PSEUDO);
+            if (newY == -1) sink.onSynthPress(ButtonId.AXIS_HAT_UP_PSEUDO);
+            else if (newY ==  1) sink.onSynthPress(ButtonId.AXIS_HAT_DOWN_PSEUDO);
+        }
 
         mLastHatX = hatX;
         mLastHatY = hatY;

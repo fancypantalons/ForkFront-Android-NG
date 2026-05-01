@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -53,8 +52,9 @@ public class GamepadDispatcher {
     /** The second D-pad key that completed the diagonal (not added to ChordTracker). */
     private int mDiagonalSecondKey = -1;
     private char mDiagonalChar = 0;
-    /** Timestamp of the most recent D-pad key-down (used to enforce diagonalWindowMs). */
-    private long mLastDpadDownMs = 0;
+    /** Buffered d-pad key waiting to see if a diagonal partner arrives within diagonalWindowMs. */
+    private int mBufferedDpadKey = -1;
+    private Runnable mDpadBufferRunnable;
 
     // ─── Baseline fallback dispatcher ─────────────────────────────────────────
     private volatile SyntheticDispatcher mSyntheticDispatcher;
@@ -150,12 +150,12 @@ public class GamepadDispatcher {
 
     public void resetTracker() {
         cancelRepeat();
+        cancelDpadBuffer();
         if (mChordTracker != null) mChordTracker.reset();
         if (mAxisNormalizer != null) mAxisNormalizer.reset();
         mDiagonalActive = false;
         mDiagonalSecondKey = -1;
         mDiagonalChar = 0;
-        mLastDpadDownMs = 0;
     }
 
     public void setSyntheticDispatcher(SyntheticDispatcher dispatcher) {
@@ -310,13 +310,14 @@ public class GamepadDispatcher {
             int dpadCode = AxisNormalizer.hatPseudoToDpad(buttonCode);
             if (dpadCode != -1) {
                 handleDpadDown(dpadCode, false);
-                if (!mDiagonalActive) {
-                    // Non-diagonal: start HAT-based key repeat via our timer
+                // Start repeat only for immediate cardinal dispatch (not buffering, not diagonal).
+                // Diagonal repeat is started inside handleDpadDown.
+                // Buffer-flush repeat is started inside flushDpadBuffer.
+                if (!mDiagonalActive && mBufferedDpadKey == -1) {
                     startRepeat(() -> {
                         if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
                     });
                 }
-                // If mDiagonalActive, handleDpadDown already started the diagonal repeat
             }
             return;
         }
@@ -345,72 +346,103 @@ public class GamepadDispatcher {
     // ─── D-pad diagonal synthesis ─────────────────────────────────────────────
 
     /**
-     * Handles a D-pad key-down event, synthesizing a diagonal char when two adjacent
-     * cardinals are pressed within diagonalWindowMs and both are bound to movement.
+     * Handles a D-pad key-down event.
      *
-     * Returns true if the event was handled (including diagonal activation).
+     * When synthDiagonals is enabled, the first press is held in a short buffer for
+     * diagonalWindowMs. If a second adjacent movement key arrives within the window the
+     * buffer is cancelled and only the diagonal fires. Otherwise the buffer flushes and
+     * the cardinal fires normally (with repeat). This prevents the extra cardinal step
+     * that the old approach produced before the diagonal could activate.
      */
     private boolean handleDpadDown(int dpadKeycode, boolean isRepeat) {
         if (isRepeat) {
-            // While diagonal is active our own timer drives repeats; swallow Android repeats.
             if (mDiagonalActive) return true;
+            if (mBufferedDpadKey != -1) return true; // buffer pending; swallow Android repeat
             return mChordTracker.onKeyDown(dpadKeycode, 1) == ChordTracker.Result.HANDLED;
         }
 
         if (mOptions.synthDiagonals && !mDiagonalActive) {
-            int heldDpad = getHeldDpadKeycode();
-            if (heldDpad != -1 && heldDpad != dpadKeycode) {
-                long now = SystemClock.uptimeMillis();
-                if (now - mLastDpadDownMs <= mOptions.diagonalWindowMs) {
-                    char diag = getDpadDiagonal(heldDpad, dpadKeycode);
-                    if (diag != 0 && isDpadMovementBinding(heldDpad) && isDpadMovementBinding(dpadKeycode)) {
-                        mDiagonalActive = true;
-                        mDiagonalSecondKey = dpadKeycode;
-                        mDiagonalChar = diag;
-                        cancelRepeat();
-                        mStateRef.sendDirKeyCmd(diag);
-                        final char diagChar = diag;
-                        startRepeat(() -> {
-                            if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(diagChar);
-                        });
-                        return true; // second key not passed to ChordTracker
-                    }
+            if (mBufferedDpadKey != -1 && mBufferedDpadKey != dpadKeycode) {
+                // A key is already buffered — check whether this new key forms a diagonal.
+                char diag = getDpadDiagonal(mBufferedDpadKey, dpadKeycode);
+                if (diag != 0 && isDpadMovementBinding(mBufferedDpadKey) && isDpadMovementBinding(dpadKeycode)) {
+                    cancelDpadBuffer();
+                    mDiagonalActive = true;
+                    mDiagonalSecondKey = dpadKeycode;
+                    mDiagonalChar = diag;
+                    cancelRepeat();
+                    mStateRef.sendDirKeyCmd(diag);
+                    final char diagChar = diag;
+                    startRepeat(() -> {
+                        if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(diagChar);
+                    });
+                    return true;
                 }
+                // Not a diagonal pair — flush buffered key now, fall through for the new key.
+                flushDpadBuffer(mBufferedDpadKey);
             }
-            mLastDpadDownMs = SystemClock.uptimeMillis();
+
+            // Buffer this key if it's a movement binding and no key is already pending.
+            if (mBufferedDpadKey == -1 && isDpadMovementBinding(dpadKeycode)) {
+                mBufferedDpadKey = dpadKeycode;
+                final int bufferedKey = dpadKeycode;
+                mDpadBufferRunnable = () -> {
+                    mDpadBufferRunnable = null;
+                    flushDpadBuffer(bufferedKey);
+                };
+                mRepeatHandler.postDelayed(mDpadBufferRunnable, mOptions.diagonalWindowMs);
+                return true;
+            }
         }
 
         return mChordTracker.onKeyDown(dpadKeycode, 0) == ChordTracker.Result.HANDLED;
     }
 
     /**
-     * Handles a D-pad key-up event, deactivating diagonal mode if active.
+     * Handles a D-pad key-up event, deactivating diagonal or buffer state as needed.
      */
     private boolean handleDpadUp(int dpadKeycode) {
+        // Key released while still buffered (no diagonal formed): fire once with no repeat.
+        if (mBufferedDpadKey == dpadKeycode) {
+            cancelDpadBuffer();
+            mChordTracker.onKeyDown(dpadKeycode, 0);
+            mChordTracker.onKeyUp(dpadKeycode);
+            return true;
+        }
+
         if (mDiagonalActive) {
             if (dpadKeycode == mDiagonalSecondKey) {
-                // Second key released: clean up diagonal, don't pass to ChordTracker
                 mDiagonalActive = false;
                 mDiagonalSecondKey = -1;
                 mDiagonalChar = 0;
                 cancelRepeat();
                 return true;
             }
-            // First key released: end diagonal, fall through to ChordTracker for UP
             mDiagonalActive = false;
             mDiagonalSecondKey = -1;
             mDiagonalChar = 0;
             cancelRepeat();
         }
-        mLastDpadDownMs = 0;
         return mChordTracker.onKeyUp(dpadKeycode) == ChordTracker.Result.HANDLED;
     }
 
-    private int getHeldDpadKeycode() {
-        for (ButtonId b : mChordTracker.getHeld()) {
-            if (isDpadKeycode(b.code)) return b.code;
+    private void cancelDpadBuffer() {
+        if (mDpadBufferRunnable != null) {
+            mRepeatHandler.removeCallbacks(mDpadBufferRunnable);
+            mDpadBufferRunnable = null;
         }
-        return -1;
+        mBufferedDpadKey = -1;
+    }
+
+    /** Dispatch the buffered d-pad key and arm the HAT repeat timer. */
+    private void flushDpadBuffer(int dpadCode) {
+        mDpadBufferRunnable = null;
+        mBufferedDpadKey = -1;
+        if (mChordTracker.onKeyDown(dpadCode, 0) == ChordTracker.Result.HANDLED) {
+            startRepeat(() -> {
+                if (mArbiter.current() == UiContext.GAMEPLAY) mChordTracker.onKeyDown(dpadCode, 1);
+            });
+        }
     }
 
     private static boolean isDpadKeycode(int code) {
