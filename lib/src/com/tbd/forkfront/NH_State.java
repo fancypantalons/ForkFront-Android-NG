@@ -57,14 +57,12 @@ public class NH_State
 		@Override
 		public boolean handleGamepadKey(android.view.KeyEvent ev) {
 			if(mGetLine != null && mGetLine.isFocused()) {
-				android.util.Log.d("GameUiCapture", "Routing to GetLine");
 				if(mGetLine.handleGamepadKey(ev)) return true;
 				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
 					return mGetLine.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
 				return false;
 			}
 			if(mQuestion != null && mQuestion.isShowing()) {
-				android.util.Log.d("GameUiCapture", "Routing to Question");
 				if(mQuestion.handleGamepadKey(ev)) return true;
 				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
 					return mQuestion.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
@@ -73,24 +71,20 @@ public class NH_State
 
 			NH_Window top = topVisibleWindow();
 			if(top != null) {
-				android.util.Log.d("GameUiCapture", "Routing to Top Window: " + top.getClass().getSimpleName());
 				if(top.handleGamepadKey(ev)) return true;
 				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
 					return top.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
 			}
 
 			if(mIsMouseLocked && mMap != null) {
-				android.util.Log.d("GameUiCapture", "Routing to Map Cursor");
 				if(mMap.handleGamepadKey(ev)) return true;
 			}
 			if(mMessage != null && mMessage.isMoreVisible()) {
-				android.util.Log.d("GameUiCapture", "Routing to Message (More)");
 				if(mMessage.handleGamepadKey(ev)) return true;
 				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
 					return mMessage.handleKeyDown(' ', 0, android.view.KeyEvent.KEYCODE_SPACE, null, 0) == KeyEventResult.HANDLED;
 			}
 
-			android.util.Log.d("GameUiCapture", "No routing target found");
 			return false;
 		}
 		@Override
