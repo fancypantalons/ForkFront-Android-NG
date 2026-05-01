@@ -753,7 +753,10 @@ public class NH_State
 		android.graphics.Point pos = mMap.getPlayerPos();
 		if (pos == null) return;
 
-		java.util.Set<String> actionKeys = new java.util.LinkedHashSet<>();
+		java.util.List<String> actionKeys = new java.util.ArrayList<>();
+		
+		// ALWAYS add search first
+		actionKeys.add("s");
 		
 		// NetHack 3.6 definitive glyph offsets
 		final int GLYPH_MON_OFF = 0;
@@ -769,25 +772,7 @@ public class NH_State
 		int bkGlyph = mMap.getTileBkGlyph(pos.x, pos.y);
 		char centerChar = mMap.getTileChar(pos.x, pos.y);
 
-		// 1. Check for objects at player's position (using native flags)
-		if ((mPlayerObjectFlags & 1) != 0) {
-			actionKeys.add(","); // Pick up
-			if ((mPlayerObjectFlags & 2) != 0) {
-				actionKeys.add("#loot");
-			}
-			if ((mPlayerObjectFlags & 4) != 0) {
-				actionKeys.add("e"); // Eat
-			}
-		}
-		
-		// 2. Check tile features at player's position (using native flags)
-		if ((mPlayerObjectFlags & 8) != 0) actionKeys.add("<");
-		if ((mPlayerObjectFlags & 16) != 0) actionKeys.add(">");
-		if ((mPlayerObjectFlags & 32) != 0) { actionKeys.add("#pray"); actionKeys.add("#offer"); }
-		if ((mPlayerObjectFlags & 64) != 0) { actionKeys.add("q"); actionKeys.add("D"); }
-		if ((mPlayerObjectFlags & 128) != 0) actionKeys.add("#sit");
-
-		// 3. Check 8 surrounding tiles
+		// 1. Check surrounding tiles (Secondary)
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
 				if (dx == 0 && dy == 0) continue;
@@ -798,24 +783,46 @@ public class NH_State
 				
 				// Doors
 				if (tile == '+' ) { // Closed door
-					actionKeys.add("o");
-					actionKeys.add(String.valueOf((char)4)); // Kick
+					if (!actionKeys.contains("o")) actionKeys.add("o");
+					if (!actionKeys.contains(String.valueOf((char)4))) actionKeys.add(String.valueOf((char)4)); // Kick
 				}
 				if (tile == '-' || tile == '|') { // Open door
 					if (glyph >= GLYPH_CMAP_OFF) {
-						actionKeys.add("c");
+						if (!actionKeys.contains("c")) actionKeys.add("c");
 					}
 				}
 			}
 		}
 
-		// 4. Check for nearby monsters (using native bitmask)
+		// Monsters (Secondary)
 		if (mNearbyMonstersMask != 0) {
-			actionKeys.add("#chat");
+			if (!actionKeys.contains("#chat")) actionKeys.add("#chat");
 		}
 
-		// Always show search
-		actionKeys.add("s");
+		// 2. Check player's position (PRIMARY - append last)
+		if ((mPlayerObjectFlags & 8) != 0) if (!actionKeys.contains("<")) actionKeys.add("<");
+		if ((mPlayerObjectFlags & 16) != 0) if (!actionKeys.contains(">")) actionKeys.add(">");
+		if ((mPlayerObjectFlags & 32) != 0) { 
+			if (!actionKeys.contains("#pray")) actionKeys.add("#pray"); 
+			if (!actionKeys.contains("#offer")) actionKeys.add("#offer"); 
+		}
+		if ((mPlayerObjectFlags & 64) != 0) { 
+			if (!actionKeys.contains("q")) actionKeys.add("q"); 
+			if (!actionKeys.contains("D")) actionKeys.add("D"); 
+		}
+		if ((mPlayerObjectFlags & 128) != 0) if (!actionKeys.contains("#sit")) actionKeys.add("#sit");
+
+		if ((mPlayerObjectFlags & 1) != 0) {
+			if (!actionKeys.contains(",")) actionKeys.add(","); // Pick up
+			if ((mPlayerObjectFlags & 2) != 0) {
+				if (!actionKeys.contains("#loot")) actionKeys.add("#loot");
+			}
+			if ((mPlayerObjectFlags & 4) != 0) {
+				if (!actionKeys.contains("e")) actionKeys.add("e"); // Eat
+			}
+		}
+
+		// Always show search (already added at start)
 
 		List<CmdRegistry.CmdInfo> actions = new ArrayList<>();
 		for (String key : actionKeys) {
