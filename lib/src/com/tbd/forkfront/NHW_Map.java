@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Set;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import android.content.SharedPreferences;
 import android.graphics.*;
 import android.graphics.Paint.Align;
@@ -121,6 +124,12 @@ public class NHW_Map implements NH_Window
 	private final ByteDecoder mDecoder;
 	private int mBorderColor;
 
+	// System insets for edge-to-edge support
+	private int mSystemInsetsTop;
+	private int mSystemInsetsBottom;
+	private int mSystemInsetsLeft;
+	private int mSystemInsetsRight;
+
 	// ____________________________________________________________________________________
 	public NHW_Map(AppCompatActivity context, Tileset tileset, NHW_Status status, NH_State nhState, ByteDecoder decoder)
 	{
@@ -140,6 +149,10 @@ public class NHW_Map implements NH_Window
 		mCursorPos = new Point(-1, -1);
 		mStatus = status;
 		mBorderColor = 0;
+		mSystemInsetsTop = 0;
+		mSystemInsetsBottom = 0;
+		mSystemInsetsLeft = 0;
+		mSystemInsetsRight = 0;
 		clear();
 		setContext(context);
 	}
@@ -387,6 +400,19 @@ public class NHW_Map implements NH_Window
 		mScaleCount = mMinScaleCount + amount * (mMaxScaleCount - mMinScaleCount);
 
 		zoomForced(0);
+	}
+
+	// ____________________________________________________________________________________
+	private void updateViewBounds()
+	{
+		// Adjust lock top margin to account for system insets (status bar + top notch/cutout)
+		mLockTopMargin = mStatus.getHeight() + mSystemInsetsTop;
+
+		// Recalculate zoom limits with new bounds
+		updateZoomLimits();
+
+		// Re-center view if needed
+		centerView(mCursorPos.x, mCursorPos.y);
 	}
 
 	// ____________________________________________________________________________________
@@ -645,6 +671,27 @@ public class NHW_Map implements NH_Window
 			mZoomPanMode = ZoomPanMode.Idle;
 			mIsRendering = false;
 			mNeedsRedraw = true;
+
+			// Set up WindowInsets listener for edge-to-edge support
+			ViewCompat.setOnApplyWindowInsetsListener(this, (v, insets) -> {
+				Insets systemBars = insets.getInsets(
+					WindowInsetsCompat.Type.systemBars() |
+					WindowInsetsCompat.Type.displayCutout());
+
+				// Store insets for use in rendering
+				mSystemInsetsTop = systemBars.top;
+				mSystemInsetsBottom = systemBars.bottom;
+				mSystemInsetsLeft = systemBars.left;
+				mSystemInsetsRight = systemBars.right;
+
+				// Update view bounds to account for insets
+				updateViewBounds();
+
+				// Request a redraw with new bounds
+				mNeedsRedraw = true;
+
+				return insets;
+			});
 		}
 
 		// ____________________________________________________________________________________
