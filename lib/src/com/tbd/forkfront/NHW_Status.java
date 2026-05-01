@@ -253,10 +253,10 @@ public class NHW_Status implements NH_Window
 
 	public void statusUpdate(int fieldIdx, String value, long conditionMask, int chg, int percent, int color, long[] colormasks)
 	{
-		android.util.Log.d("NHW_Status", "statusUpdate: idx=" + fieldIdx + " value=" + value + " condMask=" + conditionMask);
+		// android.util.Log.d("NHW_Status", "statusUpdate: idx=" + fieldIdx + " value=" + value + " condMask=" + conditionMask);
 		// Handle special field indices
 		if (fieldIdx == BL_FLUSH) {
-			android.util.Log.d("NHW_Status", "BL_FLUSH - rendering");
+			// android.util.Log.d("NHW_Status", "BL_FLUSH - rendering");
 			mUI.render();
 			notifyFlush();
 			return;
@@ -354,7 +354,24 @@ public class NHW_Status implements NH_Window
 	@Override
 	public void setCursorPos(int x, int y)
 	{
-		// Not used in field-based status mode
+	}
+
+	@Override
+	public boolean isVisible()
+	{
+		return true;
+	}
+
+	@Override
+	public boolean handleGamepadKey(android.view.KeyEvent ev)
+	{
+		return false;
+	}
+
+	@Override
+	public boolean handleGamepadMotion(android.view.MotionEvent ev)
+	{
+		return false;
 	}
 
 	// ____________________________________________________________________________________
@@ -486,44 +503,44 @@ public class NHW_Status implements NH_Window
 
 			// Alignment
 			StatusField align = mFields.get(BL_ALIGN);
-			if (align != null && align.enabled && !align.value.isEmpty()) {
+			if (align != null && align.enabled) {
 				appendField(0, align.value + " ", align.color);
 			}
 
-			// Score (if enabled)
+			// Score
 			StatusField score = mFields.get(BL_SCORE);
-			if (score != null && score.enabled && !score.value.isEmpty()) {
-				appendField(0, "S:" + score.value, score.color);
+			if (score != null && score.enabled) {
+				appendField(0, "S:" + score.value + " ", score.color);
 			}
 		}
 
 		// ____________________________________________________________________________________
 		private void buildRow2()
 		{
-			// Dungeon level description
-			StatusField levelDesc = mFields.get(BL_LEVELDESC);
-			if (levelDesc != null && levelDesc.enabled && !levelDesc.value.isEmpty()) {
-				appendField(1, levelDesc.value + " ", levelDesc.color);
+			// Dungeon level (Level 1)
+			StatusField dlvl = mFields.get(BL_LEVELDESC);
+			if (dlvl != null && dlvl.enabled) {
+				appendField(1, dlvl.value + " ", dlvl.color);
 			}
 
-			// Gold
+			// Gold ($:123)
 			StatusField gold = mFields.get(BL_GOLD);
-			if (gold != null && gold.enabled && !gold.value.isEmpty()) {
+			if (gold != null && gold.enabled) {
 				appendField(1, "$:" + gold.value + " ", gold.color);
 			}
 
-			// HP
+			// HP: current/max
 			StatusField hp = mFields.get(BL_HP);
 			StatusField hpmax = mFields.get(BL_HPMAX);
 			if (hp != null && hp.enabled && hpmax != null && hpmax.enabled) {
 				appendField(1, "HP:" + hp.value + "(" + hpmax.value + ") ", hp.color);
 			}
 
-			// Power
-			StatusField ene = mFields.get(BL_ENE);
-			StatusField enemax = mFields.get(BL_ENEMAX);
-			if (ene != null && ene.enabled && enemax != null && enemax.enabled) {
-				appendField(1, "Pw:" + ene.value + "(" + enemax.value + ") ", ene.color);
+			// Pw: current/max (Power/Energy)
+			StatusField pw = mFields.get(BL_ENE);
+			StatusField pwmax = mFields.get(BL_ENEMAX);
+			if (pw != null && pw.enabled && pwmax != null && pwmax.enabled) {
+				appendField(1, "Pw:" + pw.value + "(" + pwmax.value + ") ", pw.color);
 			}
 
 			// AC
@@ -532,23 +549,17 @@ public class NHW_Status implements NH_Window
 				appendField(1, "AC:" + ac.value + " ", ac.color);
 			}
 
-			// XP
-			StatusField xp = mFields.get(BL_XP);
-			if (xp != null && xp.enabled) {
-				String xpText = "Xp:" + xp.value;
-
-				// Add experience points if available
-				StatusField exp = mFields.get(BL_EXP);
-				if (exp != null && exp.enabled && !exp.value.isEmpty()) {
-					xpText += "/" + exp.value;
-				}
-
-				appendField(1, xpText + " ", xp.color);
+			// XP or HD
+			StatusField exp = mFields.get(BL_EXP); // Experience LEVEL
+			StatusField xp = mFields.get(BL_XP);   // Total XP points
+			if (exp != null && exp.enabled) {
+				String xpVal = xp != null && xp.enabled ? "/" + xp.value : "";
+				appendField(1, "Xp:" + exp.value + xpVal + " ", exp.color);
 			}
 
-			// Time
+			// Time (optional)
 			StatusField time = mFields.get(BL_TIME);
-			if (time != null && time.enabled && !time.value.isEmpty()) {
+			if (time != null && time.enabled) {
 				appendField(1, "T:" + time.value + " ", time.color);
 			}
 
@@ -558,80 +569,51 @@ public class NHW_Status implements NH_Window
 				appendField(1, hunger.value + " ", hunger.color);
 			}
 
-			// Encumbrance
-			StatusField cap = mFields.get(BL_CAP);
-			if (cap != null && cap.enabled && !cap.value.isEmpty()) {
-				appendField(1, cap.value + " ", cap.color);
+			// Conditions (Blind, Stun, etc)
+			for (int i = 0; i < CONDITION_BITS.length; i++) {
+				if ((mConditionMask & CONDITION_BITS[i]) != 0) {
+					int nhColor = (int)mConditionColorMasks[i];
+					appendField(1, CONDITION_NAMES[i] + " ", nhColor);
+				}
 			}
-
-			// Conditions
-			appendConditions(1);
 		}
 
-		// ____________________________________________________________________________________
-		private void appendStat(int row, int fieldIdx, String prefix)
+		// Helper to append a characteristic with label
+		private void appendStat(int row, int fieldIdx, String label)
 		{
 			StatusField field = mFields.get(fieldIdx);
-			if (field != null && field.enabled && !field.value.isEmpty()) {
-				appendField(row, prefix + field.value + " ", field.color);
+			if (field != null && field.enabled) {
+				appendField(row, label + field.value + " ", field.color);
 			}
 		}
 
-		// ____________________________________________________________________________________
-		private void appendField(int row, String text, int color)
+		// Append styled text to row
+		private void appendField(int row, String text, int nhColor)
 		{
-			int attr = (color >> 8) & 0xFF;
-			int nhColor = color & 0xFF;
-			int rgbColor = nhColorToRGB(nhColor);
-			mRows[row].append(TextAttr.style(text, attr, rgbColor));
+			int start = mRows[row].length();
+			mRows[row].append(text);
+			int end = mRows[row].length();
+
+			// Apply color styling
+			int rgb = nhColorToRGB(nhColor);
+			mRows[row].setSpan(new android.text.style.ForegroundColorSpan(rgb), start, end, 0);
 		}
 
-		// ____________________________________________________________________________________
-		private void appendConditions(int row)
-		{
-			// Display active conditions from bitmask
-			for (int i = 0; i < CONDITION_BITS.length && i < CONDITION_NAMES.length; i++) {
-				if ((mConditionMask & CONDITION_BITS[i]) != 0) {
-					int color = findConditionColor(CONDITION_BITS[i]);
-					appendField(row, CONDITION_NAMES[i] + " ", color);
-				}
-			}
-		}
-
-		// ____________________________________________________________________________________
-		private int findConditionColor(long conditionBit)
-		{
-			// Check colormasks to find the color for this condition
-			for (int i = 0; i < mConditionColorMasks.length; i++) {
-				if ((mConditionColorMasks[i] & conditionBit) != 0) {
-					// Found the color/attribute for this condition
-					return i; // This is the CLR_* or HL_ATTCLR_* value
-				}
-			}
-			return 0; // Default: no special color
-		}
-
-		// ____________________________________________________________________________________
 		public void forceRedraw()
 		{
 			render();
 		}
 
-		// ____________________________________________________________________________________
-		public float getHeight()
-		{
-			return mViews[0].getMinTextSize() * 2;
-		}
-
-		// ____________________________________________________________________________________
 		public void updateOpacity()
 		{
-			// Use surface color from Material theme with user-specified opacity
-			// Default to fully opaque if mOpacity is 0
-			int opacity = mOpacity == 0 ? 255 : mOpacity;
-			int backgroundColor = (opacity << 24) | 0x001C1B1F; // Material surface color with alpha
-			mViews[0].setBackgroundColor(backgroundColor);
-			mViews[1].setBackgroundColor(backgroundColor);
+			int color = mOpacity << 24;
+			mViews[0].setBackgroundColor(color);
+			mViews[1].setBackgroundColor(color);
+		}
+
+		public float getHeight()
+		{
+			return mViews[0].getHeight() + mViews[1].getHeight();
 		}
 	}
 }

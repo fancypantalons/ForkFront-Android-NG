@@ -57,9 +57,6 @@ public class Settings extends AppCompatActivity
             if (mSettingsUiCapture == null) {
                 mSettingsUiCapture = new SettingsUiCapture(this);
             }
-            if (gd.getArbiter().current() != UiContext.SETTINGS_OPEN) {
-                gd.pushContext(UiContext.SETTINGS_OPEN);
-            }
             gd.enterUiCapture(mSettingsUiCapture);
         }
     }
@@ -69,7 +66,6 @@ public class Settings extends AppCompatActivity
         GamepadDispatcher gd = GamepadDispatcher.getInstance();
         if (gd != null) {
             if (mSettingsUiCapture != null) gd.exitUiCapture(mSettingsUiCapture);
-            gd.popContext(UiContext.SETTINGS_OPEN);
             gd.setSyntheticDispatcher(null);
         }
         super.onPause();

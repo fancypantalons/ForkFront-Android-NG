@@ -12,6 +12,7 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
+import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.*;
 import com.tbd.forkfront.Input.Modifier;
 
@@ -27,6 +28,7 @@ public class AmountSelector
 	private int mMax;
 	private MenuItem mItem;
 	private Listener mListener;
+	private NH_State mState;
 
 	private AmountTuner mAmountTuner = new AmountTuner();
 	
@@ -47,6 +49,16 @@ public class AmountSelector
 			mActive = true;
 			mTime = System.currentTimeMillis() + 250;
 			v.postDelayed(this, 250);
+		}
+
+		public void increase(View v, SeekBar seek)
+		{
+			seek.incrementProgressBy(1);
+		}
+
+		public void decrease(View v, SeekBar seek)
+		{
+			seek.incrementProgressBy(-1);
 		}
 
 		public void stop(View v)
@@ -78,6 +90,7 @@ public class AmountSelector
 		mItem = item;
 		mListener = listener;
 		mMax = item.getMaxCount();
+		mState = new androidx.lifecycle.ViewModelProvider(context).get(NetHackViewModel.class).getState();
 
 		mRoot = Util.inflate(context, R.layout.amount_selector, R.id.dlg_frame);
 		ImageView tileView = (ImageView)mRoot.findViewById(R.id.amount_tile);
@@ -119,6 +132,7 @@ public class AmountSelector
 		seek.setMax(mMax);
 		seek.setProgress(mMax);
 
+		mRoot.findViewById(R.id.btn_inc).setFocusable(true);
 		mRoot.findViewById(R.id.btn_inc).setOnTouchListener(new OnTouchListener()
 		{
 			@Override
@@ -136,6 +150,7 @@ public class AmountSelector
 			}
 		});
 
+		mRoot.findViewById(R.id.btn_dec).setFocusable(true);
 		mRoot.findViewById(R.id.btn_dec).setOnTouchListener(new OnTouchListener()
 		{
 			@Override
@@ -153,6 +168,7 @@ public class AmountSelector
 			}
 		});
 
+		mRoot.findViewById(R.id.btn_0).setFocusable(true);
 		mRoot.findViewById(R.id.btn_0).setOnClickListener(new OnClickListener()
 		{
 			public void onClick(View v)
@@ -163,6 +179,7 @@ public class AmountSelector
 				}
 			}
 		});
+		mRoot.findViewById(R.id.btn_1).setFocusable(true);
 		mRoot.findViewById(R.id.btn_1).setOnClickListener(new OnClickListener()
 		{
 			public void onClick(View v)
@@ -173,6 +190,42 @@ public class AmountSelector
 
 		seek.requestFocus();
 		seek.requestFocusFromTouch();
+
+		mState.pushContext(UiContext.AMOUNT_SELECTOR);
+	}
+
+	public boolean handleGamepadKey(KeyEvent ev)
+	{
+		if(mRoot == null || ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+		SeekBar seek = (SeekBar)mRoot.findViewById(R.id.amount_slider);
+		switch(ev.getKeyCode())
+		{
+		case KeyEvent.KEYCODE_BUTTON_A:
+			dismiss(seek.getProgress());
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_B:
+		case KeyEvent.KEYCODE_BUTTON_SELECT:
+			dismiss(-1);
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_L1:
+			seek.incrementProgressBy(-1);
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_R1:
+			seek.incrementProgressBy(1);
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_L2:
+			seek.setProgress(0);
+			return true;
+		case KeyEvent.KEYCODE_BUTTON_R2:
+			seek.setProgress(mMax);
+			return true;
+		}
+		return false;
+	}
+
+	public boolean handleGamepadMotion(MotionEvent ev)
+	{
+		return false;
 	}
 
 	// ____________________________________________________________________________________
@@ -181,8 +234,24 @@ public class AmountSelector
 		if(mRoot == null)
 			return KeyEventResult.IGNORED;
 
+		SeekBar seek = mRoot.findViewById(R.id.amount_slider);
 		switch(keyCode)
 		{
+		case KeyEvent.KEYCODE_DPAD_UP:
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+			mAmountTuner.increase(mRoot, seek);
+			return KeyEventResult.HANDLED;
+
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+			mAmountTuner.decrease(mRoot, seek);
+			return KeyEventResult.HANDLED;
+
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+		case KeyEvent.KEYCODE_ENTER:
+			dismiss(seek.getProgress());
+			return KeyEventResult.HANDLED;
+
 		case KeyEvent.KEYCODE_BACK:
 			dismiss(-1);
 		break;
@@ -197,6 +266,7 @@ public class AmountSelector
 	{
 		if(mRoot != null)
 		{
+			mState.popContext(UiContext.AMOUNT_SELECTOR);
 			mRoot.setVisibility(View.GONE);
 			((ViewGroup)mRoot.getParent()).removeView(mRoot);
 			mRoot = null;

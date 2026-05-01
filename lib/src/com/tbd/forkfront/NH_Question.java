@@ -5,13 +5,14 @@ import java.util.Set;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Handler;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
-
+import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.Input.Modifier;
 
 public class NH_Question
@@ -35,6 +36,7 @@ public class NH_Question
 	// ____________________________________________________________________________________
 	public void show(AppCompatActivity context, String question, byte[] choices, int def)
 	{
+		boolean alreadyShowing = isShowing();
 		if(mUI != null)
 			mUI.dismiss();
 	
@@ -50,6 +52,9 @@ public class NH_Question
 		}
 
 		mUI = new UI(context);
+		if (!alreadyShowing) {
+			mState.pushContext(UiContext.QUESTION);
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -67,6 +72,21 @@ public class NH_Question
 		return mUI.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 	}
 
+	public boolean isShowing()
+	{
+		return mUI != null && mUI.mRoot != null && mUI.mRoot.getVisibility() == View.VISIBLE;
+	}
+
+	public boolean handleGamepadKey(KeyEvent ev)
+	{
+		return mUI != null && mUI.handleGamepadKey(ev);
+	}
+
+	public boolean handleGamepadMotion(MotionEvent ev)
+	{
+		return false;
+	}
+
 	// ____________________________________________________________________________________ //
 	// 																						//
 	// ____________________________________________________________________________________ //
@@ -74,6 +94,43 @@ public class NH_Question
 	{
 		private View mRoot;
 		private boolean mIsDisabled;
+
+		public boolean handleGamepadKey(KeyEvent ev)
+		{
+			if(mIsDisabled || ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+
+			switch(ev.getKeyCode())
+			{
+			case KeyEvent.KEYCODE_BUTTON_A:
+			{
+				int focused = getFocusedChoice();
+				if(focused != 0) { select(focused); return true; }
+				return false;
+			}
+			case KeyEvent.KEYCODE_BUTTON_B:
+			case KeyEvent.KEYCODE_BUTTON_SELECT:
+				select(mapInput('\033'));
+				return true;
+			case KeyEvent.KEYCODE_BUTTON_Y:
+				select(mChoices[mDefIdx]);
+				return true;
+			}
+			return false;
+		}
+
+		private int getFocusedChoice()
+		{
+			try
+			{
+				Button focus = (Button)mRoot.findFocus();
+				if(focus != null)
+					return focus.getText().charAt(0);
+			}
+			catch(Exception e)
+			{
+			}
+			return 0;
+		}
 
 		// ____________________________________________________________________________________
 		public UI(AppCompatActivity context)
@@ -96,7 +153,10 @@ public class NH_Question
 
 			if(mChoices.length == 1)
 			{
-				mRoot.findViewById(R.id.btn_0).setOnClickListener(new OnClickListener()
+				Button btn = mRoot.findViewById(R.id.btn_0);
+				btn.setBackgroundResource(R.drawable.nh_gamepad_button_bg);
+				btn.setFocusable(true);
+				btn.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
 					{
@@ -111,6 +171,8 @@ public class NH_Question
 					final int a = i;
 					Button btn = (Button)mRoot.findViewById(mBtns[i]);
 					btn.setText(Character.toString(mChoices[i]));
+					btn.setBackgroundResource(R.drawable.nh_gamepad_button_bg);
+					btn.setFocusable(true);
 					btn.setOnClickListener(new OnClickListener()
 					{
 						public void onClick(View v)
@@ -125,18 +187,8 @@ public class NH_Question
 
 			((TextView)mRoot.findViewById(R.id.title)).setText(mQuestion);
 
-			mRoot.setOnKeyListener(mKeyListener);
-
-			// mRoot.setClickable(true);
-			// mRoot.setFocusable(true);
-			// mRoot.setFocusableInTouchMode(true);
-
-			final View def = mRoot.findViewById(mBtns[mDefIdx]);
-			if(def != null)
-			{
-				def.requestFocus();
-				def.requestFocusFromTouch();
-
+			if(mDefIdx >= 0) {
+				mRoot.findViewById(mBtns[mDefIdx]).requestFocus();
 				maybeDisableInput();
 			}
 			else {
@@ -148,41 +200,26 @@ public class NH_Question
 
 		private void maybeDisableInput() {
 			if(mChoices.length == 2 && mQuestion.startsWith("Really")) {
-				// Disable the non-default choice for a while. Gives the player a chance to react if moving quickly
-				final View nonDef = mRoot.findViewById(mBtns[mDefIdx^1]);
-				if(nonDef != null) {
-					mIsDisabled = true;
-					nonDef.setEnabled(false);
-					mState.getHandler().postDelayed(new Runnable() {
-						@Override
-						public void run() {
-							mIsDisabled = false;
-							nonDef.setEnabled(true);
-						}
-					}, 500);
-				}
+				mIsDisabled = true;
+				new Handler().postDelayed(new Runnable() {
+					@Override
+					public void run() {
+						mIsDisabled = false;
+					}
+				}, 1000);
 			}
 		}
 
-		OnKeyListener mKeyListener = new OnKeyListener()
+		// ____________________________________________________________________________________
+		private OnKeyListener mKeyListener = new OnKeyListener()
 		{
+			@Override
 			public boolean onKey(View v, int keyCode, KeyEvent event)
 			{
-				Log.print("QUES ONKEY");
-				if(event.getAction() != KeyEvent.ACTION_DOWN || mIsDisabled)
+				if(event.getAction() != KeyEvent.ACTION_DOWN)
 					return false;
-/*
-				int ch = event.getUnicodeChar();
-				if(keyCode == KeyEvent.KEYCODE_BACK)
-					ch = '\033';
 
-				ch = mapInput(ch);
-				if(ch != 0)
-				{
-					select(ch);
-					return true;
-				}*/
-				return false;
+				return handleKeyDown('\0', 0, keyCode, null, 0) == KeyEventResult.HANDLED;
 			}
 		};
 
@@ -194,18 +231,45 @@ public class NH_Question
 
 			switch(keyCode)
 			{
+			case KeyEvent.KEYCODE_DPAD_LEFT:
+			case KeyEvent.KEYCODE_DPAD_RIGHT:
+			case KeyEvent.KEYCODE_DPAD_UP:
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+			{
+				View f = mRoot.findFocus();
+				if(f != null)
+				{
+					int direction = View.FOCUS_RIGHT;
+					if(keyCode == KeyEvent.KEYCODE_DPAD_LEFT) direction = View.FOCUS_LEFT;
+					else if(keyCode == KeyEvent.KEYCODE_DPAD_UP) direction = View.FOCUS_UP;
+					else if(keyCode == KeyEvent.KEYCODE_DPAD_DOWN) direction = View.FOCUS_DOWN;
+
+					View n = f.focusSearch(direction);
+					if(n != null)
+						n.requestFocus();
+				}
+				return KeyEventResult.HANDLED;
+			}
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+			case KeyEvent.KEYCODE_ENTER:
+			{
+				int focused = getFocusedChoice();
+				if(focused != 0)
+				{
+					select(focused);
+					return KeyEventResult.HANDLED;
+				}
+				return KeyEventResult.IGNORED;
+			}
 			case KeyEvent.KEYCODE_BACK:
 				select(mapInput('\033'));
 			break;
 
 			default:
-				if(keyCode == KeyEvent.KEYCODE_BACK)
-					ch = '\033';
-
-				ch = (char)mapInput(ch);
-				if(ch != 0)
+				int choice = mapInput(ch);
+				if(choice != 0)
 				{
-					select(ch);
+					select(choice);
 					return KeyEventResult.HANDLED;
 				}
 				return KeyEventResult.RETURN_TO_SYSTEM;
@@ -219,6 +283,7 @@ public class NH_Question
 			if(mRoot != null)
 			{
 				mIO.sendKeyCmd((char)ch);
+				mState.popContext(UiContext.QUESTION);
 				dismiss();
 			}
 		}
@@ -258,20 +323,6 @@ public class NH_Question
 					return ch;
 				return 0;
 			}
-		}
-		
-		private int getFocusedChoice()
-		{
-			try
-			{
-				Button focus = (Button)mRoot.findFocus();
-				if(focus != null)
-					return focus.getText().charAt(0);
-			}
-			catch(Exception e)
-			{
-			}
-			return 0;
 		}
 
 		public boolean hasChoice(int ch)

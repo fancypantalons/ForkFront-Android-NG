@@ -113,16 +113,18 @@ public class ForkFront extends AppCompatActivity
 
 	// Modern Activity Result API for settings
 	private final ActivityResultLauncher<Intent> mSettingsLauncher =
-		registerForActivityResult(
-			new ActivityResultContracts.StartActivityForResult(),
-			result -> {
-				// Called when Settings activity returns
-				if (mViewModel != null && mViewModel.getState() != null) {
-					mViewModel.getState().preferencesUpdated();
-				}
-			}
-		);
-
+			registerForActivityResult(
+					new ActivityResultContracts.StartActivityForResult(),
+					result -> {
+						// Called when Settings activity returns
+						if (mUiContextArbiter != null) {
+							mUiContextArbiter.remove(UiContext.SETTINGS_OPEN);
+						}
+						if (mViewModel != null && mViewModel.getState() != null) {
+							mViewModel.getState().preferencesUpdated();
+						}
+					}
+			);
 	public interface RequestExternalStorageResult {
 		void onGranted();
 		void onDenied();
@@ -215,9 +217,10 @@ public class ForkFront extends AppCompatActivity
 
 					// Push context as soon as it starts sliding (for swipes)
 					if (slideOffset > 0 && mUiContextArbiter != null
-							&& mUiContextArbiter.current() != UiContext.DRAWER_OPEN) {
-						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
+					                && !mUiContextArbiter.contains(UiContext.DRAWER_OPEN)) {
+					        mUiContextArbiter.push(UiContext.DRAWER_OPEN);
 					}
+
 				}
 
 				@Override
@@ -238,7 +241,7 @@ public class ForkFront extends AppCompatActivity
 				@Override
 				public void onDrawerClosed(@NonNull View drawerView) {
 					if (mUiContextArbiter != null) {
-						mUiContextArbiter.pop(UiContext.DRAWER_OPEN);
+						mUiContextArbiter.remove(UiContext.DRAWER_OPEN);
 					}
 					if (mGamepadDispatcher != null && mDrawerUiCapture != null) {
 						mGamepadDispatcher.exitUiCapture(mDrawerUiCapture);
@@ -248,9 +251,8 @@ public class ForkFront extends AppCompatActivity
 				@Override
 				public void onDrawerStateChanged(int newState) {
 					// Push context as soon as it starts moving (for programmatic opens)
-					if (newState != DrawerLayout.STATE_IDLE && mUiContextArbiter != null
-							&& mUiContextArbiter.current() != UiContext.DRAWER_OPEN) {
-						mUiContextArbiter.push(UiContext.DRAWER_OPEN);
+					if (newState != DrawerLayout.STATE_IDLE && mUiContextArbiter != null) {
+						mUiContextArbiter.pushUnique(UiContext.DRAWER_OPEN);
 					}
 				}
 			});
@@ -635,8 +637,8 @@ public class ForkFront extends AppCompatActivity
 	 */
 	public void launchSettings()
 	{
-		if (mUiContextArbiter != null && mUiContextArbiter.current() != UiContext.SETTINGS_OPEN) {
-			mUiContextArbiter.push(UiContext.SETTINGS_OPEN);
+		if (mUiContextArbiter != null) {
+			mUiContextArbiter.pushUnique(UiContext.SETTINGS_OPEN);
 		}
 		Intent prefsActivity = new Intent(getBaseContext(), Settings.class);
 		mSettingsLauncher.launch(prefsActivity);
@@ -719,6 +721,8 @@ public class ForkFront extends AppCompatActivity
 
 		mGamepadDispatcher = new GamepadDispatcher(getApplicationContext(),
 			stateRef, mUiContextArbiter, executor);
+
+		state.setUiContextArbiter(mUiContextArbiter);
 
 		// Register the game UiCapture so in-game windows get routed correctly
 		mGamepadDispatcher.enterUiCapture(state.getGameUiCapture());

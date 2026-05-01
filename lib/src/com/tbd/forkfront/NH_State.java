@@ -49,20 +49,91 @@ public class NH_State
 	private int mNearbyMonstersMask;
 	private ControlWidget mTemporaryDPad;
 	private String mDeviceKey;
+	private com.tbd.forkfront.gamepad.UiContextArbiter mUiContextArbiter;
 
 	// Single UiCapture that routes to whichever in-game window is currently active.
 	// Registered with GamepadDispatcher once at startup; stays registered for the activity lifetime.
 	private final UiCapture mGameUiCapture = new UiCapture() {
 		@Override
 		public boolean handleGamepadKey(android.view.KeyEvent ev) {
-			// TODO (in-game UI plan): walk mGetLine → mQuestion → top mWindows → mMap → mMessage
+			if(mGetLine != null && mGetLine.isFocused()) {
+				android.util.Log.d("GameUiCapture", "Routing to GetLine");
+				if(mGetLine.handleGamepadKey(ev)) return true;
+				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
+					return mGetLine.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
+				return false;
+			}
+			if(mQuestion != null && mQuestion.isShowing()) {
+				android.util.Log.d("GameUiCapture", "Routing to Question");
+				if(mQuestion.handleGamepadKey(ev)) return true;
+				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
+					return mQuestion.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
+				return false;
+			}
+
+			NH_Window top = topVisibleWindow();
+			if(top != null) {
+				android.util.Log.d("GameUiCapture", "Routing to Top Window: " + top.getClass().getSimpleName());
+				if(top.handleGamepadKey(ev)) return true;
+				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
+					return top.handleKeyDown('\0', 0, ev.getKeyCode(), null, ev.getRepeatCount()) == KeyEventResult.HANDLED;
+			}
+
+			if(mIsMouseLocked && mMap != null) {
+				android.util.Log.d("GameUiCapture", "Routing to Map Cursor");
+				if(mMap.handleGamepadKey(ev)) return true;
+			}
+			if(mMessage != null && mMessage.isMoreVisible()) {
+				android.util.Log.d("GameUiCapture", "Routing to Message (More)");
+				if(mMessage.handleGamepadKey(ev)) return true;
+				if(ev.getAction() == android.view.KeyEvent.ACTION_DOWN)
+					return mMessage.handleKeyDown(' ', 0, android.view.KeyEvent.KEYCODE_SPACE, null, 0) == KeyEventResult.HANDLED;
+			}
+
+			android.util.Log.d("GameUiCapture", "No routing target found");
 			return false;
 		}
 		@Override
 		public boolean handleGamepadMotion(android.view.MotionEvent ev) {
+			if(mGetLine != null && mGetLine.isFocused()) return mGetLine.handleGamepadMotion(ev);
+			if(mQuestion != null && mQuestion.isShowing()) return mQuestion.handleGamepadMotion(ev);
+
+			NH_Window top = topVisibleWindow();
+			if(top instanceof NHW_Menu) return ((NHW_Menu)top).handleGamepadMotion(ev);
+			if(top instanceof NHW_Text) return ((NHW_Text)top).handleGamepadMotion(ev);
+
+			if(mIsMouseLocked && mMap != null) return mMap.handleGamepadMotion(ev);
+			if(mMessage != null && mMessage.isMoreVisible()) return mMessage.handleGamepadMotion(ev);
+
 			return false;
 		}
 	};
+
+	// ____________________________________________________________________________________
+	public void setUiContextArbiter(com.tbd.forkfront.gamepad.UiContextArbiter arbiter) {
+		mUiContextArbiter = arbiter;
+	}
+
+	public void pushContext(com.tbd.forkfront.gamepad.UiContext ctx) {
+		if(mUiContextArbiter != null) mUiContextArbiter.push(ctx);
+	}
+
+	public void popContext(com.tbd.forkfront.gamepad.UiContext ctx) {
+		if(mUiContextArbiter != null) mUiContextArbiter.remove(ctx);
+	}
+
+	public NH_Window topVisibleWindow()
+	{
+		for(int i = mWindows.size() - 1; i >= 0; i--)
+		{
+			NH_Window w = mWindows.get(i);
+			if (w instanceof NHW_Map || w instanceof NHW_Message || w instanceof NHW_Status)
+				continue;
+			if(w.isVisible())
+				return w;
+		}
+		return null;
+	}
 
 	// ____________________________________________________________________________________
 	public UiCapture getGameUiCapture() {
@@ -467,13 +538,31 @@ public class NH_State
 		return true;
 	}
 
+	public void enterMapCursorMode() {
+		if (mViewModel != null) {
+			mViewModel.runOnActivity(() -> {
+				if (mMap != null) mMap.beginGamepadCursor();
+			});
+		}
+	}
+
+	public void exitMapCursorMode() {
+		if (mViewModel != null) {
+			mViewModel.runOnActivity(() -> {
+				if (mMap != null) mMap.endGamepadCursor();
+			});
+		}
+	}
+
 	// ____________________________________________________________________________________
 	public boolean sendDirKeyCmd(int key)
 	{
 		if(key <= 0 || key > 0xff)
 			return false;
-		if(key == 0x80 || key == '\033')
+		if(key == 0x80 || key == '\033') {
 			mIsMouseLocked = false;
+			exitMapCursorMode();
+		}
 		if(mIsDPadActive)
 			mIO.sendKeyCmd((char)key);
 		else
@@ -485,6 +574,7 @@ public class NH_State
 	public void sendPosCmd(int x, int y)
 	{
 		mIsMouseLocked = false;
+		exitMapCursorMode();
 		mIO.sendPosCmd(x, y);
 	}
 
@@ -1386,6 +1476,7 @@ public class NH_State
 		public void lockMouse()
 		{
 			mIsMouseLocked = true;
+			enterMapCursorMode();
 		}
 
 		// ____________________________________________________________________________________

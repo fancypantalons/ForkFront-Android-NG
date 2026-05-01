@@ -12,10 +12,13 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -23,6 +26,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.*;
 
 
@@ -52,6 +56,7 @@ public class NH_GetLine
 		mMaxChars = nMaxChars;
 		mHistory = loadHistory();
 		mUI = new UI(context, true, true, false, getInitText());
+		mState.pushContext(UiContext.GETLINE);
 	}
 	
 	// ____________________________________________________________________________________
@@ -62,6 +67,7 @@ public class NH_GetLine
 		mMaxChars = nMaxChars;
 		mHistory = history;
 		mUI = new UI(context, false, false, true, getInitText());
+		mState.pushContext(UiContext.GETLINE);
 	}
 
 	// ____________________________________________________________________________________
@@ -110,7 +116,22 @@ public class NH_GetLine
 			return KeyEventResult.IGNORED;
 		return mUI.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 	}
-	
+
+	public boolean isFocused()
+	{
+		return mUI != null && mUI.mRoot != null && mUI.mInput != null && mUI.mInput.isFocused();
+	}
+
+	public boolean handleGamepadKey(KeyEvent ev)
+	{
+		return mUI != null && mUI.handleGamepadKey(ev);
+	}
+
+	public boolean handleGamepadMotion(MotionEvent ev)
+	{
+		return false;
+	}
+
 	// ____________________________________________________________________________________
 	private void storeHistory(List<String> history, String newString)
 	{
@@ -155,6 +176,25 @@ public class NH_GetLine
 	{
 		private Context mContext;
 		private EditText mInput;
+
+		public boolean handleGamepadKey(KeyEvent ev)
+		{
+			if(ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+			switch(ev.getKeyCode())
+			{
+			case KeyEvent.KEYCODE_BUTTON_B:
+			case KeyEvent.KEYCODE_BUTTON_SELECT:
+				cancel();
+				return true;
+			case KeyEvent.KEYCODE_BUTTON_L1:
+				// history cycle - TODO
+				return true;
+			case KeyEvent.KEYCODE_BUTTON_R1:
+				// history cycle - TODO
+				return true;
+			}
+			return false;
+		}
 		private ListView mHistoryList;
 		private CheckBox mWizardCheck;
 		//private NH_Dialog mDialog;
@@ -300,6 +340,13 @@ public class NH_GetLine
 
 			switch(keyCode)
 			{
+			case KeyEvent.KEYCODE_DPAD_UP:
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+			case KeyEvent.KEYCODE_DPAD_LEFT:
+			case KeyEvent.KEYCODE_DPAD_RIGHT:
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+				return KeyEventResult.RETURN_TO_SYSTEM;
+
 			case KeyEvent.KEYCODE_BACK:
 				cancel();
 			break;
@@ -307,12 +354,11 @@ public class NH_GetLine
 			case KeyEvent.KEYCODE_ENTER:
 				ok();
 			break;
-
+			
 			default:
 				if(ch == '\033')
 					cancel();
-				else
-					return KeyEventResult.RETURN_TO_SYSTEM;
+			break;
 			}
 			return KeyEventResult.HANDLED;
 		}
@@ -343,6 +389,7 @@ public class NH_GetLine
 				mIO.sendLineCmd(text + app);
 				if(mSaveHistory)
 					storeHistory(mHistory, text);
+				mState.popContext(UiContext.GETLINE);
 				dismiss();
 			}
 		}
@@ -353,6 +400,7 @@ public class NH_GetLine
 			if(mRoot != null)
 			{
 				mIO.sendLineCmd("\033 ");
+				mState.popContext(UiContext.GETLINE);
 				dismiss();
 			}
 		}

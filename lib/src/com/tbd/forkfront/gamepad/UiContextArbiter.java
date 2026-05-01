@@ -34,22 +34,45 @@ public final class UiContextArbiter {
     }
 
     public void push(UiContext c) {
+        android.util.Log.d("UiContextArbiter", "Push: " + c);
         mStack.push(c);
         notifyListeners();
+    }
+
+    public void pushUnique(UiContext c) {
+        if (!mStack.contains(c)) {
+            push(c);
+        }
+    }
+
+    public boolean contains(UiContext c) {
+        return mStack.contains(c);
     }
 
     /** Pop only if the top matches the expected context. Logs a mismatch and no-ops otherwise. */
     public void pop(UiContext expected) {
         UiContext top = mStack.isEmpty() ? null : mStack.peek();
+        android.util.Log.d("UiContextArbiter", "Pop requested: " + expected + " Current top: " + top);
         if (top == expected) {
             mStack.pop();
             // Ensure base GAMEPLAY is always present
             if (mStack.isEmpty()) mStack.push(UiContext.GAMEPLAY);
+            android.util.Log.d("UiContextArbiter", "Pop successful. New top: " + mStack.peek());
         } else {
             android.util.Log.w("UiContextArbiter",
                 "pop(" + expected + ") called but top is " + top + " — ignoring");
         }
         notifyListeners();
+    }
+
+    /** Removes specific context from anywhere in the stack. Used for out-of-order cleanup (e.g. Settings vs Drawer). */
+    public void remove(UiContext target) {
+        android.util.Log.d("UiContextArbiter", "Remove requested: " + target);
+        if (mStack.remove(target)) {
+            if (mStack.isEmpty()) mStack.push(UiContext.GAMEPLAY);
+            android.util.Log.d("UiContextArbiter", "Remove successful. New top: " + mStack.peek());
+            notifyListeners();
+        }
     }
 
     /** Return the effective current context including implicit overrides. */

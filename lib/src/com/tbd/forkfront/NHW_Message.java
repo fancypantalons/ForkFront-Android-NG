@@ -274,6 +274,43 @@ public class NHW_Message implements NH_Window
 		return mWid;
 	}
 
+	public boolean isMoreVisible()
+	{
+		return mUI != null && mUI.isMoreVisible();
+	}
+
+	@Override
+	public boolean handleGamepadKey(android.view.KeyEvent ev)
+	{
+		if(isLogShowing()) return mLogView.handleGamepadKey(ev);
+		if(!isMoreVisible()) return false;
+		if(ev.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+
+		switch(ev.getKeyCode())
+		{
+		case android.view.KeyEvent.KEYCODE_BUTTON_A:
+		case android.view.KeyEvent.KEYCODE_BUTTON_B:
+		case android.view.KeyEvent.KEYCODE_BUTTON_X:
+		case android.view.KeyEvent.KEYCODE_BUTTON_Y:
+		case android.view.KeyEvent.KEYCODE_BUTTON_SELECT:
+			showLog(false);
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean handleGamepadMotion(android.view.MotionEvent ev)
+	{
+		return false;
+	}
+
+	@Override
+	public boolean isVisible()
+	{
+		return mIsVisible;
+	}
+
 	// ____________________________________________________________________________________
 	@Override
 	public void preferencesUpdated(SharedPreferences prefs)
@@ -343,6 +380,16 @@ public class NHW_Message implements NH_Window
 				m_more.setVisibility(View.VISIBLE);
 			} else
 				m_more.setVisibility(View.GONE);
+		}
+
+		// ____________________________________________________________________________________
+		public boolean handleGamepadKey(android.view.KeyEvent ev)
+		{
+			if(isMoreVisible() && !isLogShowing()) {
+				showLog(false);
+				return true;
+			}
+			return false;
 		}
 
 		// ____________________________________________________________________________________

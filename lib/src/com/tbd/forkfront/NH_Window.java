@@ -17,4 +17,7 @@ public interface NH_Window
 	String getTitle();
 	void setCursorPos(int x, int y);
 	void preferencesUpdated(SharedPreferences prefs);
+	boolean isVisible();
+	boolean handleGamepadKey(android.view.KeyEvent ev);
+	boolean handleGamepadMotion(android.view.MotionEvent ev);
 }

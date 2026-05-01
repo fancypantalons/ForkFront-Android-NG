@@ -12,6 +12,7 @@ import android.text.SpannableStringBuilder;
 import android.view.*;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import com.tbd.forkfront.gamepad.UiContext;
 
 public class NHW_Text implements NH_Window
 {
@@ -22,6 +23,7 @@ public class NHW_Text implements NH_Window
 	private AppCompatActivity mContext;
 	private NHW_TextFragment mFragment;
 	private int mWid;
+	private NH_State mState;
 
 	// ____________________________________________________________________________________
 	public NHW_Text(int wid, AppCompatActivity context, NetHackIO io)
@@ -30,6 +32,7 @@ public class NHW_Text implements NH_Window
 		mIO = io;
 		mBuilder = new SpannableStringBuilder();
 		mContext = context;
+		mState = new androidx.lifecycle.ViewModelProvider(context).get(NetHackViewModel.class).getState();
 	}
 
 	// ____________________________________________________________________________________
@@ -91,11 +94,15 @@ public class NHW_Text implements NH_Window
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
 				.commit();
 		}
+		mState.pushContext(UiContext.TEXT_WINDOW);
 	}
 
 	// ____________________________________________________________________________________
 	private void hide()
 	{
+		if (mIsVisible) {
+			mState.popContext(UiContext.TEXT_WINDOW);
+		}
 		mIsVisible = false;
 		removeFragment();
 	}
@@ -114,9 +121,30 @@ public class NHW_Text implements NH_Window
 		return mWid;
 	}
 
+	@Override
+	public boolean handleGamepadKey(KeyEvent ev)
+	{
+		return isVisible() && mFragment != null && mFragment.isAdded() && mFragment.handleGamepadKey(ev);
+	}
+
+	@Override
+	public boolean handleGamepadMotion(MotionEvent ev)
+	{
+		return false;
+	}
+
+	@Override
+	public boolean isVisible()
+	{
+		return mIsVisible;
+	}
+
 	// ____________________________________________________________________________________
 	void close()
 	{
+		if (mIsVisible) {
+			mState.popContext(UiContext.TEXT_WINDOW);
+		}
 		if(mIsBlocking)
 			mIO.sendKeyCmd(' ');
 		mIsBlocking = false;
@@ -148,15 +176,9 @@ public class NHW_Text implements NH_Window
 	@Override
 	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
 	{
-		if(isVisible() && mFragment != null && mFragment.isAdded())
+		if(mFragment != null && mFragment.isAdded())
 			return mFragment.handleKeyDown(ch, nhKey, keyCode, modifiers);
 		return KeyEventResult.IGNORED;
-	}
-
-	// ____________________________________________________________________________________
-	public boolean isVisible()
-	{
-		return mIsVisible;
 	}
 
 	// ____________________________________________________________________________________ //
@@ -217,6 +239,26 @@ public class NHW_Text implements NH_Window
 					}
 				});
 			}
+		}
+
+		// ____________________________________________________________________________________
+		public boolean handleGamepadKey(KeyEvent ev)
+		{
+			if(ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+			switch(ev.getKeyCode())
+			{
+			case KeyEvent.KEYCODE_BUTTON_A:
+			case KeyEvent.KEYCODE_BUTTON_B:
+			case KeyEvent.KEYCODE_BUTTON_SELECT:
+				mParent.close();
+				return true;
+			}
+			return false;
+		}
+
+		public boolean handleGamepadMotion(MotionEvent ev)
+		{
+			return false;
 		}
 
 		// ____________________________________________________________________________________
