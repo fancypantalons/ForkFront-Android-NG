@@ -3,6 +3,7 @@ package com.tbd.forkfront.gamepad;
 public enum UiActionId {
     OPEN_DRAWER,
     OPEN_COMMAND_PALETTE,
+    OPEN_COMMAND_PICKER,
     OPEN_SETTINGS,
     TOGGLE_KEYBOARD,
     ZOOM_IN,

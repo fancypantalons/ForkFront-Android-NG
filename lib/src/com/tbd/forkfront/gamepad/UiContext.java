@@ -15,5 +15,6 @@ public enum UiContext {
     SETTINGS_OPEN,
     BINDING_CAPTURE,
     CHARACTER_PICKER,
+    COMMAND_PICKER,
     OTHER
 }

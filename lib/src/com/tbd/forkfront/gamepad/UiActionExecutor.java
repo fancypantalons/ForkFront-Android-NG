@@ -10,6 +10,7 @@ public class UiActionExecutor {
         void openDrawer();
         void openSettings();
         void openCommandPalette();
+        void openCommandPicker();
         void toggleKeyboard();
         void zoomIn();
         void zoomOut();
@@ -30,6 +31,7 @@ public class UiActionExecutor {
             case OPEN_DRAWER:          mHost.openDrawer();          break;
             case OPEN_SETTINGS:        mHost.openSettings();        break;
             case OPEN_COMMAND_PALETTE: mHost.openCommandPalette();  break;
+            case OPEN_COMMAND_PICKER:  mHost.openCommandPicker();   break;
             case TOGGLE_KEYBOARD:      mHost.toggleKeyboard();      break;
             case ZOOM_IN:              mHost.zoomIn();              break;
             case ZOOM_OUT:             mHost.zoomOut();             break;

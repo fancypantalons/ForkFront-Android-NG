@@ -79,6 +79,9 @@ public class ForkFront extends AppCompatActivity
 	private CommandAdapter mCommandAdapter;
 	private CmdRegistry.OnCommandListener mCommandPaletteListener;
 
+	// Command picker (gamepad-only full-screen picker)
+	private CommandPickerFragment mCommandPickerFragment;
+
 	private final GamepadDispatcher.SyntheticDispatcher mSyntheticDispatcher =
 		new GamepadDispatcher.SyntheticDispatcher() {
 			@Override
@@ -188,14 +191,16 @@ public class ForkFront extends AppCompatActivity
 				WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 		}
 
-		// Back-press handling: collapse command palette sheet if open,
-		// otherwise let the default back behavior run (which may pop UI
-		// fragments or dispatch to the native engine).
+		// Back-press handling: dismiss command picker or collapse palette
+		// sheet if open, otherwise let the default back behavior run.
 		getOnBackPressedDispatcher().addCallback(this,
 			new androidx.activity.OnBackPressedCallback(true) {
 				@Override
 				public void handleOnBackPressed() {
-					if (isCommandPaletteExpanded()) {
+					if (mCommandPickerFragment != null
+					&& mCommandPickerFragment.isAdded()) {
+						dismissCommandPicker();
+					} else if (isCommandPaletteExpanded()) {
 						collapseCommandPalette();
 					} else {
 						setEnabled(false);
@@ -469,6 +474,61 @@ public class ForkFront extends AppCompatActivity
 		return mCommandPaletteBehavior != null
 			&& mCommandPaletteBehavior.getState()
 				== BottomSheetBehavior.STATE_EXPANDED;
+	}
+
+	// ____________________________________________________________________________________
+	public void showCommandPicker() {
+		if (mCommandPickerFragment != null && mCommandPickerFragment.isAdded())
+			return;
+
+		mCommandPickerFragment = new CommandPickerFragment();
+		mCommandPickerFragment.setOnCommandPickedListener(
+			new CommandPickerFragment.OnCommandPickedListener() {
+			@Override
+			public void onCommandPicked(CmdRegistry.CmdInfo cmd) {
+				if (mViewModel != null) {
+					NH_State state = mViewModel.getState();
+					if (state != null) {
+						if (cmd.getCommand().startsWith("#")) {
+							state.sendStringCmd(
+								cmd.getCommand() + "\n");
+						} else {
+							state.sendKeyCmd(
+								cmd.getCommand().charAt(0));
+						}
+					}
+				}
+				dismissCommandPicker();
+			}
+			@Override
+			public void onDismissed() {
+				dismissCommandPicker();
+			}
+		});
+
+		getSupportFragmentManager()
+			.beginTransaction()
+			.add(R.id.window_fragment_host, mCommandPickerFragment,
+				"command_picker")
+			.commit();
+
+		if (mUiContextArbiter != null) {
+			mUiContextArbiter.push(UiContext.COMMAND_PICKER);
+		}
+	}
+
+	public void dismissCommandPicker() {
+		if (mCommandPickerFragment != null
+		&& mCommandPickerFragment.isAdded()) {
+			getSupportFragmentManager()
+				.beginTransaction()
+				.remove(mCommandPickerFragment)
+				.commit();
+		}
+		mCommandPickerFragment = null;
+		if (mUiContextArbiter != null) {
+			mUiContextArbiter.remove(UiContext.COMMAND_PICKER);
+		}
 	}
 
 	@RequiresApi(Build.VERSION_CODES.M)
@@ -813,6 +873,9 @@ public class ForkFront extends AppCompatActivity
 			@Override public void openSettings()       { launchSettings(); }
 			@Override public void openCommandPalette() {
 					expandCommandPalette(null);
+				}
+			@Override public void openCommandPicker() {
+					showCommandPicker();
 				}
 			@Override public void toggleKeyboard() {
 				android.view.inputmethod.InputMethodManager imm =
