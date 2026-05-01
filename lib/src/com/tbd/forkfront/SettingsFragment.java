@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
@@ -34,7 +35,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                     if (Tileset.createCustomTilesetLocalCopy(getContext(), uri)) {
                         SharedPreferences.Editor editor = getPreferenceManager().getSharedPreferences().edit();
                         editor.putBoolean("customTiles", true);
-                        editor.commit();
+                        editor.apply();
                         Toast.makeText(getContext(), "Custom tileset image updated", Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -132,6 +133,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             }
         } else if ("tileset".equals(key)) {
             handleTilesetChanged(sharedPreferences);
+        } else if ("theme_mode".equals(key)) {
+            String themeMode = sharedPreferences.getString("theme_mode", "-1");
+            AppCompatDelegate.setDefaultNightMode(Integer.parseInt(themeMode));
         }
     }
 
@@ -164,7 +168,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             editor.putInt("tileW", tileW);
             editor.putInt("tileH", tileH);
         }
-        editor.commit();
+        editor.apply();
         updateTilesetVisibility();
     }
 

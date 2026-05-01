@@ -1,23 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Menu row state selector.
+     focused   -> 2dp primary stroke (gamepad cursor is here)
+     activated -> filled with primaryContainer (persistent multi-select on)
+     selected  -> filled with secondaryContainer (transient row highlight)
+     pressed   -> framework-provided ripple (no explicit item here)
+     default   -> transparent -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Focused/Selected state (Gamepad navigation) -->
     <item android:state_focused="true">
-        <shape>
-            <solid android:color="#80FFC855" />
-            <stroke android:width="2dp" android:color="#FFC855" />
+        <shape android:shape="rectangle">
+            <stroke android:width="2dp" android:color="@color/focus_ring"/>
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorPrimaryContainer"/>
         </shape>
     </item>
     <item android:state_selected="true">
-        <shape>
-            <solid android:color="#80FFC855" />
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSecondaryContainer"/>
         </shape>
     </item>
-    <!-- Pressed state -->
-    <item android:state_pressed="true">
-        <shape>
-            <solid android:color="#A0FFC855" />
-        </shape>
-    </item>
-    <!-- Default state -->
-    <item android:drawable="@android:color/transparent" />
+    <item android:drawable="@android:color/transparent"/>
 </selector>

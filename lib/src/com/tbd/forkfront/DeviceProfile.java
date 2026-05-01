@@ -2,6 +2,7 @@ package com.tbd.forkfront;
 
 import android.content.Context;
 import android.os.Build;
+import java.util.Locale;
 
 /**
  * Heuristics for detecting specific hardware devices (like Ayn Thor).
@@ -16,7 +17,7 @@ public final class DeviceProfile {
         // Primary heuristic: manufacturer / model strings.
         if ("AYN".equalsIgnoreCase(Build.MANUFACTURER)
                 && Build.MODEL != null
-                && Build.MODEL.toLowerCase().contains("thor")) {
+                && Build.MODEL.toLowerCase(Locale.ROOT).contains("thor")) {
             return true;
         }
         // Fallback heuristic: a presentation display matching the Thor's

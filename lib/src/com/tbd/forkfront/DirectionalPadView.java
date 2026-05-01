@@ -44,7 +44,7 @@ public class DirectionalPadView extends GridLayout {
     }
 
     private void addDirectionButton(Context context, final String cmd, String label, int row, int col) {
-        MaterialButton button = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonStyle);
+        MaterialButton button = ThemeUtils.createButtonText(context);
         button.setText(label);
         button.setPadding(0, 0, 0, 0);
         button.setInsetTop(0);

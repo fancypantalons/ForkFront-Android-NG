@@ -1,6 +1,7 @@
 package com.tbd.forkfront;
 
 import android.content.Context;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.LinearLayout;
 
@@ -41,9 +42,12 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 			LinearLayout.LayoutParams.WRAP_CONTENT
 		));
 
+		int onSurface = ThemeUtils.resolveColor(context, R.attr.colorOnSurface, R.color.md_theme_onSurface);
+		int primary   = ThemeUtils.resolveColor(context, R.attr.colorPrimary,   R.color.md_theme_primary);
+		int onPrimary = ThemeUtils.resolveColor(context, R.attr.colorOnPrimary, R.color.md_theme_onPrimary);
 		// Create message TextView
 		NH_TextView messageView = new NH_TextView(context);
-		messageView.setTextColor(0xFFFFFFFF);
+		messageView.setTextColor(onSurface);
 		messageView.setTextSize(15);
 		messageView.setLayoutParams(new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -53,11 +57,12 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 		// Create --More-- TextView
 		NH_TextView moreView = new NH_TextView(context);
 		moreView.setText("--More--");
-		moreView.setTextColor(0xFF000000);
-		moreView.setBackgroundColor(0xFFFFFFFF);
+		moreView.setTextColor(onPrimary);
+		moreView.setBackgroundColor(primary);
 		moreView.setTextSize(15);
 		moreView.setClickable(true);
 		moreView.setVisibility(View.GONE);
+		moreView.setPadding(8, 2, 8, 2);
 		moreView.setLayoutParams(new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.WRAP_CONTENT,
 			LinearLayout.LayoutParams.WRAP_CONTENT
@@ -99,57 +104,42 @@ public class MessageWidget extends ControlWidget implements NHW_Message.MessageU
 		updateMoreButton();
 	}
 
+	public void onFlush()
+	{
+	}
+
+	public void onReset()
+	{
+		onMessagesCleared();
+	}
+
 	@Override
 	public void setFontSize(int size)
 	{
 		super.setFontSize(size);
-		if (mMessageView != null) {
-			mMessageView.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
-		}
-		if (mMoreView != null) {
-			mMoreView.setBaseTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, size);
-		}
-	}
-
-	@Override
-	public void setWidgetData(WidgetData data) {
-		super.setWidgetData(data);
-		setFontSize(data.fontSize);
+		mMessageView.setTextSize(size);
+		mMoreView.setTextSize(size);
 	}
 
 	// ____________________________________________________________________________________
 	private void updateDisplay()
 	{
-		if (mMessageView == null) {
-			return;
-		}
-
-		if (mRecentMessages.isEmpty()) {
-			mMessageView.setText("");
-		} else {
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < mRecentMessages.size(); i++) {
-				if (i > 0) {
-					sb.append("\n");
-				}
-				sb.append(mRecentMessages.get(i));
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < mRecentMessages.size(); i++) {
+			sb.append(mRecentMessages.get(i));
+			if (i < mRecentMessages.size() - 1) {
+				sb.append("\n");
 			}
-			mMessageView.setText(sb.toString());
 		}
-
+		mMessageView.setText(sb.toString());
 		updateMoreButton();
 	}
 
-	// ____________________________________________________________________________________
 	private void updateMoreButton()
 	{
-		if (mMoreView == null) {
-			return;
-		}
-
 		if (mMoreCount > 0) {
-			mMoreView.setText("--" + mMoreCount + " more--");
 			mMoreView.setVisibility(View.VISIBLE);
+			mMoreView.setText("--More (" + mMoreCount + ")--");
 		} else {
 			mMoreView.setVisibility(View.GONE);
 		}

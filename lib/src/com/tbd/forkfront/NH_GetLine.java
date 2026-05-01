@@ -151,7 +151,7 @@ public class NH_GetLine
 		}
 		Editor editor = PreferenceManager.getDefaultSharedPreferences(mContext).edit();
 		editor.putString("lineHistory", builder.toString());
-		editor.commit();
+		editor.apply();
 	}
 
 	// ____________________________________________________________________________________

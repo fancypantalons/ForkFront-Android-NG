@@ -2,4 +2,15 @@
 <resources>
     <attr name="min" format="integer" />
     <attr name="max" format="integer" />
+    <!-- Color of the game viewport, distinct from chrome surface.
+         Used by NHW_Map, MinimapWidget, and SecondaryScreenPresentation. -->
+    <attr name="colorGameBackground" format="color" />
+
+    <!-- Material 3 attributes (re-declared if not in the base SDK version) -->
+    <attr name="colorSurfaceTint" format="color" />
+    <attr name="colorSurfaceContainerLowest" format="color" />
+    <attr name="colorSurfaceContainerLow" format="color" />
+    <attr name="colorSurfaceContainer" format="color" />
+    <attr name="colorSurfaceContainerHigh" format="color" />
+    <attr name="colorSurfaceContainerHighest" format="color" />
 </resources>

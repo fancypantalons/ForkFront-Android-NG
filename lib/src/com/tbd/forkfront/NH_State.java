@@ -202,13 +202,15 @@ public class NH_State
 			if (mMap == null) {
 				mMap = new NHW_Map(activity, mTileset, mStatus, this, mDecoder);
 			}
-			if (mPrimaryWidgetLayout == null) {
-				mPrimaryWidgetLayout = (WidgetLayout)activity.findViewById(R.id.widgetLayout1);
-				if (mPrimaryWidgetLayout != null) {
-					// Manually trigger if it didn't run
-					mPrimaryWidgetLayout.onFinishInflate();
-				}
+			
+			// Always lookup the primary widget layout from the new activity
+			mPrimaryWidgetLayout = (WidgetLayout)activity.findViewById(R.id.widgetLayout1);
+			if (mPrimaryWidgetLayout != null) {
+				// Manually trigger if it didn't run
+				mPrimaryWidgetLayout.onFinishInflate();
 			}
+		} else {
+			mPrimaryWidgetLayout = null;
 		}
 
 		// Update all child components with new Activity context
@@ -227,7 +229,7 @@ public class NH_State
 
 			// Load layout (will use stock layout if user hasn't customized)
 			mPrimaryWidgetLayout.loadLayout();
-
+			mPrimaryWidgetLayout.setEditMode(isEditMode());
 		}
 		if (mMap != null) {
 			mMap.setContext(activity);
@@ -668,7 +670,7 @@ public class NH_State
 		data.w = (int)(100 * density);
 		data.h = (int)(60 * density);
 		
-		MaterialButton btn = new MaterialButton(activity);
+		MaterialButton btn = ThemeUtils.createButtonText(activity);
 		btn.setText("Commands");
 		btn.setIconResource(android.R.drawable.ic_menu_search);
 		btn.setOnClickListener(v -> {
@@ -801,7 +803,7 @@ public class NH_State
 	            data.w = (int)(100 * activity.getResources().getDisplayMetrics().density);
 	            data.h = (int)(60 * activity.getResources().getDisplayMetrics().density);
 
-	            MaterialButton btn = new MaterialButton(activity);
+	            MaterialButton btn = ThemeUtils.createButtonText(activity);
 	            btn.setText(data.label);
 	            btn.setOnClickListener(v -> {
 	                if (cmd.getCommand().startsWith("#")) {
@@ -1191,7 +1193,7 @@ public class NH_State
 		@Override
 		public void setLastUsername(String username) {
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
-			prefs.edit().putString("lastUsername", username).commit();
+			prefs.edit().putString("lastUsername", username).apply();
 		}
 
 		// ____________________________________________________________________________________

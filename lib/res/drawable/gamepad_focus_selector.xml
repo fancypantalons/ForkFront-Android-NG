@@ -2,8 +2,9 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <stroke android:width="2dp" android:color="@color/gamepad_focus_stroke"/>
+            <stroke android:width="2dp" android:color="@color/focus_ring"/>
             <solid android:color="@android:color/transparent"/>
+            <corners android:radius="8dp"/>
         </shape>
     </item>
     <item>

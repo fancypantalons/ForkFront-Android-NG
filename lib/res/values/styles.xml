@@ -1,49 +1,163 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.ForkFront" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_onPrimaryContainer</item>
+
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_onSecondaryContainer</item>
+
+        <item name="colorTertiary">@color/md_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_onTertiaryContainer</item>
+
+        <item name="colorError">@color/md_theme_error</item>
+        <item name="colorOnError">@color/md_theme_onError</item>
+        <item name="colorErrorContainer">@color/md_theme_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_theme_onErrorContainer</item>
+
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="colorOnBackground">@color/md_theme_onBackground</item>
+
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_onSurfaceVariant</item>
+
+        <item name="colorSurfaceContainerLowest">@color/md_theme_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/md_theme_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md_theme_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
+
+        <item name="colorOutline">@color/md_theme_outline</item>
+        <item name="colorOutlineVariant">@color/md_theme_outlineVariant</item>
+
+        <item name="colorSurfaceTint">@color/md_theme_surfaceTint</item>
+
+        <!-- Game viewport color (used by NHW_Map, MinimapWidget,
+             SecondaryScreenPresentation) -->
+        <item name="colorGameBackground">@color/nh_game_background</item>
+
         <item name="android:defaultFocusHighlightEnabled">false</item>
-        <!-- Material 3 color system -->
-        <item name="colorPrimary">@color/md_theme_dark_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>
-        <item name="colorPrimaryContainer">@color/md_theme_dark_primaryContainer</item>
-        <item name="colorOnPrimaryContainer">@color/md_theme_dark_onPrimaryContainer</item>
-
-        <item name="colorSecondary">@color/md_theme_dark_secondary</item>
-        <item name="colorOnSecondary">@color/md_theme_dark_onSecondary</item>
-        <item name="colorSecondaryContainer">@color/md_theme_dark_secondaryContainer</item>
-        <item name="colorOnSecondaryContainer">@color/md_theme_dark_onSecondaryContainer</item>
-
-        <item name="colorTertiary">@color/md_theme_dark_tertiary</item>
-        <item name="colorOnTertiary">@color/md_theme_dark_onTertiary</item>
-        <item name="colorTertiaryContainer">@color/md_theme_dark_tertiaryContainer</item>
-        <item name="colorOnTertiaryContainer">@color/md_theme_dark_onTertiaryContainer</item>
-
-        <item name="colorError">@color/md_theme_dark_error</item>
-        <item name="colorOnError">@color/md_theme_dark_onError</item>
-        <item name="colorErrorContainer">@color/md_theme_dark_errorContainer</item>
-        <item name="colorOnErrorContainer">@color/md_theme_dark_onErrorContainer</item>
-
-        <item name="android:colorBackground">@color/md_theme_dark_background</item>
-        <item name="colorOnBackground">@color/md_theme_dark_onBackground</item>
-
-        <item name="colorSurface">@color/md_theme_dark_surface</item>
-        <item name="colorOnSurface">@color/md_theme_dark_onSurface</item>
-        <item name="colorSurfaceVariant">@color/md_theme_dark_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/md_theme_dark_onSurfaceVariant</item>
-
-        <item name="colorOutline">@color/md_theme_dark_outline</item>
-        <item name="colorOutlineVariant">@color/md_theme_dark_outlineVariant</item>
-
         <!-- Material 3 shape theming -->
         <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.ForkFront.SmallComponent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.ForkFront.MediumComponent</item>
         <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.ForkFront.LargeComponent</item>
 
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="preferenceTheme">@style/AppPreferenceThemeOverlay</item>
         <item name="android:windowAnimationStyle">@style/ForkFront.WindowAnimationStyle</item>
+
+        <item name="buttonBarStyle">@style/Widget.AppCompat.ButtonBar</item>
+        <item name="buttonBarButtonStyle">@style/Widget.AppCompat.Button.Borderless</item>
+        <item name="alertDialogTheme">@style/NH_Dialog_Theme</item>
+        <item name="dialogTheme">@style/NH_Dialog</item>
+        <item name="android:dialogTheme">@style/NH_Dialog</item>
+        <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Filled</item>
     </style>
 
-    <style name="PreferenceThemeOverlay" parent="PreferenceThemeOverlay">
+    <style name="NH_Dialog_Theme" parent="Theme.Material3.DayNight.Dialog.Alert">
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_onPrimaryContainer</item>
+
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_onSecondaryContainer</item>
+
+        <item name="colorTertiary">@color/md_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_onTertiaryContainer</item>
+
+        <item name="colorError">@color/md_theme_error</item>
+        <item name="colorOnError">@color/md_theme_onError</item>
+        <item name="colorErrorContainer">@color/md_theme_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_theme_onErrorContainer</item>
+
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="colorOnBackground">@color/md_theme_onBackground</item>
+
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_onSurfaceVariant</item>
+
+        <item name="colorSurfaceContainerLowest">@color/md_theme_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/md_theme_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md_theme_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
+
+        <item name="colorOutline">@color/md_theme_outline</item>
+        <item name="colorOutlineVariant">@color/md_theme_outlineVariant</item>
+
+        <item name="colorSurfaceTint">@color/md_theme_surfaceTint</item>
+
+        <!-- Game viewport color (used by NHW_Map, MinimapWidget,
+             SecondaryScreenPresentation) -->
+        <item name="colorGameBackground">@color/nh_game_background</item>
+
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="elevationOverlayColor">@android:color/transparent</item>
+        <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Filled</item>
+    </style>
+
+    <style name="NH_Dialog" parent="Theme.Material3.DayNight.Dialog">
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_onPrimaryContainer</item>
+
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_onSecondaryContainer</item>
+
+        <item name="colorTertiary">@color/md_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_onTertiaryContainer</item>
+
+        <item name="colorError">@color/md_theme_error</item>
+        <item name="colorOnError">@color/md_theme_onError</item>
+        <item name="colorErrorContainer">@color/md_theme_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_theme_onErrorContainer</item>
+
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="colorOnBackground">@color/md_theme_onBackground</item>
+
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_onSurfaceVariant</item>
+
+        <item name="colorSurfaceContainerLowest">@color/md_theme_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/md_theme_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/md_theme_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
+
+        <item name="colorOutline">@color/md_theme_outline</item>
+        <item name="colorOutlineVariant">@color/md_theme_outlineVariant</item>
+
+        <item name="colorSurfaceTint">@color/md_theme_surfaceTint</item>
+
+        <!-- Game viewport color (used by NHW_Map, MinimapWidget,
+             SecondaryScreenPresentation) -->
+        <item name="colorGameBackground">@color/nh_game_background</item>
+
+        <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Filled</item>
+    </style>
+
+    <style name="AppPreferenceThemeOverlay" parent="PreferenceThemeOverlay">
         <item name="preferenceFragmentListStyle">@style/GamepadPreferenceListStyle</item>
     </style>
 
@@ -59,13 +173,10 @@
         <item name="android:activityCloseExitAnimation">@anim/slide_out_bottom</item>
     </style>
 
-    <style name="NH_Dialog" parent="Theme.Material3.DayNight.Dialog">
-    </style>
-    
     <style name="WindowText" parent="TextAppearance.AppCompat.Medium">
         <item name="android:typeface">monospace</item>
         <item name="android:textSize">11sp</item>
-        <item name="android:textColor">@color/hearse_text</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>    
 
     <style name="DialogTitle" parent="TextAppearance.Material3.TitleMedium">
@@ -76,23 +187,26 @@
         <item name="android:typeface">sans</item>
     </style>    
 
-    <style name="ButtonText" parent="Widget.Material3.Button">
+    <style name="ButtonText" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:ellipsize">end</item>
         <item name="android:lines">1</item>
         <item name="android:scrollHorizontally">true</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <!-- Unified focus overlay: 2dp primary stroke on top of the fill -->
+        <item name="android:foreground">@drawable/gamepad_focus_selector</item>
     </style>
 
-    <style name="InputText" parent="Widget.Material3.TextInputEditText.FilledBox">
-    </style>
-
-    <style name="dPadBtn" parent="Widget.Material3.Button">
-        <item name="android:typeface">monospace</item>
-        <item name="android:textSize">14sp</item>
-        <item name="android:maxLines">1</item>
-        <item name="android:ellipsize">none</item>
-        <item name="android:layout_width">50dp</item>
-        <item name="android:layout_height">50dp</item>
-        <item name="android:gravity">center</item>
+    <style name="ButtonErrorText" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">?attr/colorError</item>
+        <item name="android:textColor">?attr/colorError</item>
+        <item name="iconTint">?attr/colorError</item>
+        <item name="rippleColor">?attr/colorErrorContainer</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:foreground">@drawable/gamepad_focus_selector</item>
     </style>
 
     <style name="ListText1" parent="TextAppearance.Material3.BodyLarge">
@@ -122,3 +236,4 @@
     </style>
 
 </resources>
+

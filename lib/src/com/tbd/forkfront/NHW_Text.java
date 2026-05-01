@@ -64,7 +64,7 @@ public class NHW_Text implements NH_Window
 	{
 		if(mBuilder.length() > 0)
 			mBuilder.append('\n');
-		mBuilder.append(TextAttr.style(str, attr));
+		mBuilder.append(TextAttr.style(str, attr, color, mContext));
 		if(mFragment != null && mFragment.isAdded())
 			mFragment.updateText();
 	}
@@ -196,26 +196,28 @@ public class NHW_Text implements NH_Window
 		@Override
 		public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
 		{
-			ScrollView scroll = (ScrollView) inflater.inflate(R.layout.textwindow, container, false);
-			NH_TextView textView = scroll.findViewById(R.id.text_view);
+			View root = inflater.inflate(R.layout.textwindow, container, false);
+			NH_TextView textView = root.findViewById(R.id.text_view);
+			ScrollView scroll = textView.getParent() instanceof ScrollView ? (ScrollView) textView.getParent() : null;
 
 			if(mParent.mBuilder.length() > 0)
 				textView.setText(mParent.mBuilder);
 
-			scroll.setOnTouchListener(mTouchListener);
+			if (scroll != null) {
+				scroll.setOnTouchListener(mTouchListener);
+			}
 			textView.setOnTouchListener(mTouchListener);
 
-			return scroll;
+			return root;
 		}
 
 		// ____________________________________________________________________________________
 		void updateText()
 		{
 			View view = getView();
-			if(view instanceof ScrollView)
+			if(view != null)
 			{
-				ScrollView scroll = (ScrollView) view;
-				NH_TextView tv = scroll.findViewById(R.id.text_view);
+				NH_TextView tv = view.findViewById(R.id.text_view);
 				if(mParent.mBuilder.length() > 0)
 					tv.setText(mParent.mBuilder);
 				else
@@ -227,17 +229,19 @@ public class NHW_Text implements NH_Window
 		void scrollToEnd()
 		{
 			View view = getView();
-			if(view instanceof ScrollView)
+			if(view != null)
 			{
-				final ScrollView scroll = (ScrollView) view;
-				scroll.post(new Runnable()
-				{
-					@Override
-					public void run()
+				final ScrollView scroll = view.findViewById(R.id.text_view).getParent() instanceof ScrollView ? (ScrollView) view.findViewById(R.id.text_view).getParent() : null;
+				if (scroll != null) {
+					scroll.post(new Runnable()
 					{
-						scroll.fullScroll(ScrollView.FOCUS_DOWN);
-					}
-				});
+						@Override
+						public void run()
+						{
+							scroll.fullScroll(ScrollView.FOCUS_DOWN);
+						}
+					});
+				}
 			}
 		}
 
@@ -270,8 +274,14 @@ public class NHW_Text implements NH_Window
 				keyCode = KeyEvent.KEYCODE_PAGE_DOWN;
 
 			View view = getView();
-			ScrollView scroll = (view instanceof ScrollView) ? (ScrollView) view : null;
-			NH_TextView textView = (scroll != null) ? scroll.findViewById(R.id.text_view) : null;
+			ScrollView scroll = null;
+			NH_TextView textView = null;
+			if (view != null) {
+				textView = view.findViewById(R.id.text_view);
+				if (textView != null && textView.getParent() instanceof ScrollView) {
+					scroll = (ScrollView) textView.getParent();
+				}
+			}
 
 			switch(keyCode)
 			{
@@ -365,6 +375,7 @@ public class NHW_Text implements NH_Window
 					case MotionEvent.ACTION_UP:
 						mPointerId = null;
 						if(!mIsScrolling) {
+							v.performClick();
 							mParent.close();
 						}
 						mIsScrolling = false;

@@ -219,15 +219,4 @@ public class StockLayoutEvaluator {
         int dp = Integer.parseInt(numStr);
         return Math.round(dp * mDensity);
     }
-    
-    /**
-     * Get Android status bar height to avoid overlap.
-     */
-    private int getStatusBarHeight() {
-        int resourceId = mContext.getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            return mContext.getResources().getDimensionPixelSize(resourceId);
-        }
-        return 0;
-    }
 }

@@ -184,7 +184,7 @@ public class NHW_Menu implements NH_Window
 		else
 		{
 			mBuilder.append('\n');
-			mBuilder.append(TextAttr.style(str, attr));
+			mBuilder.append(TextAttr.style(str, attr, mContext));
 		}
 		if(mFragment != null && mFragment.isAdded())
 			mFragment.updateText();
@@ -210,13 +210,12 @@ public class NHW_Menu implements NH_Window
 	// ____________________________________________________________________________________
 	public void addMenu(int tile, long ident, int accelerator, int groupacc, int attr, String str, int preselected, int color)
 	{
-		android.util.Log.d("NHW_Menu", "addMenu: " + str + " ident=" + ident + " acc=" + (char)accelerator);
 		if(str.length() == 0 && tile < 0)
 			return;
 		// start_menu is not always called
 		if(mItems == null)
 			startMenu();
-		mItems.add(new MenuItem(tile, ident, accelerator, groupacc, attr, str, preselected, color));
+		mItems.add(new MenuItem(tile, ident, accelerator, groupacc, attr, str, preselected, color, mContext));
 	}
 
 	// ____________________________________________________________________________________
@@ -802,7 +801,11 @@ public class NHW_Menu implements NH_Window
 				item.setSelected(!item.isSelected());
 				item.setCount(item.isSelected() ? item.getMaxCount() : 0);
 			}
-			((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
+			
+			if(mListView != null) {
+				((MenuItemAdapter)mListView.getAdapter()).notifyDataSetChanged();
+				mListView.invalidateViews();
+			}
 			updateSelectAllBtn();
 		}
 

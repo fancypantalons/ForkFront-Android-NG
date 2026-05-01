@@ -20,7 +20,7 @@ public class MenuItem
 	private int mMaxCount;
 	private View mView;
 
-	public MenuItem(int tile, long ident, int accelerator, int groupacc, int attr, String str, int selected, Integer color)
+	public MenuItem(int tile, long ident, int accelerator, int groupacc, int attr, String str, int selected, Integer color, android.content.Context context)
 	{
 		mTile = tile;
 		mIdent = ident;
@@ -50,17 +50,25 @@ public class MenuItem
 					subText += "; ";
 				subText += "w:" + text.substring(lwp + 1, rwp);
 			}
-			mSubText = TextAttr.style(subText, TextAttr.ATTR_DIM);
+			mSubText = TextAttr.style(subText, TextAttr.ATTR_DIM, context);
 		}
 		else
 		{
 			mName = text;
 			mSubText = null;
 		}
-		if(color == null)
-			mText = TextAttr.style(mName, mAttr);
-		else
-			mText = TextAttr.style(mName, mAttr, color);
+		if(color == null || color == -1)
+			mText = TextAttr.style(mName, mAttr, context);
+		else {
+			int finalColor = color;
+			if (context != null) {
+				int[] palette = TextAttr.getPalette(context);
+				if (color >= 0 && color < palette.length) {
+					finalColor = palette[color];
+				}
+			}
+			mText = TextAttr.style(mName, mAttr, finalColor);
+		}
 
 		setAcc(mAccelerator);
 

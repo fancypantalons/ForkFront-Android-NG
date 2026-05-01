@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.Material3.CardView.Filled"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="16dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
     app:cardElevation="8dp"
     app:strokeWidth="0dp">
 
@@ -23,7 +24,6 @@
             android:layout_marginBottom="16dp">
 
             <TextView
-                android:id="@+id/prop_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Widget Properties"
@@ -89,14 +89,22 @@
                 android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:layout_marginBottom="8dp" />
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/opacity_slider"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:valueFrom="0"
-                android:valueTo="255"
-                android:stepSize="1"
-                android:value="191" />
+                android:addStatesFromChildren="true"
+                android:background="@drawable/gamepad_focus_selector"
+                android:padding="4dp">
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/opacity_slider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="0"
+                    android:valueTo="255"
+                    android:stepSize="1"
+                    android:value="191" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/opacity_value"
@@ -121,14 +129,22 @@
                 android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:layout_marginBottom="8dp" />
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/font_size_slider"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:valueFrom="10"
-                android:valueTo="30"
-                android:stepSize="1"
-                android:value="15" />
+                android:addStatesFromChildren="true"
+                android:background="@drawable/gamepad_focus_selector"
+                android:padding="4dp">
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/font_size_slider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="10"
+                    android:valueTo="30"
+                    android:stepSize="1"
+                    android:value="15" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/font_size_value"
@@ -154,14 +170,22 @@
                 android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:layout_marginBottom="8dp" />
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/rows_slider"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:valueFrom="1"
-                android:valueTo="10"
-                android:stepSize="1"
-                android:value="3" />
+                android:addStatesFromChildren="true"
+                android:background="@drawable/gamepad_focus_selector"
+                android:padding="4dp">
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/rows_slider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="1"
+                    android:valueTo="10"
+                    android:stepSize="1"
+                    android:value="3" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/rows_value"
@@ -187,14 +211,22 @@
                 android:textAppearance="?attr/textAppearanceBodyLarge"
                 android:layout_marginBottom="8dp" />
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/columns_slider"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:valueFrom="1"
-                android:valueTo="10"
-                android:stepSize="1"
-                android:value="3" />
+                android:addStatesFromChildren="true"
+                android:background="@drawable/gamepad_focus_selector"
+                android:padding="4dp">
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/columns_slider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="1"
+                    android:valueTo="10"
+                    android:stepSize="1"
+                    android:value="3" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/columns_value"
@@ -227,7 +259,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="Move to Other Screen"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/ButtonText"
             android:visibility="gone"
             app:icon="@android:drawable/ic_menu_share" />
 
@@ -236,10 +268,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Delete Widget"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:textColor="?attr/colorError"
-            app:icon="@android:drawable/ic_menu_delete"
-            app:iconTint="?attr/colorError" />
+            style="@style/ButtonErrorText"
+            app:icon="@android:drawable/ic_menu_delete" />
 
     </LinearLayout>
     </ScrollView>

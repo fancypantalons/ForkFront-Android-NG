@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF000000">
+    android:background="?attr/colorGameBackground">
 
     <com.tbd.forkfront.WidgetLayout
         android:id="@+id/secondary_widget_layout"
@@ -20,43 +20,53 @@
             
     </com.tbd.forkfront.WidgetLayout>
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/secondary_edit_bar"
+        style="@style/Widget.Material3.CardView.Filled"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
-        android:orientation="horizontal"
-        android:background="#88000000"
-        android:padding="8dp"
+        android:layout_marginTop="8dp"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+        app:cardElevation="8dp"
+        app:cardCornerRadius="24dp"
+        app:strokeWidth="0dp"
         android:visibility="gone">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_add_widget"
-            style="@style/Widget.Material3.Button.IconButton"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:icon="@android:drawable/ic_menu_add"
-            app:iconTint="#FFFFFF"
-            android:contentDescription="@string/add_widget" />
+            android:orientation="horizontal"
+            android:padding="8dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_discard_changes"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@android:drawable/ic_menu_close_clear_cancel"
-            app:iconTint="#FFFFFF"
-            android:contentDescription="@string/discard_changes" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_add_widget"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_add"
+                app:iconTint="?attr/colorOnSurface"
+                android:contentDescription="@string/add_widget" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_save_layout"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@android:drawable/ic_menu_save"
-            app:iconTint="#FFFFFF"
-            android:contentDescription="@string/save_layout" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_discard_changes"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_close_clear_cancel"
+                app:iconTint="?attr/colorOnSurface"
+                android:contentDescription="@string/discard_changes" />
 
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_save_layout"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconTint="?attr/colorOnSurface"
+                android:contentDescription="@string/save_layout" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </FrameLayout>

@@ -60,21 +60,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Edit"
-            style="@style/Widget.Material3.Button.TextButton" />
+            style="@style/ButtonText" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/binding_reset_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Reset"
-            style="@style/Widget.Material3.Button.TextButton" />
+            style="@style/ButtonText" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/binding_clear_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Clear"
-            style="@style/Widget.Material3.Button.TextButton" />
+            style="@style/ButtonErrorText" />
     </LinearLayout>
 
 </LinearLayout>

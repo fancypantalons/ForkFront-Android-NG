@@ -245,7 +245,7 @@ public class NHW_Message implements NH_Window
 				nLogs--;
 				if( highlightNew && nLogs < mDispCount )
 					attr = TextAttr.ATTR_BOLD;
-				mLogView.printString(attr, s, 0, 0xffffffff);
+				mLogView.printString(attr, s, 0, 15);
 			}
 		}
 		mLogView.show(bBlocking);

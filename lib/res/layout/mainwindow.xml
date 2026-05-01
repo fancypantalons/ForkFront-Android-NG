@@ -11,7 +11,7 @@
     <!-- Main content -->
     <LinearLayout
         android:id="@+id/base_frame"
-        android:background="@color/hearse_background"
+        android:background="?android:attr/colorBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:baselineAligned="false"
@@ -76,8 +76,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="--More--"
-                        android:background="@android:color/background_light"
-                        android:textColor="@android:color/black"
+                        android:background="?attr/colorPrimary"
+                        android:textColor="?attr/colorOnPrimary"
                         android:clickable="true"
                         android:visibility="gone"
                         android:textSize="15sp" />
@@ -124,41 +124,47 @@
         android:focusable="true"
         android:elevation="8dp">
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Material3.CardView.Filled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:orientation="vertical"
-            android:background="#FF424242"
-            android:elevation="16dp"
-            android:padding="24dp">
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:cardElevation="8dp"
+            app:strokeWidth="0dp">
 
-            <TextView
-                android:id="@+id/loading_message"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Preparing NetHack content..."
-                android:textColor="#FFFFFFFF"
-                android:textSize="16sp"
-                android:layout_marginBottom="16dp"/>
+                android:orientation="vertical"
+                android:padding="24dp">
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/asset_progress"
-                android:layout_width="300dp"
-                android:layout_height="wrap_content"
-                android:indeterminate="false"
-                android:max="100"
-                android:progress="0"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Preparing NetHack content..."
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="16dp"/>
 
-            <TextView
-                android:id="@+id/progress_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="#FFFFFFFF"
-                android:textSize="14sp"
-                android:text="0%"/>
-        </LinearLayout>
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/asset_progress"
+                    android:layout_width="300dp"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="false"
+                    android:max="100"
+                    android:progress="0"/>
+
+                <TextView
+                    android:id="@+id/progress_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:text="0%"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </FrameLayout>
 
     </LinearLayout>

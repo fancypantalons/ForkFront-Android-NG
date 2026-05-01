@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="add_widget">Add Widget</string>
-    <string name="reset_layout">Reset Layout to Default</string>
     <string name="save_layout">Save Layout</string>
     <string name="discard_changes">Discard Changes</string>
     <string name="settings">Settings</string>
-    
-    <string name="reset_layout_confirm_title">Reset Layout</string>
-    <string name="reset_layout_confirm_message">Reset this orientation\'s layout to default? Your customizations will be lost.</string>
-    <string name="reset_layout_positive">Reset</string>
-    <string name="cancel">Cancel</string>
 </resources>

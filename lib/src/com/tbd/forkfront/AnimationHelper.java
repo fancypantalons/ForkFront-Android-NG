@@ -1,11 +1,11 @@
 package com.tbd.forkfront;
 
+import android.animation.TimeInterpolator;
 import android.content.Context;
 import android.view.View;
-import android.view.animation.Interpolator;
-import android.animation.TimeInterpolator;
+import android.view.animation.AnimationUtils;
+
 import androidx.annotation.NonNull;
-import com.google.android.material.animation.AnimationUtils;
 
 /**
  * Utility class for Material 3 motion and animations.
@@ -30,21 +30,21 @@ public class AnimationHelper {
      * Get the Material 3 standard easing (FastOutSlowIn equivalent)
      */
     public static TimeInterpolator getStandardEasing(Context context) {
-        return AnimationUtils.FAST_OUT_SLOW_IN_INTERPOLATOR;
+        return AnimationUtils.loadInterpolator(context, android.R.interpolator.fast_out_slow_in);
     }
 
     /**
      * Get the Material 3 linear out slow in easing
      */
     public static TimeInterpolator getLinearOutSlowInEasing(Context context) {
-        return AnimationUtils.LINEAR_OUT_SLOW_IN_INTERPOLATOR;
+        return AnimationUtils.loadInterpolator(context, android.R.interpolator.linear_out_slow_in);
     }
 
     /**
      * Get the Material 3 fast out linear in easing
      */
     public static TimeInterpolator getFastOutLinearInEasing(Context context) {
-        return AnimationUtils.FAST_OUT_LINEAR_IN_INTERPOLATOR;
+        return AnimationUtils.loadInterpolator(context, android.R.interpolator.fast_out_linear_in);
     }
 
     /**
@@ -56,7 +56,7 @@ public class AnimationHelper {
         view.animate()
                 .alpha(1f)
                 .setDuration(DURATION_MEDIUM_1)
-                .setInterpolator(AnimationUtils.LINEAR_OUT_SLOW_IN_INTERPOLATOR)
+                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.linear_out_slow_in))
                 .start();
     }
 
@@ -67,7 +67,7 @@ public class AnimationHelper {
         view.animate()
                 .alpha(0f)
                 .setDuration(DURATION_SHORT_4)
-                .setInterpolator(AnimationUtils.FAST_OUT_LINEAR_IN_INTERPOLATOR)
+                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_linear_in))
                 .withEndAction(new Runnable() {
                     @Override
                     public void run() {
@@ -88,7 +88,7 @@ public class AnimationHelper {
                 .translationY(0f)
                 .alpha(1f)
                 .setDuration(DURATION_MEDIUM_2)
-                .setInterpolator(AnimationUtils.FAST_OUT_SLOW_IN_INTERPOLATOR)
+                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_slow_in))
                 .start();
     }
 
@@ -100,7 +100,7 @@ public class AnimationHelper {
                 .translationY(view.getHeight() > 0 ? view.getHeight() : 500f)
                 .alpha(0f)
                 .setDuration(DURATION_SHORT_4)
-                .setInterpolator(AnimationUtils.FAST_OUT_SLOW_IN_INTERPOLATOR)
+                .setInterpolator(AnimationUtils.loadInterpolator(view.getContext(), android.R.interpolator.fast_out_slow_in))
                 .withEndAction(new Runnable() {
                     @Override
                     public void run() {
