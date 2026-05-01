@@ -56,6 +56,22 @@ public class GamepadDispatcher {
     private int mBufferedDpadKey = -1;
     private Runnable mDpadBufferRunnable;
 
+    // ─── Left-stick settle debounce state ────────────────────────────────────
+    // When the stick first leaves the deadzone it sweeps through intermediate octants
+    // before settling. We hold the first press for STICK_SETTLE_MS; if the octant
+    // changes during that window we just update the pending target. Only after the
+    // timer fires do we commit to a direction and start repeating.
+    // After first commitment, octant transitions are immediate (no debounce).
+    private static final int STICK_SETTLE_MS = 50;
+    private int mStickActivePseudo = -1;
+    private boolean mStickSettling = false;
+    private int mStickPendingPseudo = -1;
+    private Runnable mStickSettleRunnable;
+    // Transient flag: set when active stick releases, cleared after the current
+    // synchronous event batch completes (via post). Lets an immediately following
+    // Press skip the settle debounce (octant transition, not fresh activation).
+    private boolean mStickWasActive = false;
+
     // ─── Baseline fallback dispatcher ─────────────────────────────────────────
     private volatile SyntheticDispatcher mSyntheticDispatcher;
 
@@ -151,6 +167,9 @@ public class GamepadDispatcher {
     public void resetTracker() {
         cancelRepeat();
         cancelDpadBuffer();
+        cancelStickSettle();
+        mStickActivePseudo = -1;
+        mStickWasActive = false;
         if (mChordTracker != null) mChordTracker.reset();
         if (mAxisNormalizer != null) mAxisNormalizer.reset();
         mDiagonalActive = false;
@@ -288,19 +307,18 @@ public class GamepadDispatcher {
         if (ctx != UiContext.GAMEPLAY) return; // axis input only drives GAMEPLAY actions for now
 
         if (AxisNormalizer.isLStickPseudo(buttonCode) && mOptions.leftStickMovement) {
-            KeyBinding explicit = mBindingMap.find(Chord.single(buttonCode));
-            if (explicit != null) {
-                onBindingFired(explicit, false);
-                startRepeat(() -> onBindingFired(explicit, true));
+            if (mStickActivePseudo != -1 || mStickWasActive) {
+                // Active or just-released: octant transition — skip debounce.
+                mStickWasActive = false;
+                cancelStickSettle();
+                fireStickDirection(buttonCode);
+            } else if (mStickSettling) {
+                // Already in settle window: update target and restart timer.
+                cancelStickSettle();
+                startStickSettle(buttonCode);
             } else {
-                char nhDir = AxisNormalizer.pseudoToNhDir(buttonCode);
-                if (nhDir != 0) {
-                    mStateRef.sendDirKeyCmd(nhDir);
-                    final char dir = nhDir;
-                    startRepeat(() -> {
-                        if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(dir);
-                    });
-                }
+                // Fresh activation from neutral: start settle window.
+                startStickSettle(buttonCode);
             }
             return;
         }
@@ -330,7 +348,18 @@ public class GamepadDispatcher {
         if (ctx != UiContext.GAMEPLAY) return;
 
         if (AxisNormalizer.isLStickPseudo(buttonCode) && mOptions.leftStickMovement) {
-            cancelRepeat();
+            if (mStickSettling) {
+                // Released before settle timer fired: cancel cleanly, no movement.
+                cancelStickSettle();
+            } else if (mStickActivePseudo != -1) {
+                // Active direction released: stop repeat.
+                cancelRepeat();
+                mStickActivePseudo = -1;
+                // Set transient flag so an immediately following Press (octant transition
+                // within the same synchronous event batch) skips the settle window.
+                mStickWasActive = true;
+                mRepeatHandler.post(() -> mStickWasActive = false);
+            }
             return;
         }
 
@@ -534,6 +563,49 @@ public class GamepadDispatcher {
                     mActionExecutor.execute(((BindingTarget.UiAction) target).id);
                 }
                 break;
+        }
+    }
+
+    // ─── Left-stick settle + direction fire ──────────────────────────────────
+
+    private void startStickSettle(int pseudo) {
+        mStickSettling = true;
+        mStickPendingPseudo = pseudo;
+        mStickSettleRunnable = () -> {
+            mStickSettleRunnable = null;
+            mStickSettling = false;
+            int pending = mStickPendingPseudo;
+            mStickPendingPseudo = -1;
+            fireStickDirection(pending);
+        };
+        mRepeatHandler.postDelayed(mStickSettleRunnable, STICK_SETTLE_MS);
+    }
+
+    private void cancelStickSettle() {
+        if (mStickSettleRunnable != null) {
+            mRepeatHandler.removeCallbacks(mStickSettleRunnable);
+            mStickSettleRunnable = null;
+        }
+        mStickSettling = false;
+        mStickPendingPseudo = -1;
+    }
+
+    private void fireStickDirection(int pseudo) {
+        mStickActivePseudo = pseudo;
+        cancelRepeat();
+        KeyBinding explicit = mBindingMap.find(Chord.single(pseudo));
+        if (explicit != null) {
+            onBindingFired(explicit, false);
+            startRepeat(() -> onBindingFired(explicit, true));
+        } else {
+            char nhDir = AxisNormalizer.pseudoToNhDir(pseudo);
+            if (nhDir != 0) {
+                mStateRef.sendDirKeyCmd(nhDir);
+                final char dir = nhDir;
+                startRepeat(() -> {
+                    if (mArbiter.current() == UiContext.GAMEPLAY) mStateRef.sendDirKeyCmd(dir);
+                });
+            }
         }
     }
 
