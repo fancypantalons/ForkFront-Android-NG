@@ -23,6 +23,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.lifecycle.ViewModelProvider;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -42,7 +43,7 @@ import java.util.regex.Pattern;
 
 public class ForkFront extends AppCompatActivity
 {
-	private static NH_State nhState;
+	private NetHackViewModel mViewModel;
 	private boolean mCtrlDown;
 	private boolean mMetaDown;
 	private boolean mBackTracking;
@@ -125,32 +126,33 @@ public class ForkFront extends AppCompatActivity
 	}
 
 	private void goodToGo() {
-		if(nhState == null)
-		{
-			ByteDecoder decoder;
-			if(getResources().getBoolean(R.bool.useCP437Decoder))
-				decoder = new CP437();
-			else
-				decoder = new ByteDecoder() {
-					@Override
-					public char decode(int b) {
-						return (char)b;
-					}
+		// Get or create ViewModel (survives configuration changes)
+		mViewModel = new ViewModelProvider(this).get(NetHackViewModel.class);
 
-					@Override
-					public String decode(byte[] bytes) {
-						return new String(bytes);
-					}
-				};
-
-			nhState = new NH_State(this, decoder);
-			new UpdateAssets(this, onAssetsReady).execute((Void[])null);
-		}
+		ByteDecoder decoder;
+		if(getResources().getBoolean(R.bool.useCP437Decoder))
+			decoder = new CP437();
 		else
-		{
-			Log.print("restoring state");
-			nhState.setContext(this);
-		}
+			decoder = new ByteDecoder() {
+				@Override
+				public char decode(int b) {
+					return (char)b;
+				}
+
+				@Override
+				public String decode(byte[] bytes) {
+					return new String(bytes);
+				}
+			};
+
+		// Initialize ViewModel with Application context (only happens once)
+		mViewModel.initialize(getApplication(), decoder);
+
+		// Attach current Activity context
+		mViewModel.attachActivity(this);
+
+		// Start asset loading
+		new UpdateAssets(this, onAssetsReady).execute((Void[])null);
 	}
 
 	@RequiresApi(Build.VERSION_CODES.M)
@@ -217,7 +219,10 @@ public class ForkFront extends AppCompatActivity
 	public void onConfigurationChanged(Configuration newConfig)
 	{
 		Log.print("onConfigurationChanged");
-		nhState.onConfigurationChanged(newConfig);
+		NH_State nhState = mViewModel.getState();
+		if (nhState != null) {
+			nhState.onConfigurationChanged(newConfig);
+		}
 		super.onConfigurationChanged(newConfig);
 	}
 
@@ -233,7 +238,9 @@ public class ForkFront extends AppCompatActivity
 				nhSaveDir.mkdir();
 
 			PreferenceManager.setDefaultValues(ForkFront.this, R.xml.preferences, false);
-			nhState.startNetHack(path.getAbsolutePath());
+
+			// Start engine through ViewModel
+			mViewModel.startEngine(path.getAbsolutePath());
 		}
 	};
 
@@ -258,6 +265,10 @@ public class ForkFront extends AppCompatActivity
 		mMetaDown = false;
 
 		Log.print("onResume");
+		// Reattach Activity to ViewModel when resuming
+		if (mViewModel != null) {
+			mViewModel.attachActivity(this);
+		}
 		super.onResume();
 	}
 
@@ -268,6 +279,10 @@ public class ForkFront extends AppCompatActivity
 		mCtrlDown = false;
 		mMetaDown = false;
 
+		// Detach Activity from ViewModel when pausing
+		if (mViewModel != null) {
+			mViewModel.detachActivity();
+		}
 		super.onPause();
 	}
 
@@ -290,10 +305,8 @@ public class ForkFront extends AppCompatActivity
 		mMetaDown = false;
 
 		Log.print("onDestroy()");
-		if(nhState != null)
-            nhState.saveAndQuit();
-		nhState = null;
-
+		// ViewModel's onCleared() will handle saveAndQuit() when Activity is truly finished
+		// (not just being recreated for configuration change)
 		super.onDestroy();
 	}
 
@@ -336,13 +349,13 @@ public class ForkFront extends AppCompatActivity
 		mMetaDown = false;
 
 		super.onCreateContextMenu(menu, v, menuInfo);
-		nhState.onCreateContextMenu(menu, v);
+		mViewModel.getState().onCreateContextMenu(menu, v);
 	}
 
 	// ____________________________________________________________________________________
 	public void onContextMenuClosed(Menu menu) {
 		super.onContextMenuClosed(menu);
-		nhState.onContextMenuClosed();
+		mViewModel.getState().onContextMenuClosed();
 	}
 
 	// ____________________________________________________________________________________
@@ -352,7 +365,7 @@ public class ForkFront extends AppCompatActivity
 		mCtrlDown = false;
 		mMetaDown = false;
 
-		nhState.onContextItemSelected(item);
+		mViewModel.getState().onContextItemSelected(item);
 		return super.onContextItemSelected(item);
 	}
 
@@ -365,7 +378,7 @@ public class ForkFront extends AppCompatActivity
 
 		if(requestCode == SETTINGS_ACTIVITY_CODE)
 		{
-			nhState.preferencesUpdated();
+			mViewModel.getState().preferencesUpdated();
 		}
 		super.onActivityResult(requestCode, resultCode, data);
 	}
@@ -378,8 +391,8 @@ public class ForkFront extends AppCompatActivity
 		mMetaDown = false;
 
 		Log.print("onSaveInstanceState(Bundle outState)");
-		if(nhState != null)
-			nhState.saveState();
+		if(mViewModel.getState() != null)
+			mViewModel.getState().saveState();
 	}
 
 	// ____________________________________________________________________________________
@@ -445,9 +458,9 @@ public class ForkFront extends AppCompatActivity
 
 		char ch = (char)unicodeChar;
 
-		int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, nhState.isNumPadOn());
+		int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, mViewModel.getState().isNumPadOn());
 		
-		if(nhState.handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount, false))
+		if(mViewModel.getState().handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount, false))
 			return true;
 
 		if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
@@ -472,7 +485,7 @@ public class ForkFront extends AppCompatActivity
 		else if(fixedCode == KeyAction.Meta)
 			mMetaDown = false;
 
-		if(nhState.handleKeyUp(Input.keyCodeToAction(keyCode, this)))
+		if(mViewModel.getState().handleKeyUp(Input.keyCodeToAction(keyCode, this)))
 			return true;
 		if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
 		{

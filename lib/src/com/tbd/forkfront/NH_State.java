@@ -624,6 +624,16 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
+	/**
+	 * Get the NH_Handler for this state.
+	 * Used by NetHackIO to receive JNI callbacks from native engine.
+	 * Package-private for access by NetHackViewModel.
+	 */
+	NH_Handler getNhHandler() {
+		return NhHandler;
+	}
+
+	// ____________________________________________________________________________________
 	private NH_Handler NhHandler = new NH_Handler() {
 		@Override
 		public void setLastUsername(String username) {
