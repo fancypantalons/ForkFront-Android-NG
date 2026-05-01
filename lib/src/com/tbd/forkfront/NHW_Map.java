@@ -15,6 +15,8 @@ import androidx.preference.PreferenceManager;
 import android.text.TextPaint;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -216,10 +218,13 @@ public class NHW_Map implements NH_Window
 	@Override
 	public void clear()
 	{
-		for(Tile[] row : mTiles)
+		synchronized (mTiles)
 		{
-			for(int i = 0; i < row.length; i++)
-				row[i].glyph = -1;
+			for(Tile[] row : mTiles)
+			{
+				for(int i = 0; i < row.length; i++)
+					row[i].glyph = -1;
+			}
 		}
 	}
 
@@ -256,7 +261,7 @@ public class NHW_Map implements NH_Window
 		if (mViewOffset.x != ofsX || mViewOffset.y != ofsY)
 		{
 			mViewOffset.set(ofsX, ofsY);
-			mUI.invalidate();
+			mUI.requestRedraw();
 		}
 	}
 
@@ -353,7 +358,7 @@ public class NHW_Map implements NH_Window
 		{
 			centerView(0, 0);
 		}
-		mUI.invalidate();
+		mUI.requestRedraw();
 	}
 
 	// ____________________________________________________________________________________
@@ -392,7 +397,7 @@ public class NHW_Map implements NH_Window
 		if(borderColor != mBorderColor)
 		{
 			mBorderColor = borderColor;
-			mUI.invalidate();
+			mUI.requestRedraw();
 		}
 	}
 
@@ -402,7 +407,7 @@ public class NHW_Map implements NH_Window
 		if(canPan())
 		{
 			mViewOffset.offset(dx, dy);
-			mUI.invalidate();
+			mUI.requestRedraw();
 		}
 	}
 
@@ -517,11 +522,14 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________
 	public void printTile(final int x, final int y, final int tile, final int ch, final int col, final int special)
 	{
-		mTiles[y][x].glyph = tile;
-		mTiles[y][x].ch[0] = mDecoder.decode(ch);
-		mTiles[y][x].color = col;
-		mTiles[y][x].overlay = (short)special;
-		mUI.invalidateTile(x, y);
+		synchronized (mTiles)
+		{
+			mTiles[y][x].glyph = tile;
+			mTiles[y][x].ch[0] = mDecoder.decode(ch);
+			mTiles[y][x].color = col;
+			mTiles[y][x].overlay = (short)special;
+		}
+		mUI.requestRedraw();
 	}
 
 	// ____________________________________________________________________________________
@@ -586,7 +594,7 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________ // 
 	//																						// 
 	// ____________________________________________________________________________________ // 
-	private class UI extends View
+	private class UI extends SurfaceView implements SurfaceHolder.Callback
 	{
 		private CountDownTimer mPressCountDown;
 		private TextPaint mPaint;
@@ -605,12 +613,23 @@ public class NHW_Map implements NH_Window
 		private Typeface mTypeface;
 		private final float mBaseTextSize;
 
+		// Rendering thread fields
+		private SurfaceHolder mSurfaceHolder;
+		private Thread mRenderingThread;
+		private volatile boolean mIsRendering;
+		private volatile boolean mNeedsRedraw;
+
 		// ____________________________________________________________________________________
 		public UI()
 		{
 			super(mContext);
 			setFocusable(false);
 			setFocusableInTouchMode(false);
+
+			// Set up SurfaceView
+			mSurfaceHolder = getHolder();
+			mSurfaceHolder.addCallback(this);
+			setZOrderOnTop(false);
 
 			((ViewGroup)mContext.findViewById(R.id.map_frame)).addView(this, 0);
 			mPaint = new TextPaint();
@@ -624,25 +643,123 @@ public class NHW_Map implements NH_Window
 			mPointerId0 = -1;
 			mPointerId1 = -1;
 			mZoomPanMode = ZoomPanMode.Idle;
+			mIsRendering = false;
+			mNeedsRedraw = true;
+		}
+
+		// ____________________________________________________________________________________
+		// SurfaceHolder.Callback implementation
+		// ____________________________________________________________________________________
+
+		@Override
+		public void surfaceCreated(SurfaceHolder holder)
+		{
+			mIsRendering = true;
+			mNeedsRedraw = true;
+			mRenderingThread = new Thread(new RenderLoop(), "NHW_Map-Render");
+			mRenderingThread.start();
+		}
+
+		@Override
+		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
+		{
+			// Trigger a redraw when surface dimensions change
+			mNeedsRedraw = true;
+		}
+
+		@Override
+		public void surfaceDestroyed(SurfaceHolder holder)
+		{
+			mIsRendering = false;
+			if (mRenderingThread != null)
+			{
+				try
+				{
+					mRenderingThread.join(1000); // Wait up to 1 second for thread to finish
+				}
+				catch (InterruptedException e)
+				{
+					// Thread was interrupted, continue cleanup
+				}
+				mRenderingThread = null;
+			}
+		}
+
+		// ____________________________________________________________________________________
+		// Render Loop
+		// ____________________________________________________________________________________
+
+		private class RenderLoop implements Runnable
+		{
+			@Override
+			public void run()
+			{
+				while (mIsRendering)
+				{
+					// Only render if we need to redraw
+					if (mNeedsRedraw)
+					{
+						Canvas canvas = null;
+						try
+						{
+							canvas = mSurfaceHolder.lockCanvas();
+							if (canvas != null)
+							{
+								// Synchronized block will be added in next task
+								synchronized (mTiles)
+								{
+									drawBorder(canvas);
+									if (isTTY())
+										drawAscii(canvas);
+									else
+										drawTiles(canvas);
+								}
+								mNeedsRedraw = false;
+							}
+						}
+						finally
+						{
+							if (canvas != null)
+							{
+								mSurfaceHolder.unlockCanvasAndPost(canvas);
+							}
+						}
+					}
+					else
+					{
+						// Sleep briefly to avoid busy-waiting
+						try
+						{
+							Thread.sleep(16); // ~60 FPS max
+						}
+						catch (InterruptedException e)
+						{
+							// Thread was interrupted, exit loop
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		// ____________________________________________________________________________________
 		public void invalidateTile(int tileX, int tileY)
 		{
-			float tileW = getScaledTileWidth();
-			float tileH = getScaledTileHeight();
+			// With SurfaceView, we just flag that a redraw is needed
+			mNeedsRedraw = true;
+		}
 
-			int ofsX = (int)(mViewOffset.x + tileW * tileX);
-			int ofsY = (int)(mViewOffset.y + tileH * tileY);
-
-			invalidate(new Rect(ofsX - 4, ofsY - 4, (int)(ofsX + tileW) + 4, (int)(ofsY + tileH) + 4));
+		// ____________________________________________________________________________________
+		public void requestRedraw()
+		{
+			mNeedsRedraw = true;
 		}
 
 		// ____________________________________________________________________________________
 		public void showInternal()
 		{
 			setVisibility(View.VISIBLE);
-			invalidate();
+			mNeedsRedraw = true;
 		}
 
 		// ____________________________________________________________________________________
