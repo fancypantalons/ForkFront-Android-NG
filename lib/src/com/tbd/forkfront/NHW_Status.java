@@ -1,33 +1,99 @@
 package com.tbd.forkfront;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.text.SpannableStringBuilder;
 import android.view.View;
-import com.tbd.forkfront.*;
 
 public class NHW_Status implements NH_Window
 {
-	private SpannableStringBuilder[] mRows;
-	private int mCurRow;
+	// Field-based status storage
+	private Map<Integer, StatusField> mFields;
+	private long mConditionMask;
+	private long[] mConditionColorMasks;
+
 	private NetHackIO mIO;
 	private UI mUI;
 	private boolean mIsVisible;
 	private int mWid;
 	private int mOpacity;
-	boolean mOldMode; // TODO get rid of this by fixing proper cursor movement and remove append parameter to putString
+
+	// Status field container
+	private static class StatusField {
+		boolean enabled;
+		String name;
+		String value;
+		int color;
+
+		StatusField(String name) {
+			this.name = name;
+			this.enabled = false;
+			this.value = "";
+			this.color = 0;
+		}
+	}
+
+	// Condition bit names
+	private static final String[] CONDITION_NAMES = {
+		"Stone", "Slime", "Strngl", "FoodPois", "TermIll",
+		"Blind", "Deaf", "Stun", "Conf", "Hallu",
+		"Lev", "Fly", "Ride"
+	};
+
+	private static final long[] CONDITION_BITS = {
+		0x00000001L, // BL_MASK_STONE
+		0x00000002L, // BL_MASK_SLIME
+		0x00000004L, // BL_MASK_STRNGL
+		0x00000008L, // BL_MASK_FOODPOIS
+		0x00000010L, // BL_MASK_TERMILL
+		0x00000020L, // BL_MASK_BLIND
+		0x00000040L, // BL_MASK_DEAF
+		0x00000080L, // BL_MASK_STUN
+		0x00000100L, // BL_MASK_CONF
+		0x00000200L, // BL_MASK_HALLU
+		0x00000400L, // BL_MASK_LEV
+		0x00000800L, // BL_MASK_FLY
+		0x00001000L  // BL_MASK_RIDE
+	};
+
+	// Field indices (from botl.h)
+	public static final int BL_TITLE = 0;
+	public static final int BL_STR = 1;
+	public static final int BL_DX = 2;
+	public static final int BL_CO = 3;
+	public static final int BL_IN = 4;
+	public static final int BL_WI = 5;
+	public static final int BL_CH = 6;
+	public static final int BL_ALIGN = 7;
+	public static final int BL_SCORE = 8;
+	public static final int BL_CAP = 9;
+	public static final int BL_GOLD = 10;
+	public static final int BL_ENE = 11;
+	public static final int BL_ENEMAX = 12;
+	public static final int BL_XP = 13;
+	public static final int BL_AC = 14;
+	public static final int BL_HD = 15;
+	public static final int BL_TIME = 16;
+	public static final int BL_HUNGER = 17;
+	public static final int BL_HP = 18;
+	public static final int BL_HPMAX = 19;
+	public static final int BL_LEVELDESC = 20;
+	public static final int BL_EXP = 21;
+	public static final int BL_CONDITION = 22;
+	public static final int BL_FLUSH = -1;
+	public static final int BL_RESET = -2;
 
 	// ____________________________________________________________________________________
 	public NHW_Status(AppCompatActivity context, NetHackIO io)
 	{
 		mIO = io;
-		mRows = new SpannableStringBuilder[2];
-		mRows[0] = new SpannableStringBuilder();
-		mRows[1] = new SpannableStringBuilder();
-		mCurRow = 0;
-		mOldMode = context.getResources().getBoolean(R.bool.oldStatusMode);
+		mFields = new HashMap<>();
+		mConditionMask = 0;
+		mConditionColorMasks = new long[20]; // BL_ATTCLR_MAX
 		setContext(context);
 	}
 
@@ -37,7 +103,7 @@ public class NHW_Status implements NH_Window
 	{
 		return "NHW_Status";
 	}
-	
+
 	// ____________________________________________________________________________________
 	@Override
 	public void setContext(AppCompatActivity context)
@@ -81,7 +147,7 @@ public class NHW_Status implements NH_Window
 	{
 		mWid = wid;
 	}
-	
+
 	// ____________________________________________________________________________________
 	@Override
 	public int id()
@@ -93,37 +159,104 @@ public class NHW_Status implements NH_Window
 	@Override
 	public void clear()
 	{
-		mRows[0] = new SpannableStringBuilder();
-		mRows[1] = new SpannableStringBuilder();
+		mFields.clear();
+		mConditionMask = 0;
 		mUI.hideInternal();
 	}
 
 	// ____________________________________________________________________________________
-	@Override
-	public void printString(int attr, String str, int append, int color)
+	// Field-based status methods (called from JNI)
+	// ____________________________________________________________________________________
+
+	public void statusInit()
 	{
-		if(mOldMode) {
-			if(append == 0 || str.length() < mRows[mCurRow].length()) {
-				mRows[mCurRow] = new SpannableStringBuilder(TextAttr.style(str, attr, color));
-			} else {
-				int nToAppend = str.length() - mRows[mCurRow].length();
-				if(nToAppend > 0)
-					mRows[mCurRow].append(TextAttr.style(str.substring(mRows[mCurRow].length(), str.length()), attr, color));
-			}
-		} else {
-			mRows[mCurRow].append(TextAttr.style(str, attr, color));
-		}
+		// Initialize field storage
+		android.util.Log.d("NHW_Status", "statusInit called");
+		mFields.clear();
+		mConditionMask = 0;
 	}
 
-	public void redraw() {
-		mUI.update();
+	public void statusEnableField(int fieldIdx, String name, String fmt, boolean enable)
+	{
+		android.util.Log.d("NHW_Status", "statusEnableField: idx=" + fieldIdx + " name=" + name + " enable=" + enable);
+		if (fieldIdx < 0 || fieldIdx == BL_CONDITION) {
+			return; // BL_CONDITION handled separately
+		}
+
+		StatusField field = mFields.get(fieldIdx);
+		if (field == null) {
+			field = new StatusField(name);
+			mFields.put(fieldIdx, field);
+		}
+		field.enabled = enable;
+		field.name = name;
+	}
+
+	public void statusUpdate(int fieldIdx, String value, long conditionMask, int chg, int percent, int color, long[] colormasks)
+	{
+		android.util.Log.d("NHW_Status", "statusUpdate: idx=" + fieldIdx + " value=" + value + " condMask=" + conditionMask);
+		// Handle special field indices
+		if (fieldIdx == BL_FLUSH) {
+			android.util.Log.d("NHW_Status", "BL_FLUSH - rendering");
+			mUI.render();
+			return;
+		}
+
+		if (fieldIdx == BL_RESET) {
+			mUI.forceRedraw();
+			return;
+		}
+
+		// Handle BL_CONDITION specially (it's a bitmask, not a string)
+		if (fieldIdx == BL_CONDITION) {
+			mConditionMask = conditionMask;
+			if (colormasks != null) {
+				System.arraycopy(colormasks, 0, mConditionColorMasks, 0,
+					Math.min(colormasks.length, mConditionColorMasks.length));
+			}
+			return;
+		}
+
+		// Regular field update
+		StatusField field = mFields.get(fieldIdx);
+		if (field == null) {
+			field = new StatusField("Field" + fieldIdx);
+			mFields.put(fieldIdx, field);
+		}
+
+		// Handle BL_GOLD special format ($:123) - strip the "$:" prefix
+		if (fieldIdx == BL_GOLD && value != null && value.startsWith("$:")) {
+			field.value = value.substring(2);
+		} else {
+			field.value = value != null ? value : "";
+		}
+
+		field.color = color;
+	}
+
+	public void statusFinish()
+	{
+		mFields.clear();
 	}
 
 	// ____________________________________________________________________________________
+	// Legacy NH_Window interface - not used in field-based mode
+	// ____________________________________________________________________________________
+
+	@Override
+	public void printString(int attr, String str, int append, int color)
+	{
+		// Not used in field-based status mode
+	}
+
+	public void redraw() {
+		mUI.render();
+	}
+
 	@Override
 	public void setCursorPos(int x, int y)
 	{
-		mCurRow = y == 0 ? 0 : 1;
+		// Not used in field-based status mode
 	}
 
 	// ____________________________________________________________________________________
@@ -148,11 +281,42 @@ public class NHW_Status implements NH_Window
 	}
 
 	// ____________________________________________________________________________________ //
+	// NetHack color palette (matches winandroid.c palette array)
+	// ____________________________________________________________________________________ //
+	private static final int[] NH_COLOR_PALETTE = {
+		0xFF555555,	// CLR_BLACK (0)
+		0xFFFF0000,	// CLR_RED (1)
+		0xFF008800,	// CLR_GREEN (2)
+		0xFF664411, // CLR_BROWN (3)
+		0xFF0000FF,	// CLR_BLUE (4)
+		0xFFFF00FF,	// CLR_MAGENTA (5)
+		0xFF00FFFF,	// CLR_CYAN (6)
+		0xFF888888,	// CLR_GRAY (7)
+		0xFFFFFFFF,	// NO_COLOR (8)
+		0xFFFF9900,	// CLR_ORANGE (9)
+		0xFF00FF00,	// CLR_BRIGHT_GREEN (10)
+		0xFFFFFF00,	// CLR_YELLOW (11)
+		0xFF0088FF,	// CLR_BRIGHT_BLUE (12)
+		0xFFFF77FF,	// CLR_BRIGHT_MAGENTA (13)
+		0xFF77FFFF,	// CLR_BRIGHT_CYAN (14)
+		0xFFFFFFFF	// CLR_WHITE (15)
+	};
+
+	// Convert NetHack color code (0-15) to Android RGB color
+	private static int nhColorToRGB(int nhColor) {
+		if (nhColor >= 0 && nhColor < NH_COLOR_PALETTE.length) {
+			return NH_COLOR_PALETTE[nhColor];
+		}
+		return 0xFF000000; // Default to black
+	}
+
+	// ____________________________________________________________________________________ //
 	// 																						//
 	// ____________________________________________________________________________________ //
 	private class UI
 	{
 		private AutoFitTextView[] mViews;
+		private SpannableStringBuilder[] mRows;
 
 		// ____________________________________________________________________________________
 		public UI(AppCompatActivity context)
@@ -160,13 +324,20 @@ public class NHW_Status implements NH_Window
 			mViews = new AutoFitTextView[2];
 			mViews[0] = (AutoFitTextView)context.findViewById(R.id.nh_stat0);
 			mViews[1] = (AutoFitTextView)context.findViewById(R.id.nh_stat1);
+			mRows = new SpannableStringBuilder[2];
+			mRows[0] = new SpannableStringBuilder();
+			mRows[1] = new SpannableStringBuilder();
+
+			// Set text color - background will be set by updateOpacity()
+			mViews[0].setTextColor(0xFFFFFFFF); // White
+			mViews[1].setTextColor(0xFFFFFFFF); // White
+
 			updateOpacity();
 		}
 
 		// ____________________________________________________________________________________
 		public void showInternal()
 		{
-			//update();
 			mViews[0].setVisibility(View.VISIBLE);
 			mViews[1].setVisibility(View.VISIBLE);
 		}
@@ -179,12 +350,173 @@ public class NHW_Status implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
-		public void update()
+		public void render()
 		{
-			mViews[0].setText(mRows[0]);
-			mViews[1].setText(mRows[1]);
 			mRows[0] = new SpannableStringBuilder();
 			mRows[1] = new SpannableStringBuilder();
+
+			// Build first row: Title, stats, alignment, score
+			buildRow1();
+
+			// Build second row: Dungeon level, gold, HP, Pw, AC, XP, Time, Hunger, Conditions
+			buildRow2();
+
+			mViews[0].setText(mRows[0]);
+			mViews[1].setText(mRows[1]);
+
+			// Force layout update
+			mViews[0].requestLayout();
+			mViews[1].requestLayout();
+		}
+
+		// ____________________________________________________________________________________
+		private void buildRow1()
+		{
+			// Title (role/rank)
+			StatusField title = mFields.get(BL_TITLE);
+			if (title != null && title.enabled && !title.value.isEmpty()) {
+				appendField(0, title.value + " ", title.color);
+			}
+
+			// Characteristics: Str, Dex, Con, Int, Wis, Cha
+			appendStat(0, BL_STR, "St:");
+			appendStat(0, BL_DX, "Dx:");
+			appendStat(0, BL_CO, "Co:");
+			appendStat(0, BL_IN, "In:");
+			appendStat(0, BL_WI, "Wi:");
+			appendStat(0, BL_CH, "Ch:");
+
+			// Alignment
+			StatusField align = mFields.get(BL_ALIGN);
+			if (align != null && align.enabled && !align.value.isEmpty()) {
+				appendField(0, align.value + " ", align.color);
+			}
+
+			// Score (if enabled)
+			StatusField score = mFields.get(BL_SCORE);
+			if (score != null && score.enabled && !score.value.isEmpty()) {
+				appendField(0, "S:" + score.value, score.color);
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private void buildRow2()
+		{
+			// Dungeon level description
+			StatusField levelDesc = mFields.get(BL_LEVELDESC);
+			if (levelDesc != null && levelDesc.enabled && !levelDesc.value.isEmpty()) {
+				appendField(1, levelDesc.value + " ", levelDesc.color);
+			}
+
+			// Gold
+			StatusField gold = mFields.get(BL_GOLD);
+			if (gold != null && gold.enabled && !gold.value.isEmpty()) {
+				appendField(1, "$:" + gold.value + " ", gold.color);
+			}
+
+			// HP
+			StatusField hp = mFields.get(BL_HP);
+			StatusField hpmax = mFields.get(BL_HPMAX);
+			if (hp != null && hp.enabled && hpmax != null && hpmax.enabled) {
+				appendField(1, "HP:" + hp.value + "(" + hpmax.value + ") ", hp.color);
+			}
+
+			// Power
+			StatusField ene = mFields.get(BL_ENE);
+			StatusField enemax = mFields.get(BL_ENEMAX);
+			if (ene != null && ene.enabled && enemax != null && enemax.enabled) {
+				appendField(1, "Pw:" + ene.value + "(" + enemax.value + ") ", ene.color);
+			}
+
+			// AC
+			StatusField ac = mFields.get(BL_AC);
+			if (ac != null && ac.enabled) {
+				appendField(1, "AC:" + ac.value + " ", ac.color);
+			}
+
+			// XP
+			StatusField xp = mFields.get(BL_XP);
+			if (xp != null && xp.enabled) {
+				String xpText = "Xp:" + xp.value;
+
+				// Add experience points if available
+				StatusField exp = mFields.get(BL_EXP);
+				if (exp != null && exp.enabled && !exp.value.isEmpty()) {
+					xpText += "/" + exp.value;
+				}
+
+				appendField(1, xpText + " ", xp.color);
+			}
+
+			// Time
+			StatusField time = mFields.get(BL_TIME);
+			if (time != null && time.enabled && !time.value.isEmpty()) {
+				appendField(1, "T:" + time.value + " ", time.color);
+			}
+
+			// Hunger
+			StatusField hunger = mFields.get(BL_HUNGER);
+			if (hunger != null && hunger.enabled && !hunger.value.isEmpty()) {
+				appendField(1, hunger.value + " ", hunger.color);
+			}
+
+			// Encumbrance
+			StatusField cap = mFields.get(BL_CAP);
+			if (cap != null && cap.enabled && !cap.value.isEmpty()) {
+				appendField(1, cap.value + " ", cap.color);
+			}
+
+			// Conditions
+			appendConditions(1);
+		}
+
+		// ____________________________________________________________________________________
+		private void appendStat(int row, int fieldIdx, String prefix)
+		{
+			StatusField field = mFields.get(fieldIdx);
+			if (field != null && field.enabled && !field.value.isEmpty()) {
+				appendField(row, prefix + field.value + " ", field.color);
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private void appendField(int row, String text, int color)
+		{
+			int attr = (color >> 8) & 0xFF;
+			int nhColor = color & 0xFF;
+			int rgbColor = nhColorToRGB(nhColor);
+			mRows[row].append(TextAttr.style(text, attr, rgbColor));
+		}
+
+		// ____________________________________________________________________________________
+		private void appendConditions(int row)
+		{
+			// Display active conditions from bitmask
+			for (int i = 0; i < CONDITION_BITS.length && i < CONDITION_NAMES.length; i++) {
+				if ((mConditionMask & CONDITION_BITS[i]) != 0) {
+					int color = findConditionColor(CONDITION_BITS[i]);
+					appendField(row, CONDITION_NAMES[i] + " ", color);
+				}
+			}
+		}
+
+		// ____________________________________________________________________________________
+		private int findConditionColor(long conditionBit)
+		{
+			// Check colormasks to find the color for this condition
+			for (int i = 0; i < mConditionColorMasks.length; i++) {
+				if ((mConditionColorMasks[i] & conditionBit) != 0) {
+					// Found the color/attribute for this condition
+					return i; // This is the CLR_* or HL_ATTCLR_* value
+				}
+			}
+			return 0; // Default: no special color
+		}
+
+		// ____________________________________________________________________________________
+		public void forceRedraw()
+		{
+			render();
 		}
 
 		// ____________________________________________________________________________________
@@ -196,8 +528,12 @@ public class NHW_Status implements NH_Window
 		// ____________________________________________________________________________________
 		public void updateOpacity()
 		{
-			mViews[0].setBackgroundColor(mOpacity << 24);
-			mViews[1].setBackgroundColor(mOpacity << 24);
+			// Use surface color from Material theme with user-specified opacity
+			// Default to fully opaque if mOpacity is 0
+			int opacity = mOpacity == 0 ? 255 : mOpacity;
+			int backgroundColor = (opacity << 24) | 0x001C1B1F; // Material surface color with alpha
+			mViews[0].setBackgroundColor(backgroundColor);
+			mViews[1].setBackgroundColor(backgroundColor);
 		}
 	}
 }

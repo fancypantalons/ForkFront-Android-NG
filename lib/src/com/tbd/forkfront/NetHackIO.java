@@ -522,6 +522,62 @@ public class NetHackIO
 	}
 
 	// ____________________________________________________________________________________
+	// ____________________________________________________________________________________
+	// Field-based status methods
+	// ____________________________________________________________________________________
+	@SuppressWarnings("unused")
+	private void statusInit()
+	{
+		mHandler.post(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				mNhHandler.statusInit();
+			}
+		});
+	}
+
+	@SuppressWarnings("unused")
+	private void statusEnableField(final int fieldIdx, final String name, final String fmt, final boolean enable)
+	{
+		mHandler.post(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				mNhHandler.statusEnableField(fieldIdx, name, fmt, enable);
+			}
+		});
+	}
+
+	@SuppressWarnings("unused")
+	private void statusUpdate(final int fieldIdx, final String value, final long conditionMask,
+	                          final int chg, final int percent, final int color, final long[] colormasks)
+	{
+		mHandler.post(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				mNhHandler.statusUpdate(fieldIdx, value, conditionMask, chg, percent, color, colormasks);
+			}
+		});
+	}
+
+	@SuppressWarnings("unused")
+	private void statusFinish()
+	{
+		mHandler.post(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				mNhHandler.statusFinish();
+			}
+		});
+	}
+
 	@SuppressWarnings("unused")
 	private void redrawStatus()
 	{

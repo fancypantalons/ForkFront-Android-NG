@@ -6,6 +6,10 @@ public interface NH_Handler
 	void setCursorPos(int wid, int x, int y);
 	void putString(int wid, int attr, String msg, int append, int color);
 	void setHealthColor(int color);
+	void statusInit();
+	void statusEnableField(int fieldIdx, String name, String fmt, boolean enable);
+	void statusUpdate(int fieldIdx, String value, long conditionMask, int chg, int percent, int color, long[] colormasks);
+	void statusFinish();
 	void redrawStatus();
 	void rawPrint(int attr, String msg);
 	void printTile(int wid, int x, int y, int tile, int ch, int col, int special);
