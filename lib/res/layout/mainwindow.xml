@@ -33,6 +33,7 @@
             android:id="@+id/map_frame"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:descendantFocusability="blocksDescendants"
             android:focusable="false"
             android:focusableInTouchMode="false"
             android:defaultFocusHighlightEnabled="false" >
@@ -41,7 +42,6 @@
                 android:id="@+id/widgetLayout1"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:descendantFocusability="blocksDescendants"
                 android:focusable="false"
                 android:focusableInTouchMode="false"
                 android:defaultFocusHighlightEnabled="false" >
