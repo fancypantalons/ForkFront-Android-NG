@@ -468,6 +468,8 @@ public class NHW_Menu implements NH_Window
 				case KeyEvent.KEYCODE_DPAD_DOWN:
 				case KeyEvent.KEYCODE_DPAD_LEFT:
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
+					return KeyEventResult.IGNORED;
+
 				case KeyEvent.KEYCODE_DPAD_CENTER:
 					return navigateListView(keyCode);
 
