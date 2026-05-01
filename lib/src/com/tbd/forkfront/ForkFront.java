@@ -31,6 +31,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Rect;
+import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
@@ -54,6 +55,26 @@ public class ForkFront extends AppCompatActivity
 	private NetHackViewModel mViewModel;
 	private boolean mBackTracking;
 	private DrawerLayout mDrawerLayout;
+	private SecondaryScreenPresentation mPresentation;
+	private DisplayManager mDisplayManager;
+
+	private final DisplayManager.DisplayListener mDisplayListener =
+		new DisplayManager.DisplayListener() {
+			@Override
+			public void onDisplayAdded(int displayId) {
+				updateSecondaryDisplay();
+			}
+
+			@Override
+			public void onDisplayRemoved(int displayId) {
+				updateSecondaryDisplay();
+			}
+
+			@Override
+			public void onDisplayChanged(int displayId) {
+				updateSecondaryDisplay();
+			}
+		};
 
 	private final int REQUEST_EXTERNAL_STORAGE = 43;
 
@@ -82,6 +103,8 @@ public class ForkFront extends AppCompatActivity
 		super.onCreate(savedInstanceState);
 
 		Log.print("onCreate");
+
+		mDisplayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 
 		// Enable edge-to-edge display
 		WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -145,6 +168,18 @@ public class ForkFront extends AppCompatActivity
 				handleNavigationItemSelected(item.getItemId());
 				mDrawerLayout.closeDrawers();
 				return true;
+			});
+		}
+
+		if (mDrawerLayout != null) {
+			mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+				@Override
+				public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+					// Force a full redraw of the drawer layout during slide to fix the
+					// "dirty rectangle" bug where the SurfaceView map underneath prevents
+					// the drawer's translated pixels from being drawn.
+					mDrawerLayout.invalidate();
+				}
 			});
 		}
 
@@ -371,6 +406,9 @@ public class ForkFront extends AppCompatActivity
 	{
 
 		Log.print("onResume");
+		mDisplayManager.registerDisplayListener(mDisplayListener, null);
+		updateSecondaryDisplay();
+
 		// Reattach Activity to ViewModel when resuming
 		if (mViewModel != null) {
 			mViewModel.attachActivity(this);
@@ -382,6 +420,11 @@ public class ForkFront extends AppCompatActivity
 	@Override
 	protected void onPause()
 	{
+		mDisplayManager.unregisterDisplayListener(mDisplayListener);
+		if (mPresentation != null) {
+			mPresentation.dismiss();
+			mPresentation = null;
+		}
 
 		// Detach Activity from ViewModel when pausing
 		if (mViewModel != null) {
@@ -396,7 +439,43 @@ public class ForkFront extends AppCompatActivity
 	{
 
 		Log.print("onStop");
+		if (mPresentation != null) {
+			mPresentation.dismiss();
+			mPresentation = null;
+		}
 		super.onStop();
+	}
+
+	private void updateSecondaryDisplay() {
+		Display[] displays = mDisplayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
+		if (displays.length > 0) {
+			Display display = displays[0];
+			if (mPresentation == null || mPresentation.getDisplay() != display) {
+				if (mPresentation != null) {
+					mPresentation.dismiss();
+				}
+				mPresentation = new SecondaryScreenPresentation(this, display);
+				try {
+					mPresentation.show();
+					NH_State state = mViewModel != null ? mViewModel.getState() : null;
+					if (state != null) {
+						state.attachSecondaryWidgetLayout(mPresentation.getWidgetLayout());
+						mPresentation.wireButtons(state);
+					}
+				} catch (WindowManager.InvalidDisplayException e) {
+					mPresentation = null;
+				}
+			}
+		} else {
+			if (mPresentation != null) {
+				mPresentation.dismiss();
+				mPresentation = null;
+				NH_State state = mViewModel != null ? mViewModel.getState() : null;
+				if (state != null) {
+					state.detachSecondaryWidgetLayout();
+				}
+			}
+		}
 	}
 
 	// ____________________________________________________________________________________

@@ -804,7 +804,7 @@ public class NHW_Map implements NH_Window
 	// ____________________________________________________________________________________ // 
 	//																						// 
 	// ____________________________________________________________________________________ // 
-	private class UI extends SurfaceView implements SurfaceHolder.Callback
+	private class UI extends TextureView implements TextureView.SurfaceTextureListener
 	{
 		private CountDownTimer mPressCountDown;
 		private TextPaint mPaint;
@@ -1818,6 +1818,12 @@ public class NHW_Map implements NH_Window
 		{
 			if(isTTY())
 				return mBaseTextSize;
+			return mTileset.getTileHeight();
+		}
+
+	}
+}
+ mBaseTextSize;
 			return mTileset.getTileHeight();
 		}
 
