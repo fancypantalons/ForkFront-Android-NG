@@ -275,6 +275,23 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/pin_commands_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_pin_commands"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Pin Commands..."
+                style="@style/ButtonText"
+                app:icon="@android:drawable/ic_menu_edit" />
+        </LinearLayout>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_move_to_other_screen"
             android:layout_width="match_parent"

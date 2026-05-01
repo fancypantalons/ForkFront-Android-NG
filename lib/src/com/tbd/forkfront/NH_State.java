@@ -824,7 +824,7 @@ public class NH_State
 
 		CommandPaletteWidget paletteWidget = new CommandPaletteWidget(activity, this,
 				paletteData.rows, paletteData.columns, null, paletteData.horizontal,
-				paletteData.contextualOnly);
+				paletteData.contextualOnly, paletteData.pinnedCommands);
 		paletteWidget.setWidgetData(paletteData);
 		layout.addWidget(paletteWidget);
 	}
@@ -886,7 +886,7 @@ public class NH_State
 		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(
 				data.label, isButton, isContextual, isCommandPalette, data.horizontal,
 				data.opacity, showFontSize, data.fontSize, data.rows, data.columns,
-				data.category, data.contextualOnly, showMoveButton);
+				data.category, data.contextualOnly, data.pinnedCommands, showMoveButton);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
@@ -911,7 +911,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal, data.contextualOnly);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -942,7 +942,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal, data.contextualOnly);
+					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -959,7 +959,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal, data.contextualOnly);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -976,7 +976,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -993,7 +993,24 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, contextualOnly);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, contextualOnly, data.pinnedCommands);
+				}
+				((WidgetLayout) widget.getParent()).saveLayout();
+			}
+
+			@Override
+			public void onPinnedCommandsChanged(java.util.Set<String> pinnedCommands) {
+				data.pinnedCommands = pinnedCommands;
+				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+					CmdRegistry.Category cat = null;
+					if (data.category != null && !data.category.isEmpty()) {
+						try {
+							cat = CmdRegistry.Category.valueOf(data.category);
+						} catch (IllegalArgumentException e) {
+							// Invalid category, use null
+						}
+					}
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly, pinnedCommands);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}

@@ -180,6 +180,13 @@ public class StockLayoutEvaluator {
                 data.category = null;
             }
             data.contextualOnly = props.optBoolean("contextualOnly", false);
+            if (props.has("pinnedCommands")) {
+                org.json.JSONArray arr = props.getJSONArray("pinnedCommands");
+                data.pinnedCommands = new java.util.HashSet<>();
+                for (int i = 0; i < arr.length(); i++) {
+                    data.pinnedCommands.add(arr.getString(i));
+                }
+            }
         }
         
         return data;

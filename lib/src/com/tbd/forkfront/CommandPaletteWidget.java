@@ -12,7 +12,9 @@ import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A widget that displays a scrollable grid of command buttons.
@@ -28,10 +30,11 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     private CmdRegistry.Category mCategory;
     private boolean mHorizontal;
     private boolean mContextualOnly;
+    private Set<String> mPinnedCommands;
 
     public CommandPaletteWidget(Context context, NH_State nhState, int rows, int columns,
                                 CmdRegistry.Category category, boolean horizontal,
-                                boolean contextualOnly) {
+                                boolean contextualOnly, Set<String> pinnedCommands) {
         super(context, createScrollContainer(context, horizontal), "command_palette");
         mNHState = nhState;
         mRows = rows;
@@ -39,6 +42,7 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         mCategory = category;
         mHorizontal = horizontal;
         mContextualOnly = contextualOnly;
+        mPinnedCommands = pinnedCommands;
 
         // Extract the grid layout from the scroll container
         if (horizontal) {
@@ -97,9 +101,36 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
             commands.retainAll(contextual);
         }
 
-        // Sort alphabetically by display name
-        Collections.sort(commands, (a, b) ->
-            a.getDisplayName().compareToIgnoreCase(b.getDisplayName()));
+        // Inject any pinned commands that were filtered out
+        if (mPinnedCommands != null && !mPinnedCommands.isEmpty()) {
+            for (String key : mPinnedCommands) {
+                boolean found = false;
+                for (CmdRegistry.CmdInfo cmd : commands) {
+                    if (cmd.getCommand().equals(key)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    CmdRegistry.CmdInfo info = CmdRegistry.get(key);
+                    if (info != null) {
+                        commands.add(info);
+                    }
+                }
+            }
+        }
+
+        // Sort: pinned first (alphabetically), then unpinned (alphabetically)
+        Collections.sort(commands, new Comparator<CmdRegistry.CmdInfo>() {
+            @Override
+            public int compare(CmdRegistry.CmdInfo a, CmdRegistry.CmdInfo b) {
+                boolean aPinned = mPinnedCommands != null && mPinnedCommands.contains(a.getCommand());
+                boolean bPinned = mPinnedCommands != null && mPinnedCommands.contains(b.getCommand());
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                return a.getDisplayName().compareToIgnoreCase(b.getDisplayName());
+            }
+        });
 
         if (mHorizontal) {
             // Horizontal scrolling: fixed rows, unlimited columns
@@ -177,20 +208,24 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     }
 
     public void setConfiguration(int rows, int columns, CmdRegistry.Category category,
-                                 boolean horizontal, boolean contextualOnly) {
+                                 boolean horizontal, boolean contextualOnly,
+                                 Set<String> pinnedCommands) {
         boolean orientationChanged = (mHorizontal != horizontal);
         boolean filterChanged = (mContextualOnly != contextualOnly);
+        boolean pinsChanged = mPinnedCommands == null ? pinnedCommands != null
+                : !mPinnedCommands.equals(pinnedCommands);
 
         mRows = rows;
         mColumns = columns;
         mCategory = category;
         mHorizontal = horizontal;
         mContextualOnly = contextualOnly;
+        mPinnedCommands = pinnedCommands;
 
         if (orientationChanged) {
             // Orientation changed - need to recreate scroll container
             recreateScrollContainer();
-        } else if (filterChanged) {
+        } else if (filterChanged || pinsChanged) {
             populateCommands();
         } else {
             // Just repopulate with new settings
@@ -279,5 +314,9 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
 
     public boolean isContextualOnly() {
         return mContextualOnly;
+    }
+
+    public Set<String> getPinnedCommands() {
+        return mPinnedCommands;
     }
 }

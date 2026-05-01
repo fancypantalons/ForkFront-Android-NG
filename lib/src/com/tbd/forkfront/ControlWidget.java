@@ -15,6 +15,9 @@ import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * A wrapper view that adds dragging and resizing capabilities to any content view.
  */
@@ -61,6 +64,7 @@ public class ControlWidget extends FrameLayout {
         public int columns = 3; // For command_palette widget
         public String category = null; // For command_palette widget (null = all categories)
         public boolean contextualOnly = false; // For command_palette widget
+        public Set<String> pinnedCommands = new HashSet<>(); // For command_palette widget
     }
 
     private WidgetData mData = new WidgetData();

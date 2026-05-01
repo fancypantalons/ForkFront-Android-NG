@@ -25,6 +25,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         void onColumnsChanged(int columns);
         void onCategoryChanged(String category);
         void onContextualOnlyChanged(boolean contextualOnly);
+        void onPinnedCommandsChanged(java.util.Set<String> pinnedCommands);
         void onMoveToOtherScreen();
         void onDelete();
     }
@@ -43,8 +44,9 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private int mColumns;
     private String mCategory;
     private boolean mContextualOnly;
+    private java.util.Set<String> mPinnedCommands;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean contextualOnly, boolean showMoveButton) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean contextualOnly, java.util.Set<String> pinnedCommands, boolean showMoveButton) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
@@ -59,6 +61,8 @@ public class WidgetPropertiesFragment extends DialogFragment {
         args.putInt("columns", columns);
         args.putString("category", category);
         args.putBoolean("contextualOnly", contextualOnly);
+        java.util.ArrayList<String> pinnedList = new java.util.ArrayList<>(pinnedCommands);
+        args.putStringArrayList("pinnedCommands", pinnedList);
         args.putBoolean("showMoveButton", showMoveButton);
         f.setArguments(args);
         return f;
@@ -84,6 +88,11 @@ public class WidgetPropertiesFragment extends DialogFragment {
             mColumns = getArguments().getInt("columns", 3);
             mCategory = getArguments().getString("category");
             mContextualOnly = getArguments().getBoolean("contextualOnly", false);
+            mPinnedCommands = new java.util.HashSet<>();
+            java.util.ArrayList<String> pinnedList = getArguments().getStringArrayList("pinnedCommands");
+            if (pinnedList != null) {
+                mPinnedCommands.addAll(pinnedList);
+            }
             mShowMoveButton = getArguments().getBoolean("showMoveButton", false);
         }
     }
@@ -275,12 +284,32 @@ public class WidgetPropertiesFragment extends DialogFragment {
                     mListener.onContextualOnlyChanged(isChecked);
                 }
             });
+
+            // Pin Commands button
+            View pinCommandsLayout = view.findViewById(R.id.pin_commands_layout);
+            pinCommandsLayout.setVisibility(View.VISIBLE);
+            com.google.android.material.button.MaterialButton btnPinCommands = view.findViewById(R.id.btn_pin_commands);
+            btnPinCommands.setOnClickListener(v -> {
+                PinCommandsFragment pinFragment = PinCommandsFragment.newInstance(mPinnedCommands);
+                pinFragment.setOnPinsChangedListener(new PinCommandsFragment.OnPinsChangedListener() {
+                    @Override
+                    public void onPinsChanged(java.util.Set<String> pinnedCommands) {
+                        mPinnedCommands = pinnedCommands;
+                        if (mListener != null) {
+                            mListener.onPinnedCommandsChanged(pinnedCommands);
+                        }
+                    }
+                });
+                pinFragment.show(getParentFragmentManager(), "pin_commands");
+            });
         } else {
             rowsLayout.setVisibility(View.GONE);
             columnsLayout.setVisibility(View.GONE);
             categoryLayout.setVisibility(View.GONE);
             View contextualOnlyLayout = view.findViewById(R.id.contextual_only_layout);
             contextualOnlyLayout.setVisibility(View.GONE);
+            View pinCommandsLayout = view.findViewById(R.id.pin_commands_layout);
+            pinCommandsLayout.setVisibility(View.GONE);
         }
 
         View moveBtn = view.findViewById(R.id.btn_move_to_other_screen);

@@ -138,6 +138,7 @@ public class WidgetLayout extends FrameLayout {
             editor.putInt(prefix + "widget_" + i + "_columns", data.columns);
             editor.putString(prefix + "widget_" + i + "_category", data.category);
             editor.putBoolean(prefix + "widget_" + i + "_contextual_only", data.contextualOnly);
+            editor.putStringSet(prefix + "widget_" + i + "_pinned_commands", data.pinnedCommands);
         }
         editor.apply();
     }
@@ -240,7 +241,7 @@ public class WidgetLayout extends FrameLayout {
                 }
                 ControlWidget w = new CommandPaletteWidget(getContext(), mNHState,
                         data.rows, data.columns, category, data.horizontal,
-                        data.contextualOnly);
+                        data.contextualOnly, data.pinnedCommands);
                 w.setPlaceholderText("Command Palette");
                 return w;
             }
@@ -277,6 +278,10 @@ public class WidgetLayout extends FrameLayout {
             data.columns = prefs.getInt(prefix + "widget_" + i + "_columns", 3);
             data.category = prefs.getString(prefix + "widget_" + i + "_category", null);
             data.contextualOnly = prefs.getBoolean(prefix + "widget_" + i + "_contextual_only", false);
+            java.util.Set<String> pinned = prefs.getStringSet(prefix + "widget_" + i + "_pinned_commands", null);
+            if (pinned != null) {
+                data.pinnedCommands = new java.util.HashSet<>(pinned);
+            }
             
             ControlWidget widget = createWidget(data);
             if (widget != null) {
@@ -372,6 +377,7 @@ public class WidgetLayout extends FrameLayout {
             editor.remove(prefix + "widget_" + i + "_columns");
             editor.remove(prefix + "widget_" + i + "_category");
             editor.remove(prefix + "widget_" + i + "_contextual_only");
+            editor.remove(prefix + "widget_" + i + "_pinned_commands");
         }
         editor.remove(prefix + "widget_count");
         editor.apply();
