@@ -6,7 +6,9 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModel;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 /**
@@ -26,7 +28,7 @@ public class NetHackViewModel extends ViewModel {
 
     // Pending UI operations that require an Activity context
     private final Queue<Runnable> mPendingUIOperations = new LinkedList<>();
-    private AppCompatActivity mCurrentActivity;
+    private volatile AppCompatActivity mCurrentActivity;  // Volatile for cross-thread visibility
 
     public NetHackViewModel() {
         super();
@@ -44,19 +46,18 @@ public class NetHackViewModel extends ViewModel {
     public void initialize(Application app, ByteDecoder decoder) {
         if (mNHState == null) {
             Log.d(TAG, "Initializing NetHackViewModel with Application context");
-            // Create NH_State first (it needs NetHackIO, but we'll create with null handler)
+
+            // Create NetHackIO with null handler initially
             mNetHackIO = new NetHackIO(app, null, decoder);
+
+            // Create NH_State which creates the handler
             mNHState = new NH_State(app, decoder, mNetHackIO);
-            // Set ViewModel reference in NH_State for deferred UI operations
+
+            // Set ViewModel reference for deferred UI operations
             mNHState.setViewModel(this);
-            // Inject NH_State's handler into NetHackIO after both are created
-            try {
-                java.lang.reflect.Field handlerField = NetHackIO.class.getDeclaredField("mNhHandler");
-                handlerField.setAccessible(true);
-                handlerField.set(mNetHackIO, mNHState.getNhHandler());
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to inject NhHandler into NetHackIO", e);
-            }
+
+            // Inject handler using proper API (not reflection)
+            mNetHackIO.setHandler(mNHState.getNhHandler());
         } else {
             Log.d(TAG, "NetHackViewModel already initialized, skipping");
         }
@@ -71,24 +72,30 @@ public class NetHackViewModel extends ViewModel {
      */
     public void attachActivity(AppCompatActivity activity) {
         Log.d(TAG, "Attaching Activity: " + activity.getClass().getSimpleName());
-        mCurrentActivity = activity;
 
-        if (mNHState != null) {
-            mNHState.setContext(activity);
+        synchronized (this) {
+            mCurrentActivity = activity;
+
+            if (mNHState != null) {
+                mNHState.setContext(activity);
+            }
         }
 
-        // Process any pending UI operations
+        // Process pending operations without holding lock (prevents deadlock)
+        List<Runnable> pending = new ArrayList<>();
         synchronized (mPendingUIOperations) {
-            int queueDepth = mPendingUIOperations.size();
-            if (queueDepth > 0) {
-                Log.d(TAG, "Processing " + queueDepth + " pending UI operations");
-            }
-            while (!mPendingUIOperations.isEmpty()) {
-                Runnable op = mPendingUIOperations.poll();
-                if (op != null) {
-                    op.run();
-                }
-            }
+            pending.addAll(mPendingUIOperations);
+            mPendingUIOperations.clear();
+        }
+
+        int queueDepth = pending.size();
+        if (queueDepth > 0) {
+            Log.d(TAG, "Processing " + queueDepth + " pending UI operations");
+        }
+
+        // Execute on UI thread without holding any locks
+        for (Runnable op : pending) {
+            activity.runOnUiThread(op);
         }
     }
 
@@ -98,27 +105,34 @@ public class NetHackViewModel extends ViewModel {
      * UI operations will be queued until a new Activity is attached.
      */
     public void detachActivity() {
-        if (mCurrentActivity != null) {
-            Log.d(TAG, "Detaching Activity: " + mCurrentActivity.getClass().getSimpleName());
-            mCurrentActivity = null;
+        synchronized (this) {
+            if (mCurrentActivity != null) {
+                Log.d(TAG, "Detaching Activity: " + mCurrentActivity.getClass().getSimpleName());
+                mCurrentActivity = null;
+            }
         }
     }
 
     /**
      * Run an operation that requires an Activity context.
-     * If an Activity is currently attached and not finishing, runs immediately.
+     * Always posts to UI thread for thread safety.
+     * If an Activity is currently attached and not finishing, posts immediately.
      * Otherwise, queues the operation until an Activity becomes available.
      *
-     * @param operation Runnable to execute on Activity
+     * @param operation Runnable to execute on Activity (will run on UI thread)
      */
     public void runOnActivity(Runnable operation) {
-        if (mCurrentActivity != null && !mCurrentActivity.isFinishing()) {
-            operation.run();
-        } else {
-            // Queue for when Activity becomes available
-            synchronized (mPendingUIOperations) {
-                mPendingUIOperations.add(operation);
-                Log.d(TAG, "Queued UI operation (queue depth: " + mPendingUIOperations.size() + ")");
+        synchronized (this) {
+            if (mCurrentActivity != null && !mCurrentActivity.isFinishing()) {
+                // Post to UI thread even if already attached
+                mCurrentActivity.runOnUiThread(operation);
+                Log.d(TAG, "Posted UI operation to current Activity");
+            } else {
+                // Queue for when Activity becomes available
+                synchronized (mPendingUIOperations) {
+                    mPendingUIOperations.add(operation);
+                    Log.d(TAG, "Queued UI operation (queue depth: " + mPendingUIOperations.size() + ")");
+                }
             }
         }
     }

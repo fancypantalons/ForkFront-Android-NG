@@ -15,6 +15,7 @@ android {
     targetSdkVersion 34
     versionName version
     versionCode versionId
+    consumerProguardFiles 'proguard-rules.pro'
   }
 
   compileOptions {

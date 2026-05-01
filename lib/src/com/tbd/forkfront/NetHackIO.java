@@ -13,7 +13,7 @@ import android.os.Looper;
 public class NetHackIO
 {
 	private final Handler mHandler;
-	private final NH_Handler mNhHandler;
+	private NH_Handler mNhHandler;  // Not final - set via setHandler() after construction
 	private final Thread mThread;
 	private final ByteDecoder mDecoder;
 	private final String mLibraryName;
@@ -145,12 +145,12 @@ public class NetHackIO
 	 * Create NetHackIO with Application context.
 	 *
 	 * @param app Application context (survives Activity destruction)
-	 * @param nhHandler Handler for JNI callbacks from native engine
+	 * @param nhHandler Handler for JNI callbacks from native engine (can be null, must call setHandler before start)
 	 * @param decoder ByteDecoder for NetHack protocol
 	 */
 	public NetHackIO(Application app, NH_Handler nhHandler, ByteDecoder decoder)
 	{
-		mNhHandler = nhHandler;
+		mNhHandler = nhHandler;  // Allow null initially, must call setHandler() before start()
 		mDecoder = decoder;
 		mLibraryName = app.getResources().getString(R.string.libraryName);
 		mNextWinId = 1;
@@ -159,6 +159,24 @@ public class NetHackIO
 		// Handler posts JNI callbacks to main thread regardless of Activity state
 		mHandler = new Handler(Looper.getMainLooper());
 		mThread = new Thread(ThreadMain, "nh_thread");
+	}
+
+	// ____________________________________________________________________________________
+	/**
+	 * Set the handler for JNI callbacks.
+	 * Must be called before start() and can only be called once.
+	 *
+	 * @param handler NH_Handler implementation for callbacks
+	 * @throws IllegalStateException if handler already set or thread already started
+	 */
+	public void setHandler(NH_Handler handler) {
+		if (mNhHandler != null) {
+			throw new IllegalStateException("Handler already set");
+		}
+		if (mThread.isAlive()) {
+			throw new IllegalStateException("Cannot set handler after thread started");
+		}
+		mNhHandler = handler;
 	}
 
 	// ____________________________________________________________________________________

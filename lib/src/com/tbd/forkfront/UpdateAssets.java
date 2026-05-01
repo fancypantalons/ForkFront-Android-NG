@@ -25,6 +25,11 @@ public class UpdateAssets
 		void onAssetsReady(File path);
 	}
 
+	public interface ProgressListener
+	{
+		void onProgressUpdate(int current, int total);
+	}
+
 	private static String DATADIR_KEY = "datadir";
 	private static String VERDAT_KEY = "verDat";
 	private static String SRCVER_KEY = "srcVer";
@@ -44,8 +49,10 @@ public class UpdateAssets
 	private boolean mBackupDefaultsFile;
 	private boolean mDefaultsFileBackedUp;
 	private long mRequiredSpace;
+	private long mTotalWritten;
 	private final WeakReference<AppCompatActivity> mActivityRef;
 	private final Listener mListener;
+	private final ProgressListener mProgressListener;
 	private final String mNativeDataDir;
 	private final String mNamespace;
 	private final String mDefaultsFile;
@@ -54,19 +61,27 @@ public class UpdateAssets
 	private volatile boolean mIsCancelled = false;
 
 	// ____________________________________________________________________________________
-	public UpdateAssets(AppCompatActivity activity, Listener listener)
+	public UpdateAssets(AppCompatActivity activity, Listener listener, ProgressListener progressListener)
 	{
 		convertFromOldPreferences(activity);
 		mActivityRef = new WeakReference<>(activity);
 		mPrefs = PreferenceManager.getDefaultSharedPreferences(activity);
 		mAM = activity.getResources().getAssets();
 		mRequiredSpace = 0;
+		mTotalWritten = 0;
 		mListener = listener;
+		mProgressListener = progressListener;
 		mNativeDataDir = activity.getResources().getString(R.string.nativeDataDir);
 		mNamespace = activity.getResources().getString(R.string.namespace);
 		mDefaultsFile = activity.getResources().getString(R.string.defaultsFile);
 		mExecutor = Executors.newSingleThreadExecutor();
 		mMainHandler = new Handler(Looper.getMainLooper());
+	}
+
+	// Backward compatibility constructor
+	public UpdateAssets(AppCompatActivity activity, Listener listener)
+	{
+		this(activity, listener, null);
 	}
 
 	// ____________________________________________________________________________________
@@ -315,6 +330,7 @@ public class UpdateAssets
 
 		byte[] buf = new byte[10240];
 		String[] files = mAM.list(mNativeDataDir);
+		mTotalWritten = 0;
 
 		if(mBackupDefaultsFile)
 		{
@@ -336,10 +352,23 @@ public class UpdateAssets
 			while(true)
 			{
 				int nRead = is.read(buf);
-				if(nRead > 0)
+				if(nRead > 0) {
 					os.write(buf, 0, nRead);
-				else
+					mTotalWritten += nRead;
+
+					// Report progress
+					if (mProgressListener != null && !mIsCancelled) {
+						final int current = (int)mTotalWritten;
+						final int total = (int)mRequiredSpace;
+						mMainHandler.post(() -> {
+							if (!mIsCancelled && mProgressListener != null) {
+								mProgressListener.onProgressUpdate(current, total);
+							}
+						});
+					}
+				} else {
 					break;
+				}
 			}
 
 			os.flush();
