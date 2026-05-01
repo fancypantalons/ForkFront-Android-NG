@@ -5,8 +5,12 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.preference.EditTextPreference;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
@@ -14,7 +18,6 @@ import androidx.preference.PreferenceFragmentCompat;
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private ActivityResultLauncher<String> mImagePickerLauncher;
-    private TilesetPreference mTilesetPreference;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -24,8 +27,13 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         mImagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             uri -> {
-                if (uri != null && mTilesetPreference != null) {
-                    mTilesetPreference.handleImageResult(uri);
+                if (uri != null) {
+                    if (Tileset.createCustomTilesetLocalCopy(getContext(), uri)) {
+                        SharedPreferences.Editor editor = getPreferenceManager().getSharedPreferences().edit();
+                        editor.putBoolean("customTiles", true);
+                        editor.commit();
+                        Toast.makeText(getContext(), "Custom tileset image updated", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         );
@@ -35,21 +43,31 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
 
-        mTilesetPreference = findPreference("tilesetPreference");
-        if (mTilesetPreference != null) {
-            mTilesetPreference.setImagePickerLauncher(new TilesetPreference.ImagePickerLauncher() {
-                @Override
-                public void launchImagePicker() {
-                    mImagePickerLauncher.launch("image/*");
-                }
+        EditTextPreference wPref = findPreference("customTileW");
+        if (wPref != null) {
+            wPref.setOnBindEditTextListener(editText -> editText.setInputType(InputType.TYPE_CLASS_NUMBER));
+        }
+
+        EditTextPreference hPref = findPreference("customTileH");
+        if (hPref != null) {
+            hPref.setOnBindEditTextListener(editText -> editText.setInputType(InputType.TYPE_CLASS_NUMBER));
+        }
+
+        Preference pickCustomTileset = findPreference("pick_custom_tileset");
+        if (pickCustomTileset != null) {
+            pickCustomTileset.setOnPreferenceClickListener(preference -> {
+                mImagePickerLauncher.launch("image/*");
+                return true;
             });
         }
 
+        updateTilesetVisibility();
+
         if(!getContext().getResources().getBoolean(R.bool.hearseAvailable)) {
-            PreferenceCategory hearseParent = findPreference("advanced");
+            PreferenceCategory advancedParent = findPreference("advanced");
             Preference hearsePref = findPreference("hearse");
-            if(hearseParent != null && hearsePref != null) {
-                hearseParent.removePreference(hearsePref);
+            if(advancedParent != null && hearsePref != null) {
+                advancedParent.removePreference(hearsePref);
             }
         }
 
@@ -96,7 +114,56 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 String name = sharedPreferences.getString("pName" + idx, "");
                 screen.setTitle(name);
             }
+        } else if ("tileset".equals(key)) {
+            handleTilesetChanged(sharedPreferences);
         }
+    }
+
+    private void handleTilesetChanged(SharedPreferences sharedPreferences) {
+        String value = sharedPreferences.getString("tileset", "default_32");
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        if ("CUSTOM".equals(value)) {
+            editor.putBoolean("customTiles", true);
+        } else {
+            editor.putBoolean("customTiles", false);
+            // Parse default dimensions from value (e.g., default_32 or geoduck_24x40)
+            int tileW = 32;
+            int tileH = 32;
+            if (!"TTY".equals(value)) {
+                int xIndex = value.lastIndexOf('x');
+                int underIndex = value.lastIndexOf('_');
+                try {
+                    if (xIndex > 0 && underIndex > 0) {
+                        tileW = Integer.parseInt(value.substring(underIndex + 1, xIndex));
+                        tileH = Integer.parseInt(value.substring(xIndex + 1));
+                    } else if (underIndex > 0) {
+                        tileW = Integer.parseInt(value.substring(underIndex + 1));
+                        tileH = tileW;
+                    }
+                } catch (NumberFormatException e) {
+                    // Use defaults
+                }
+            }
+            editor.putInt("tileW", tileW);
+            editor.putInt("tileH", tileH);
+        }
+        editor.commit();
+        updateTilesetVisibility();
+    }
+
+    private void updateTilesetVisibility() {
+        SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
+        String tileset = prefs.getString("tileset", "default_32");
+        boolean isCustom = "CUSTOM".equals(tileset);
+
+        Preference pickPref = findPreference("pick_custom_tileset");
+        Preference wPref = findPreference("customTileW");
+        Preference hPref = findPreference("customTileH");
+
+        if (pickPref != null) pickPref.setVisible(isCustom);
+        if (wPref != null) wPref.setVisible(isCustom);
+        if (hPref != null) hPref.setVisible(isCustom);
     }
 
     @Override

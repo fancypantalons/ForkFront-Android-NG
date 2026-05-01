@@ -10,6 +10,10 @@ import android.text.TextPaint;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,8 +58,19 @@ public class Tileset
 		String tilesetName = prefs.getString("tileset", "TTY");
 
 		boolean TTY = tilesetName.equals("TTY");
-		int tileW = prefs.getInt("tileW", 32);
-		int tileH = prefs.getInt("tileH", 32);
+		int tileW, tileH;
+		if (prefs.getBoolean("customTiles", false)) {
+			try {
+				tileW = Integer.parseInt(prefs.getString("customTileW", "32"));
+				tileH = Integer.parseInt(prefs.getString("customTileH", "32"));
+			} catch (NumberFormatException e) {
+				tileW = 32;
+				tileH = 32;
+			}
+		} else {
+			tileW = prefs.getInt("tileW", 32);
+			tileH = prefs.getInt("tileH", 32);
+		}
 
 		if(mTilesetName.equals(tilesetName) && tileW == mTileW && tileH == mTileH)
 			return;
@@ -257,6 +272,25 @@ public class Tileset
 			src.bottom = src.top + getTileHeight();
 			canvas.drawBitmap(mBitmap, src, dst, paint);
 		}
+	}
+
+	// ____________________________________________________________________________________
+	public static boolean createCustomTilesetLocalCopy(Context context, android.net.Uri from) {
+		InputStream inputStream = null;
+		OutputStream outputStream = null;
+		try {
+			inputStream = context.getContentResolver().openInputStream(from);
+			File file = getLocalTilesetFile(context);
+			outputStream = new FileOutputStream(file, false);
+			Util.copy(inputStream, outputStream);
+			return true;
+		} catch (Exception e) {
+			Toast.makeText(context, "Error loading tileset: " + e.getMessage(), Toast.LENGTH_LONG).show();
+		} finally {
+			if (inputStream != null) try { inputStream.close(); } catch (IOException e) {}
+			if (outputStream != null) try { outputStream.close(); } catch (IOException e) {}
+		}
+		return false;
 	}
 
 	// ____________________________________________________________________________________

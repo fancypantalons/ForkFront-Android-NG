@@ -10,18 +10,39 @@
 			android:key="tileset_screen"
 			android:summary="The visual style of the game world">
 
-			<com.tbd.forkfront.TilesetPreference
+			<androidx.preference.ListPreference
 				android:title="Tileset"
-				android:key="tilesetPreference"
-				android:summary="The visual style of the game world"
-				android:layout="@layout/tileset_select_menu"/>
+				android:key="tileset"
+				android:summary="%s"
+				android:entries="@array/tileNames"
+				android:entryValues="@array/tileValues"
+				android:defaultValue="default_32" />
+
+			<androidx.preference.Preference
+				android:title="Select custom tileset image"
+				android:key="pick_custom_tileset"
+				android:summary="Choose an image file from your device" />
+
+			<androidx.preference.EditTextPreference
+				android:title="Custom tile width"
+				android:key="customTileW"
+				android:defaultValue="32"
+				android:inputType="number"
+				android:summary="Width of a single tile in pixels" />
+
+			<androidx.preference.EditTextPreference
+				android:title="Custom tile height"
+				android:key="customTileH"
+				android:defaultValue="32"
+				android:inputType="number"
+				android:summary="Height of a single tile in pixels" />
 
 			<androidx.preference.CheckBoxPreference
 				android:title="Smooth tile scaling"
 				android:summary="Use bilinear filtering for smoother tile graphics on modern displays"
 				android:persistent="true"
 				android:defaultValue="true"
-				android:key="smoothTileScaling"/>
+				android:key="fallbackRenderer"/>
 
 		</androidx.preference.PreferenceScreen>
 
