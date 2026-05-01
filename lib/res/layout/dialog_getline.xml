@@ -11,56 +11,66 @@
     android:nextFocusRight="@+id/btn_0"
     android:nextFocusUp="@+id/input" >
 
-    <LinearLayout
-        style="@style/NH_Dialog"
+    <com.google.android.material.card.MaterialCardView
+        style="?attr/materialCardViewStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_margin="@dimen/padding_medium">
+        <LinearLayout
                 android:orientation="vertical"
-                android:layout_centerInParent="true"
+                android:padding="@dimen/padding_medium"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/title"
-            style="@style/DialogText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="@dimen/padding_medium"
-            android:text="Title" />
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="2px"
-            android:background="@android:drawable/divider_horizontal_bright" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="@dimen/padding_small" >
-
-            <EditText
-                android:id="@+id/input"
-                style="@style/InputText"
-                android:layout_width="@dimen/padding_small"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginRight="@dimen/padding_small"
-                android:cursorVisible="true"
-                android:ems="10"
-                android:nextFocusRight="@+id/history"
-                android:nextFocusDown="@+id/history_list"
-                android:imeOptions="actionSend|flagNoExtractUi|flagNoAccessoryAction"
-                android:inputType="textNoSuggestions|textLongMessage"
-                android:maxLength="200"
-                android:maxLines="1" />
-
-            <Button
-                android:id="@+id/history"
+            <TextView
+                android:id="@+id/title"
+                style="@style/DialogText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:nextFocusLeft="@+id/input"
-                android:nextFocusDown="@+id/history_list"
-                android:background="@android:drawable/ic_menu_more"/>
+                android:padding="@dimen/padding_medium"
+                android:text="Title" />
 
-        </LinearLayout>
+            <ImageView
+                style="?attr/dividerHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="2px" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="@dimen/padding_small" >
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="@dimen/padding_small"
+                    style="?attr/textInputOutlinedStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:cursorVisible="true"
+                        android:ems="10"
+                        android:nextFocusRight="@+id/history"
+                        android:nextFocusDown="@+id/history_list"
+                        android:imeOptions="actionSend|flagNoExtractUi|flagNoAccessoryAction"
+                        android:inputType="textNoSuggestions|textLongMessage"
+                        android:maxLength="200"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                    android:id="@+id/history"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:nextFocusLeft="@+id/input"
+                    android:nextFocusDown="@+id/history_list"
+                    style="?attr/materialIconButtonStyle"
+                    android:icon="@android:drawable/ic_menu_more"/>
+
+            </LinearLayout>
 
                 <ListView
                         android:id="@+id/history_list"
@@ -69,33 +79,34 @@
                         android:layout_width="match_parent"
                         android:layout_height="@dimen/padding_small"/>
 
-                <CheckBox
+                <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/wizard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Wizard mode" />
         
                 <LinearLayout
-            style="@android:style/ButtonBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" >
+                    style="?attr/buttonBarStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" >
 
-            <Button
-                android:id="@+id/btn_0"
-                style="@style/ButtonText"
-                android:layout_width="@dimen/padding_small"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Ok" />
+                    <Button
+                        android:id="@+id/btn_0"
+                        style="@style/ButtonText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Ok" />
 
-            <Button
-                android:id="@+id/btn_1"
-                style="@style/ButtonText"
-                android:layout_width="@dimen/padding_small"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Cancel" />
+                    <Button
+                        android:id="@+id/btn_1"
+                        style="@style/ButtonText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Cancel" />
+                </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </RelativeLayout>

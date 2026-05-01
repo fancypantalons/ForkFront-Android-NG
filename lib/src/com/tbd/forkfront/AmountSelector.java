@@ -9,8 +9,7 @@ import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.SeekBar;
-import android.widget.SeekBar.OnSeekBarChangeListener;
+import com.google.android.material.slider.Slider;
 import android.widget.TextView;
 import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.*;
@@ -34,31 +33,31 @@ public class AmountSelector
 	
 	class AmountTuner implements Runnable
 	{
-		private SeekBar mSeek;
+		private Slider mSeek;
 		private View mView;
 		private boolean mActive;
 		private boolean mIncrease;
 		long mTime;
 
-		public void start(View v, SeekBar seek, boolean increase)
+		public void start(View v, Slider seek, boolean increase)
 		{
 			mView = v;
 			mSeek = seek;
 			mIncrease = increase;
-			seek.incrementProgressBy(increase ? 1 : -1);
+			seek.setValue(Math.min(seek.getValueTo(), Math.max(seek.getValueFrom(), seek.getValue() + (increase ? 1 : -1))));
 			mActive = true;
 			mTime = System.currentTimeMillis() + 250;
 			v.postDelayed(this, 250);
 		}
 
-		public void increase(View v, SeekBar seek)
+		public void increase(View v, Slider seek)
 		{
-			seek.incrementProgressBy(1);
+			seek.setValue(Math.min(seek.getValueTo(), seek.getValue() + 1));
 		}
 
-		public void decrease(View v, SeekBar seek)
+		public void decrease(View v, Slider seek)
 		{
-			seek.incrementProgressBy(-1);
+			seek.setValue(Math.max(seek.getValueFrom(), seek.getValue() - 1));
 		}
 
 		public void stop(View v)
@@ -73,13 +72,13 @@ public class AmountSelector
 				return;
 
 			long dt = (int)(System.currentTimeMillis() - mTime);
-			int max = mSeek.getMax() / 10;
+			int max = (int)mSeek.getValueTo() / 10;
 
 			int amount = 1;
 			if(dt > 700 && max > 0)
 				amount = Math.min(max, (int)Math.pow(3.0, (double)dt / 700.0));
 
-			mSeek.incrementProgressBy(mIncrease ? amount : -amount);
+			mSeek.setValue(Math.min(mSeek.getValueTo(), Math.max(mSeek.getValueFrom(), mSeek.getValue() + (mIncrease ? amount : -amount))));
 			mView.postDelayed(this, 100);
 		}
 	}
@@ -94,7 +93,7 @@ public class AmountSelector
 
 		mRoot = Util.inflate(context, R.layout.amount_selector, R.id.dlg_frame);
 		ImageView tileView = (ImageView)mRoot.findViewById(R.id.amount_tile);
-		final SeekBar seek = ((SeekBar)mRoot.findViewById(R.id.amount_slider));
+		final Slider seek = ((Slider)mRoot.findViewById(R.id.amount_slider));
 		if(item.getTile() != 0 && tileset.hasTiles())
 		{
 			tileView.setVisibility(View.VISIBLE);
@@ -114,23 +113,16 @@ public class AmountSelector
 		int w = (int)Math.floor(mAmountText.getPaint().measureText(" " + Integer.toString(pad)));
 		mAmountText.setWidth(w);
 
-		seek.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
+		seek.addOnChangeListener(new Slider.OnChangeListener()
 		{
-			public void onStopTrackingTouch(SeekBar seekBar)
+			@Override
+			public void onValueChange(Slider slider, float value, boolean fromUser)
 			{
-			}
-
-			public void onStartTrackingTouch(SeekBar seekBar)
-			{
-			}
-
-			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
-			{
-				mAmountText.setText(Integer.toString(progress));
+				mAmountText.setText(Integer.toString((int)value));
 			}
 		});
-		seek.setMax(mMax);
-		seek.setProgress(mMax);
+		seek.setValueTo(mMax);
+		seek.setValue(mMax);
 
 		mRoot.findViewById(R.id.btn_inc).setFocusable(true);
 		mRoot.findViewById(R.id.btn_inc).setFocusableInTouchMode(true);
@@ -178,7 +170,7 @@ public class AmountSelector
 			{
 				if(mRoot != null)
 				{
-					dismiss(seek.getProgress());
+					dismiss((int)seek.getValue());
 				}
 			}
 		});
@@ -201,27 +193,27 @@ public class AmountSelector
 	public boolean handleGamepadKey(KeyEvent ev)
 	{
 		if(mRoot == null || ev.getAction() != KeyEvent.ACTION_DOWN) return false;
-		SeekBar seek = (SeekBar)mRoot.findViewById(R.id.amount_slider);
+		Slider seek = (Slider)mRoot.findViewById(R.id.amount_slider);
 		switch(ev.getKeyCode())
 		{
 		case KeyEvent.KEYCODE_BUTTON_A:
-			dismiss(seek.getProgress());
+			dismiss((int)seek.getValue());
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_B:
 		case KeyEvent.KEYCODE_BUTTON_SELECT:
 			dismiss(-1);
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_L1:
-			seek.incrementProgressBy(-1);
+			seek.setValue(Math.max(seek.getValueFrom(), seek.getValue() - 1));
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_R1:
-			seek.incrementProgressBy(1);
+			seek.setValue(Math.min(seek.getValueTo(), seek.getValue() + 1));
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_L2:
-			seek.setProgress(0);
+			seek.setValue(seek.getValueFrom());
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_R2:
-			seek.setProgress(mMax);
+			seek.setValue(seek.getValueTo());
 			return true;
 		}
 		return false;
@@ -238,7 +230,7 @@ public class AmountSelector
 		if(mRoot == null)
 			return KeyEventResult.IGNORED;
 
-		SeekBar seek = mRoot.findViewById(R.id.amount_slider);
+		Slider seek = mRoot.findViewById(R.id.amount_slider);
 		switch(keyCode)
 		{
 		case KeyEvent.KEYCODE_DPAD_UP:
@@ -253,7 +245,7 @@ public class AmountSelector
 
 		case KeyEvent.KEYCODE_DPAD_CENTER:
 		case KeyEvent.KEYCODE_ENTER:
-			dismiss(seek.getProgress());
+			dismiss((int)seek.getValue());
 			return KeyEventResult.HANDLED;
 
 		case KeyEvent.KEYCODE_BACK:

@@ -154,7 +154,6 @@ public class NH_Question
 			if(mChoices.length == 1)
 			{
 				Button btn = mRoot.findViewById(R.id.btn_0);
-				btn.setBackgroundResource(R.drawable.nh_gamepad_button_bg);
 				btn.setFocusable(true);
 				btn.setFocusableInTouchMode(true);
 				btn.setOnClickListener(new OnClickListener()
@@ -172,7 +171,6 @@ public class NH_Question
 					final int a = i;
 					Button btn = (Button)mRoot.findViewById(mBtns[i]);
 					btn.setText(Character.toString(mChoices[i]));
-					btn.setBackgroundResource(R.drawable.nh_gamepad_button_bg);
 					btn.setFocusable(true);
 					btn.setFocusableInTouchMode(true);
 					btn.setOnClickListener(new OnClickListener()

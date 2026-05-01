@@ -60,7 +60,6 @@
     </style>
 
     <style name="NH_Dialog" parent="Theme.Material3.DayNight.Dialog">
-        <item name="android:background">@android:drawable/alert_dark_frame</item>
     </style>
     
     <style name="WindowText" parent="TextAppearance.AppCompat.Medium">
@@ -69,14 +68,12 @@
         <item name="android:textColor">@color/hearse_text</item>
     </style>    
 
-    <style name="DialogTitle" parent="TextAppearance.AppCompat.Medium">
+    <style name="DialogTitle" parent="TextAppearance.Material3.TitleMedium">
         <item name="android:typeface">sans</item>
-        <item name="android:textSize">18sp</item>
     </style>    
 
-    <style name="DialogText" parent="TextAppearance.AppCompat.Medium">
+    <style name="DialogText" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:typeface">sans</item>
-        <item name="android:textSize">16sp</item>
     </style>    
 
     <style name="ButtonText" parent="Widget.Material3.Button">
@@ -98,14 +95,12 @@
         <item name="android:gravity">center</item>
     </style>
 
-    <style name="ListText1" parent="TextAppearance.AppCompat.Medium">
+    <style name="ListText1" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:typeface">sans</item>
-        <item name="android:textSize">16sp</item>
     </style>
 
-    <style name="ListText2" parent="TextAppearance.AppCompat.Medium">
+    <style name="ListText2" parent="TextAppearance.Material3.BodyMedium">
         <item name="android:typeface">sans</item>
-        <item name="android:textSize">14sp</item>
         <item name="android:ellipsize">end</item>
         <item name="android:maxLines">1</item>
     </style>
