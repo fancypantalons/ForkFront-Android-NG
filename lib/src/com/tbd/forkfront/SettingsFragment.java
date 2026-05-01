@@ -1,21 +1,48 @@
 package com.tbd.forkfront;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
 
+    private ActivityResultLauncher<String> mImagePickerLauncher;
+    private TilesetPreference mTilesetPreference;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Register ActivityResultLauncher for image picking
+        mImagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null && mTilesetPreference != null) {
+                    mTilesetPreference.handleImageResult(uri);
+                }
+            }
+        );
+    }
+
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
 
-        TilesetPreference mTilesetPref = findPreference("tilesetPreference");
-        if (mTilesetPref != null && getActivity() != null) {
-            mTilesetPref.setActivity((androidx.appcompat.app.AppCompatActivity) getActivity());
+        mTilesetPreference = findPreference("tilesetPreference");
+        if (mTilesetPreference != null) {
+            mTilesetPreference.setImagePickerLauncher(new TilesetPreference.ImagePickerLauncher() {
+                @Override
+                public void launchImagePicker() {
+                    mImagePickerLauncher.launch("image/*");
+                }
+            });
         }
 
         if(!getContext().getResources().getBoolean(R.bool.hearseAvailable)) {
