@@ -951,6 +951,10 @@ public class ForkFront extends AppCompatActivity
 			showQuitConfirmation();
 		} else if (itemId == R.id.nav_quit_no_save) {
 			showQuitNoSaveConfirmation();
+		} else if (itemId == R.id.nav_help) {
+			state.sendKeyCmd('?');
+		} else if (itemId == R.id.nav_version) {
+			state.sendStringCmd("#version\n");
 		} else if (itemId == R.id.nav_add_widget) {
 			state.showAddWidgetDialog(this);
 		} else if (itemId == R.id.nav_save_changes) {

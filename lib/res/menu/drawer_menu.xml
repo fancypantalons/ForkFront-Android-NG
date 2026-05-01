@@ -21,5 +21,13 @@
             android:id="@+id/nav_quit_no_save"
             android:icon="@android:drawable/ic_delete"
             android:title="Quit without Saving" />
+        <item
+            android:id="@+id/nav_help"
+            android:icon="@android:drawable/ic_menu_help"
+            android:title="Help" />
+        <item
+            android:id="@+id/nav_version"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="Version" />
     </group>
 </menu>

@@ -61,7 +61,7 @@ public class PinCommandsFragment extends DialogFragment {
         super.onViewCreated(view, savedInstanceState);
 
         RecyclerView list = view.findViewById(R.id.command_list);
-        mAdapter = new PinCommandAdapter(CmdRegistry.getAllSorted(), mPinnedCommands);
+        mAdapter = new PinCommandAdapter(CmdRegistry.getPaletteSorted(), mPinnedCommands);
         list.setAdapter(mAdapter);
 
         SearchView searchView = view.findViewById(R.id.command_search);

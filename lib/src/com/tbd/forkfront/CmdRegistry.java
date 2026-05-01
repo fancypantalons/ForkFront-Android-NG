@@ -164,4 +164,33 @@ public class CmdRegistry {
         });
         return sorted;
     }
+
+    /**
+     * Returns true if the command should appear in the command palette widget.
+     * Filters out directional movement (covered by d-pad), save/quit
+     * (covered by sidebar), and version (non-gameplay).
+     */
+    public static boolean isPaletteVisible(CmdInfo cmd) {
+        String c = cmd.getCommand();
+        if ("y".equals(c) || "k".equals(c) || "u".equals(c) || "h".equals(c)
+                || "l".equals(c) || "b".equals(c) || "j".equals(c)
+                || "n".equals(c) || "S".equals(c) || "#quit".equals(c)
+                || "#version".equals(c)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Returns all palette-visible commands sorted by category and name.
+     */
+    public static List<CmdInfo> getPaletteSorted() {
+        List<CmdInfo> result = new ArrayList<>();
+        for (CmdInfo cmd : getAllSorted()) {
+            if (isPaletteVisible(cmd)) {
+                result.add(cmd);
+            }
+        }
+        return result;
+    }
 }

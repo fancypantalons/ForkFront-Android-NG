@@ -107,8 +107,17 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         if (mCategory != null) {
             commands = new ArrayList<>(CmdRegistry.getByCategory(mCategory));
         } else {
-            commands = new ArrayList<>(CmdRegistry.getAllSorted());
+            commands = new ArrayList<>(CmdRegistry.getPaletteSorted());
         }
+
+        // Filter out commands that don't belong in the palette
+        List<CmdRegistry.CmdInfo> filtered = new ArrayList<>();
+        for (CmdRegistry.CmdInfo cmd : commands) {
+            if (CmdRegistry.isPaletteVisible(cmd)) {
+                filtered.add(cmd);
+            }
+        }
+        commands = filtered;
 
         // Further filter by context-relevance if enabled
         if (mContextualOnly && mNHState != null) {

@@ -40,7 +40,7 @@ public class CommandPaletteFragment extends DialogFragment {
         super.onViewCreated(view, savedInstanceState);
 
         RecyclerView list = view.findViewById(R.id.command_list);
-        mAdapter = new CommandAdapter(CmdRegistry.getAllSorted(), cmd -> {
+        mAdapter = new CommandAdapter(CmdRegistry.getPaletteSorted(), cmd -> {
             if (mListener != null) {
                 mListener.onCommandExecute(cmd);
             }
