@@ -24,51 +24,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" >
 
-                <!-- Emergency Settings Access -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="top|right"
-                    android:layout_marginTop="100dp"
-                    android:layout_marginRight="16dp"
-                    android:orientation="horizontal">
-
-                    <ImageButton
-                        android:id="@+id/btn_add_widget"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_add"
-                        android:contentDescription="Add Widget"
-                        android:elevation="10dp" />
-
-                    <ImageButton
-                        android:id="@+id/btn_save_layout"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginLeft="8dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_save"
-                        android:contentDescription="Save Layout"
-                        android:visibility="gone"
-                        android:elevation="10dp" />
-
-                    <ImageButton
-                        android:id="@+id/emergency_settings"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginLeft="8dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        android:contentDescription="Settings"
-                        android:elevation="10dp" />
-                </LinearLayout>
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="top|fill_horizontal"
-                    android:orientation="vertical" >
+                    android:orientation="vertical"
+                    android:visibility="gone" >
 
                     <com.tbd.forkfront.AutoFitTextView
                         android:id="@+id/nh_stat0"
@@ -120,6 +81,47 @@
                      android:orientation="horizontal"/>
 
             </com.tbd.forkfront.WidgetLayout>
+
+            <!-- Emergency Settings Access - outside WidgetLayout so it doesn't interfere with widget positioning -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|right"
+                android:layout_marginTop="100dp"
+                android:layout_marginRight="16dp"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btn_add_widget"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_add"
+                    android:contentDescription="Add Widget"
+                    android:elevation="10dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_save_layout"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginLeft="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_save"
+                    android:contentDescription="Save Layout"
+                    android:visibility="gone"
+                    android:elevation="10dp" />
+
+                <ImageButton
+                    android:id="@+id/emergency_settings"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginLeft="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_preferences"
+                    android:contentDescription="Settings"
+                    android:elevation="10dp" />
+            </LinearLayout>
+
         </FrameLayout>
 
         <androidx.fragment.app.FragmentContainerView

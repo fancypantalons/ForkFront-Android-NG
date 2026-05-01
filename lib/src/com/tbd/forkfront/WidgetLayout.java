@@ -76,11 +76,13 @@ public class WidgetLayout extends FrameLayout {
     }
 
     public void addWidget(ControlWidget widget) {
+        android.util.Log.d("WidgetLayout", "addWidget called: " + widget + ", type=" + widget.getWidgetData().type);
         if (!mWidgets.contains(widget)) {
             mWidgets.add(widget);
             addView(widget);
             widget.setEditMode(mEditMode);
-            
+            android.util.Log.d("WidgetLayout", "Widget added to layout, total widgets: " + mWidgets.size());
+
             widget.setOnWidgetChangeListener(new ControlWidget.OnWidgetChangeListener() {
                 @Override
                 public void onWidgetChanged(ControlWidget w) {
@@ -126,6 +128,7 @@ public class WidgetLayout extends FrameLayout {
     }
 
     public void loadLayout() {
+        android.util.Log.d("WidgetLayout", "loadLayout called");
         // Clear existing dynamic widgets but keep XML children
         for (ControlWidget w : mWidgets) {
             removeView(w);
@@ -134,7 +137,8 @@ public class WidgetLayout extends FrameLayout {
 
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
         int count = prefs.getInt("widget_count", 0);
-        
+        android.util.Log.d("WidgetLayout", "Loading " + count + " widgets from preferences");
+
         for (int i = 0; i < count; i++) {
             ControlWidget.WidgetData data = new ControlWidget.WidgetData();
             data.type = prefs.getString("widget_" + i + "_type", "");
@@ -212,6 +216,10 @@ public class WidgetLayout extends FrameLayout {
         } else if ("status".equals(data.type)) {
             if (mNHState != null && mNHState.getStatusWindow() != null) {
                 return new StatusWidget(getContext(), mNHState.getStatusWindow());
+            }
+        } else if ("message".equals(data.type)) {
+            if (mNHState != null && mNHState.getMessageWindow() != null) {
+                return new MessageWidget(getContext(), mNHState.getMessageWindow());
             }
         }
         return null;
