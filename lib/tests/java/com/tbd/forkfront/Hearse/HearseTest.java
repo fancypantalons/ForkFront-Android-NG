@@ -94,4 +94,19 @@ public class HearseTest {
         assertEquals("PostValue", request.getHeader("X_POST_TEST"));
         assertEquals("some data", request.getBody().readUtf8());
     }
+
+    @Test
+    public void testHearseResponseHeaderCaseInsensitivity() {
+        java.util.Map<String, List<String>> headers = new java.util.HashMap<>();
+        List<String> values = new java.util.ArrayList<>();
+        values.add("true");
+        headers.put("X-Hearse", values);
+
+        HearseResponse resp = new HearseResponse(200, new byte[0], headers);
+
+        // This will fail if the map is case-sensitive and we're not handling it
+        assertNotNull("Should find header with exact match", resp.getFirstHeader("X-Hearse"));
+        assertNotNull("Should find header with different case", resp.getFirstHeader("x-hearse"));
+        assertNotNull("Should find header with all caps", resp.getFirstHeader("X-HEARSE"));
+    }
 }
