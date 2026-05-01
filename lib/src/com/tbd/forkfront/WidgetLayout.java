@@ -93,7 +93,7 @@ public class WidgetLayout extends FrameLayout {
             widget.setOnWidgetChangeListener(new ControlWidget.OnWidgetChangeListener() {
                 @Override
                 public void onWidgetChanged(ControlWidget w) {
-                    saveLayout();
+                    // Manual save only
                 }
             });
 
@@ -111,7 +111,6 @@ public class WidgetLayout extends FrameLayout {
     public void removeWidget(ControlWidget widget) {
         mWidgets.remove(widget);
         removeView(widget);
-        saveLayout();
     }
 
     public void saveLayout() {

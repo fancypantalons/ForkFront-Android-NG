@@ -555,7 +555,6 @@ public class NH_State
 		ControlWidget widget = new ControlWidget(activity, btn, "palette");
 		widget.setWidgetData(data);
 		layout.addWidget(widget);
-		layout.saveLayout();
 	}
 
 	private void addDPadWidget(AppCompatActivity activity) {
@@ -576,7 +575,6 @@ public class NH_State
 		ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
 		dpadWidget.setWidgetData(dpadData);
 		layout.addWidget(dpadWidget);
-		layout.saveLayout();
 	}
 
 	private void addStatusWidget(AppCompatActivity activity) {
@@ -596,7 +594,6 @@ public class NH_State
 		StatusWidget statusWidget = new StatusWidget(activity, mStatus);
 		statusWidget.setWidgetData(statusData);
 		layout.addWidget(statusWidget);
-		layout.saveLayout();
 	}
 
 	private void addMessageWidget(AppCompatActivity activity) {
@@ -616,7 +613,6 @@ public class NH_State
 		MessageWidget messageWidget = new MessageWidget(activity, mMessage);
 		messageWidget.setWidgetData(messageData);
 		layout.addWidget(messageWidget);
-		layout.saveLayout();
 	}
 
 	private void addMinimapWidget(AppCompatActivity activity) {
@@ -636,7 +632,6 @@ public class NH_State
 		MinimapWidget minimapWidget = new MinimapWidget(activity, mMap, mTileset);
 		minimapWidget.setWidgetData(minimapData);
 		layout.addWidget(minimapWidget);
-		layout.saveLayout();
 	}
 
 	private void addCommandPaletteWidget(AppCompatActivity activity) {
@@ -661,7 +656,6 @@ public class NH_State
 				paletteData.rows, paletteData.columns, null, paletteData.horizontal);
 		paletteWidget.setWidgetData(paletteData);
 		layout.addWidget(paletteWidget);
-		layout.saveLayout();
 	}
 
 	public void showCommandPalette(AppCompatActivity activity) {
@@ -695,7 +689,6 @@ public class NH_State
 	            ControlWidget widget = new ControlWidget(activity, btn, "button");
 	            widget.setWidgetData(data);
 	            layout.addWidget(widget);
-	            layout.saveLayout();
 	        } else {
 	            if (cmd.getCommand().startsWith("#")) {
 	                sendStringCmd(cmd.getCommand() + "\n");
