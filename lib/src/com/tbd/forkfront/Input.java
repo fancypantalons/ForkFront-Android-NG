@@ -4,7 +4,7 @@ import java.util.EnumSet;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.view.KeyEvent;
 
 public class Input

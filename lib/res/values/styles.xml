@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ForkFront" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.ForkFront" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">@color/hearse_accent</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 
-    <style name="NH_Dialog" parent="Theme.AppCompat.Dialog">
+    <style name="NH_Dialog" parent="Theme.AppCompat.DayNight.Dialog">
         <item name="android:background">@android:drawable/alert_dark_frame</item>
     </style>
     

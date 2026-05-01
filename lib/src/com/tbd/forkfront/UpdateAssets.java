@@ -13,7 +13,7 @@ import android.content.res.AssetManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 
 public class UpdateAssets extends AsyncTask<Void, Void, Void>
 {

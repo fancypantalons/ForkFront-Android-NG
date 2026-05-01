@@ -11,7 +11,7 @@ import android.graphics.Paint.Align;
 import android.graphics.Paint.FontMetrics;
 import android.graphics.Paint.Style;
 import android.os.CountDownTimer;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.text.TextPaint;
 import android.view.KeyEvent;
 import android.view.MotionEvent;

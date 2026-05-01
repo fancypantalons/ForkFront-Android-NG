@@ -15,7 +15,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
         TilesetPreference mTilesetPref = findPreference("tilesetPreference");
         if (mTilesetPref != null && getActivity() != null) {
-            mTilesetPref.setActivity(getActivity());
+            mTilesetPref.setActivity((androidx.appcompat.app.AppCompatActivity) getActivity());
         }
 
         if(!getContext().getResources().getBoolean(R.bool.hearseAvailable)) {

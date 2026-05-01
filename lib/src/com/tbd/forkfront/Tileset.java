@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.text.TextPaint;
 import android.widget.Toast;
 
