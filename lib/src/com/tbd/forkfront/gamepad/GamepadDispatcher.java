@@ -18,6 +18,7 @@ import com.tbd.forkfront.input.TouchRepeatHelper;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Central gamepad event router.
@@ -36,7 +37,7 @@ public class GamepadDispatcher {
     private final Context mAppContext;
     private final NH_StateRef mStateRef;
     private final UiContextArbiter mArbiter;
-    private final UiActionExecutor mActionExecutor;
+    private final Consumer<UiActionId> mActionExecutor;
 
     private GamepadOptions mOptions;
     private KeyBindingMap mBindingMap;
@@ -111,7 +112,7 @@ public class GamepadDispatcher {
     public GamepadDispatcher(Context appContext,
                              NH_StateRef stateRef,
                              UiContextArbiter arbiter,
-                             UiActionExecutor executor) {
+                             Consumer<UiActionId> executor) {
         mAppContext = appContext.getApplicationContext();
         mStateRef = stateRef;
         mArbiter = arbiter;
@@ -572,7 +573,7 @@ public class GamepadDispatcher {
                 break;
             case UI_ACTION:
                 if (mActionExecutor != null) {
-                    mActionExecutor.execute(((BindingTarget.UiAction) target).id);
+                    mActionExecutor.accept(((BindingTarget.UiAction) target).id);
                 }
                 break;
         }

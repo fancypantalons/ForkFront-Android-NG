@@ -65,7 +65,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.tbd.forkfront.input.Input.Modifier;
 import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
 import com.tbd.forkfront.gamepad.GamepadDispatcher;
-import com.tbd.forkfront.gamepad.UiActionExecutor;
+import com.tbd.forkfront.gamepad.UiActionId;
 import com.tbd.forkfront.gamepad.UiContext;
 import com.tbd.forkfront.gamepad.UiContextArbiter;
 
@@ -577,6 +577,49 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 	}
 
 	// ____________________________________________________________________________________
+	private void handleUiAction(UiActionId id) {
+		switch (id) {
+			case OPEN_DRAWER:
+				if (mDrawerMenuController != null && mDrawerMenuController.getDrawerLayout() != null)
+					mDrawerMenuController.getDrawerLayout().openDrawer(androidx.core.view.GravityCompat.END);
+				break;
+			case OPEN_SETTINGS:
+				launchSettings();
+				break;
+			case OPEN_COMMAND_PALETTE:
+				if (mCommandPaletteController != null) mCommandPaletteController.expand(null);
+				break;
+			case OPEN_COMMAND_PICKER:
+				showCommandPicker();
+				break;
+			case TOGGLE_KEYBOARD:
+				android.view.inputmethod.InputMethodManager imm =
+					(android.view.inputmethod.InputMethodManager)
+						getSystemService(INPUT_METHOD_SERVICE);
+				View focus = getCurrentFocus();
+				if (imm != null && focus != null) {
+					imm.toggleSoftInput(0, 0);
+				}
+				break;
+			case ZOOM_IN:
+				NH_State sIn = getState();
+				if (sIn != null) sIn.getMapInput().zoomIn();
+				break;
+			case ZOOM_OUT:
+				NH_State sOut = getState();
+				if (sOut != null) sOut.getMapInput().zoomOut();
+				break;
+			case TOGGLE_MAP_LOCK:
+				break;
+			case RECENTER_MAP:
+				NH_State sRecenter = getState();
+				if (sRecenter != null) sRecenter.getMapInput().recenterMap();
+				break;
+			case RESEND_LAST_CMD:
+				break;
+		}
+	}
+
 	private void initGamepad() {
 		NH_State state = mViewModel != null ? mViewModel.getState() : null;
 		if (state == null) {
@@ -606,45 +649,8 @@ public class ForkFront extends AppCompatActivity implements ForkFrontHost
 			@Override public boolean isMouseLocked()           { return finalState.getCommands().isMouseLocked(); }
 		};
 
-		UiActionExecutor executor = new UiActionExecutor(new UiActionExecutor.ActionHost() {
-			@Override public void openDrawer() {
-				if (mDrawerMenuController != null && mDrawerMenuController.getDrawerLayout() != null)
-					mDrawerMenuController.getDrawerLayout().openDrawer(androidx.core.view.GravityCompat.END);
-			}
-			@Override public void openSettings()       { launchSettings(); }
-			@Override public void openCommandPalette() {
-					if (mCommandPaletteController != null) mCommandPaletteController.expand(null);
-				}
-			@Override public void openCommandPicker() {
-					showCommandPicker();
-				}
-			@Override public void toggleKeyboard() {
-				android.view.inputmethod.InputMethodManager imm =
-					(android.view.inputmethod.InputMethodManager)
-						getSystemService(INPUT_METHOD_SERVICE);
-				View focus = getCurrentFocus();
-				if (imm != null && focus != null) {
-					imm.toggleSoftInput(0, 0);
-				}
-			}
-			@Override public void zoomIn() {
-				NH_State s = getState();
-				if (s != null) s.getMapInput().zoomIn();
-			}
-			@Override public void zoomOut() {
-				NH_State s = getState();
-				if (s != null) s.getMapInput().zoomOut();
-			}
-			@Override public void toggleMapLock() { /* TODO */ }
-			@Override public void recenterMap() {
-				NH_State s = getState();
-				if (s != null) s.getMapInput().recenterMap();
-			}
-			@Override public void resendLastCmd() { /* TODO */ }
-		});
-
 		mGamepadDispatcher = new GamepadDispatcher(getApplicationContext(),
-			stateRef, mUiContextArbiter, executor);
+			stateRef, mUiContextArbiter, this::handleUiAction);
 
 		state.getGamepadContext().setArbiter(mUiContextArbiter);
 

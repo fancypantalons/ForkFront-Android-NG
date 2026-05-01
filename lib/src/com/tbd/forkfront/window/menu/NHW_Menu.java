@@ -9,6 +9,7 @@ import com.tbd.forkfront.input.KeyEventResult;
 import com.tbd.forkfront.input.Input;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,31 +25,50 @@ import androidx.annotation.MainThread;
 @MainThread
 public class NHW_Menu extends AbstractNhWindow
 {
-	private final MenuModel mModel;
-	private final MenuSelectionService mSelectionService;
+	public enum Type { None, Menu, Text }
+	
+	public ArrayList<MenuItem> mItems;
+	public String mTitle;
+	public SpannableStringBuilder mBuilder;
+	public Type mType = Type.None;
+	public MenuSelectMode mHow;
+	public int mKeyboardCount = -1;
+	public final Tileset mTileset;
 	private Fragment mFragment;
 
 	// ____________________________________________________________________________________
 	public NHW_Menu(int wid, AppCompatActivity context, EngineCommandSender io, Tileset tileset)
 	{
 		super(wid, context, io);
-		mModel = new MenuModel(tileset);
-		mSelectionService = new MenuSelectionService(io);
+		mTileset = tileset;
 	}
 
-	public MenuModel getModel() {
-		return mModel;
-	}
-
-	public MenuSelectionService getSelectionService() {
-		return mSelectionService;
+	public void sendSelectChecked(ArrayList<MenuItem> items) { mIO.sendSelectCmd(items); }
+	public void sendCancelSelect() { mIO.sendCancelSelectCmd(); }
+	public void sendSelectOne(MenuItem item, int count) { mIO.sendSelectCmd(item.getId(), count); }
+	public void sendSelectNone() { mIO.sendSelectNoneCmd(); }
+	public void sendContinue() { mIO.sendKeyCmd(' '); }
+	
+	private static void assignAccelerators(List<MenuItem> items) {
+		for (MenuItem i : items) {
+			if (i.hasAcc()) return;
+		}
+		char acc = 'a';
+		for (MenuItem i : items) {
+			if (!i.isHeader() && i.isSelectable() && acc != 0) {
+				i.setAcc(acc);
+				acc++;
+				if (acc == 'z' + 1) acc = 'A';
+				else if (acc == 'Z' + 1) acc = 0;
+			}
+		}
 	}
 
 	// ____________________________________________________________________________________
 	@Override
 	public String getTitle()
 	{
-		return mModel.mTitle;
+		return mTitle;
 	}
 
 	// ____________________________________________________________________________________
@@ -56,16 +76,16 @@ public class NHW_Menu extends AbstractNhWindow
 	public void show(boolean bBlocking)
 	{
 		mIsVisible = true;
-		if(mModel.mBuilder != null && mModel.mType == MenuModel.Type.None)
+		if(mBuilder != null && mType == Type.None)
 		{
-			mModel.mType = MenuModel.Type.Text;
+			mType = Type.Text;
 		}
-		mModel.mKeyboardCount = -1;
+		mKeyboardCount = -1;
 		mIsBlocking = bBlocking;
 
 		if(mFragment == null || !mFragment.isAdded())
 		{
-			if (mModel.mType == MenuModel.Type.Text)
+			if (mType == Type.Text)
 				mFragment = new MenuTextFragment();
 			else
 				mFragment = new MenuFragment();
@@ -75,14 +95,14 @@ public class NHW_Menu extends AbstractNhWindow
 			mFragment.setArguments(args);
 			addFragment(mFragment);
 		}
-		mState.getGamepadContext().pushContext(mModel.mType == MenuModel.Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+		mState.getGamepadContext().pushContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 	}
 
 	// ____________________________________________________________________________________
 	private void hide()
 	{
 		if (mIsVisible) {
-			mState.getGamepadContext().popContext(mModel.mType == MenuModel.Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+			mState.getGamepadContext().popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 		}
 		mIsVisible = false;
 		removeFragment();
@@ -99,13 +119,21 @@ public class NHW_Menu extends AbstractNhWindow
 	@Override
 	public boolean handleGamepadKey(KeyEvent ev)
 	{
-		return mFragment != null && mFragment.isAdded() && ((MenuFragmentInterface)mFragment).handleGamepadKey(ev);
+		if (mFragment != null && mFragment.isAdded()) {
+			if (mFragment instanceof MenuFragment) return ((MenuFragment)mFragment).handleGamepadKey(ev);
+			if (mFragment instanceof MenuTextFragment) return ((MenuTextFragment)mFragment).handleGamepadKey(ev);
+		}
+		return false;
 	}
 
 	@Override
 	public boolean handleGamepadMotion(MotionEvent ev)
 	{
-		return mFragment != null && mFragment.isAdded() && ((MenuFragmentInterface)mFragment).handleGamepadMotion(ev);
+		if (mFragment != null && mFragment.isAdded()) {
+			if (mFragment instanceof MenuFragment) return ((MenuFragment)mFragment).handleGamepadMotion(ev);
+			if (mFragment instanceof MenuTextFragment) return ((MenuTextFragment)mFragment).handleGamepadMotion(ev);
+		}
+		return false;
 	}
 
 	// ____________________________________________________________________________________
@@ -114,10 +142,10 @@ public class NHW_Menu extends AbstractNhWindow
 		hide();
 		super.close();
 		mIsBlocking = false;
-		mModel.mItems = null;
-		mModel.mBuilder = null;
-		mModel.mType = MenuModel.Type.None;
-		mModel.mKeyboardCount = -1;
+		mItems = null;
+		mBuilder = null;
+		mType = Type.None;
+		mKeyboardCount = -1;
 	}
 
 	// ____________________________________________________________________________________
@@ -139,18 +167,20 @@ public class NHW_Menu extends AbstractNhWindow
 	@Override
 	public void printString(final int attr, final String str, int append, int color)
 	{
-		if(mModel.mBuilder == null)
+		if(mBuilder == null)
 		{
-			mModel.mBuilder = new SpannableStringBuilder(str);
-			mModel.mItems = null;
+			mBuilder = new SpannableStringBuilder(str);
+			mItems = null;
 		}
 		else
 		{
-			mModel.mBuilder.append('\n');
-			mModel.mBuilder.append(TextAttr.style(str, attr, mContext));
+			mBuilder.append('\n');
+			mBuilder.append(TextAttr.style(str, attr, mContext));
 		}
-		if(mFragment != null && mFragment.isAdded())
-			((MenuFragmentInterface)mFragment).refresh();
+		if(mFragment != null && mFragment.isAdded()) {
+			if (mFragment instanceof MenuFragment) ((MenuFragment)mFragment).refresh();
+			if (mFragment instanceof MenuTextFragment) ((MenuTextFragment)mFragment).refresh();
+		}
 	}
 
 	// ____________________________________________________________________________________
@@ -166,8 +196,8 @@ public class NHW_Menu extends AbstractNhWindow
 	// ____________________________________________________________________________________
 	public void startMenu()
 	{
-		mModel.mItems = new ArrayList<MenuItem>(100);
-		mModel.mBuilder = null;
+		mItems = new ArrayList<MenuItem>(100);
+		mBuilder = null;
 	}
 
 	// ____________________________________________________________________________________
@@ -176,15 +206,15 @@ public class NHW_Menu extends AbstractNhWindow
 		if(str.length() == 0 && tile < 0)
 			return;
 		// start_menu is not always called
-		if(mModel.mItems == null)
+		if(mItems == null)
 			startMenu();
-		mModel.mItems.add(new MenuItem(tile, ident, accelerator, groupacc, attr, str, preselected, color, mContext));
+		mItems.add(new MenuItem(tile, ident, accelerator, groupacc, attr, str, preselected, color, mContext));
 	}
 
 	// ____________________________________________________________________________________
 	public void endMenu(String prompt)
 	{
-		mModel.mTitle = prompt;
+		mTitle = prompt;
 	}
 
 	// ____________________________________________________________________________________
@@ -193,7 +223,8 @@ public class NHW_Menu extends AbstractNhWindow
 	{
 		if(mFragment != null && mFragment.isAdded()) {
 			android.util.Log.d("NHW_Menu", "Delegating handleKeyDown to fragment");
-			return ((MenuFragmentInterface)mFragment).handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
+			if (mFragment instanceof MenuFragment) return ((MenuFragment)mFragment).handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
+			if (mFragment instanceof MenuTextFragment) return ((MenuTextFragment)mFragment).handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount);
 		}
 		android.util.Log.d("NHW_Menu", "Fragment not ready for handleKeyDown");
 		return KeyEventResult.IGNORED;
@@ -202,17 +233,19 @@ public class NHW_Menu extends AbstractNhWindow
 	// ____________________________________________________________________________________
 	public void selectMenu(MenuSelectMode how)
 	{
-		mModel.mType = MenuModel.Type.Menu;
-		mModel.mKeyboardCount = -1;
-		mModel.mHow = how;
-		MenuAcceleratorAssigner.assign(mModel.mItems);
+		mType = Type.Menu;
+		mKeyboardCount = -1;
+		mHow = how;
+		assignAccelerators(mItems);
 		show(false);
 	}
 
 	// ____________________________________________________________________________________
 	@Override
 	public void preferencesUpdated(SharedPreferences prefs) {
-		if(mFragment != null && mFragment.isAdded())
-			((MenuFragmentInterface)mFragment).refresh();
+		if(mFragment != null && mFragment.isAdded()) {
+			if (mFragment instanceof MenuFragment) ((MenuFragment)mFragment).refresh();
+			if (mFragment instanceof MenuTextFragment) ((MenuTextFragment)mFragment).refresh();
+		}
 	}
 }
