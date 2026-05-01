@@ -1260,16 +1260,19 @@ public class NH_State
 				mViewModel.runOnActivity(() -> {
 					if (mActivity != null && mWidgetLayout != null) {
 						// Check if we already have a D-pad on screen
-						boolean hasDPad = false;
+						ControlWidget existingDPad = null;
 						for (int i = 0; i < mWidgetLayout.getChildCount(); i++) {
 							View child = mWidgetLayout.getChildAt(i);
 							if (child instanceof ControlWidget && "dpad".equals(((ControlWidget) child).getWidgetData().type)) {
-								hasDPad = true;
+								existingDPad = (ControlWidget) child;
 								break;
 							}
 						}
 
-						if (!hasDPad) {
+						if (existingDPad != null) {
+							// Pulse existing D-pad to draw attention
+							existingDPad.pulseAttention();
+						} else {
 							// Spawn temporary D-pad centered on screen
 							float density = mActivity.getResources().getDisplayMetrics().density;
 							int dpadSize = (int)(200 * density);
