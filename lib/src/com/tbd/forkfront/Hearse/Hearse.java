@@ -1,7 +1,10 @@
 package com.tbd.forkfront.Hearse;
 
 import androidx.appcompat.app.AppCompatActivity;
+import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.widget.Toast;
 import com.tbd.forkfront.Log;
@@ -81,7 +84,8 @@ public class Hearse {
 	private static final String PREFS_HEARSE_ENABLE = "hearseEnable";
 	private static final String PREFS_HEARSE_UPDATE_USER = "hearseUpdateUser";
 	private static final String PREFS_HEARSE_LAST_UPLOAD = "hearseLastUpload";
-	private final AppCompatActivity context;
+	private final Context context;  // Application context to avoid leaks
+	private final Handler mainHandler;  // For posting UI operations to main thread
 	private final SharedPreferences prefs;
 	private final String dataDirString;
 	private String userNick;
@@ -95,14 +99,16 @@ public class Hearse {
 	/**
 	 * Creates a new instance of Hearse
 	 *
-	 * @param context The {@link AppCompatActivity} application for access to {@link AppCompatActivity}, through which it can
-	 *            create {@link Toast} notifications, etc.
+	 * @param context Application context (use getApplicationContext() to avoid Activity leaks)
 	 * @param prefs SharedPreferences
 	 * @param path nethack datadir
 	 */
-	public Hearse(AppCompatActivity context, SharedPreferences prefs, String path) {
+	public Hearse(Context context, SharedPreferences prefs, String path) {
 
-		this.context = context;
+		// Store Application context to avoid Activity leaks
+		this.context = context.getApplicationContext();
+		// Handler for posting UI operations to main thread
+		this.mainHandler = new Handler(Looper.getMainLooper());
 		dataDirString = path;
 		this.prefs = prefs;
 
@@ -287,7 +293,8 @@ public class Hearse {
 	}
 
 	private void showToast(final String message) {
-		context.runOnUiThread(new Runnable() {
+		// Post to main thread using Handler (Application context is safe for Toast)
+		mainHandler.post(new Runnable() {
 			@Override
 			public void run() {
 				Log.print(message);

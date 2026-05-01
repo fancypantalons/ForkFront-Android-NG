@@ -30,7 +30,6 @@ public class SoftKeyboard implements OnKeyboardActionListener
 		META,
 	}
 
-	private AppCompatActivity mContext;
 	private ViewGroup mKeyboardFrame;
 	private KeyboardView mKeyboardView;
 	private Keyboard mSymbolsKeyboard;
@@ -44,13 +43,30 @@ public class SoftKeyboard implements OnKeyboardActionListener
 	// ____________________________________________________________________________________
 	public SoftKeyboard(AppCompatActivity context, NH_State state)
 	{
-		mContext = context;
 		mState = state;
 		mCurrent = KEYBOARD.QWERTY;
+		initializeViews(context);
+	}
 
-		mKeyboardFrame = (ViewGroup)mContext.findViewById(R.id.kbd_frame);
+	// ____________________________________________________________________________________
+	/**
+	 * Update keyboard views when Activity is recreated (e.g., rotation).
+	 * Preserves keyboard state (current keyboard type, shift state).
+	 */
+	public void setContext(AppCompatActivity context)
+	{
+		// Clear old keyboards to force recreation with new context
+		hide();
+		// Reinitialize views with new Activity context
+		initializeViews(context);
+	}
 
-		mKeyboardView = (KeyboardView)Util.inflate(mContext, R.layout.input);
+	// ____________________________________________________________________________________
+	private void initializeViews(AppCompatActivity context)
+	{
+		mKeyboardFrame = (ViewGroup)context.findViewById(R.id.kbd_frame);
+
+		mKeyboardView = (KeyboardView)Util.inflate(context, R.layout.input);
 		mKeyboardView.setLayoutParams(new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
 		mKeyboardFrame.addView(mKeyboardView);
 		mKeyboardView.setOnKeyboardActionListener(this);
@@ -61,10 +77,12 @@ public class SoftKeyboard implements OnKeyboardActionListener
 	{
 		if(mQwertyKeyboard == null)
 		{
-			mQwertyKeyboard = new Keyboard(mContext, R.xml.qwerty);
-			mMetaKeyboard = new Keyboard(mContext, R.xml.meta);
-			mCtrlKeyboard = new Keyboard(mContext, R.xml.ctrl);
-			mSymbolsKeyboard = new Keyboard(mContext, R.xml.symbols);
+			// Get context from the view instead of storing Activity reference
+			android.content.Context context = mKeyboardView.getContext();
+			mQwertyKeyboard = new Keyboard(context, R.xml.qwerty);
+			mMetaKeyboard = new Keyboard(context, R.xml.meta);
+			mCtrlKeyboard = new Keyboard(context, R.xml.ctrl);
+			mSymbolsKeyboard = new Keyboard(context, R.xml.symbols);
 
 			mKeyboardView.setKeyboard(mQwertyKeyboard);
 			mKeyboardView.setShifted(mIsShifted);
@@ -90,7 +108,8 @@ public class SoftKeyboard implements OnKeyboardActionListener
 	{
 		if(mQwertyKeyboard != null)
 		{
-			Util.hideKeyboard(mContext, mKeyboardView);
+			// Get context from the view instead of storing Activity reference
+			Util.hideKeyboard((AppCompatActivity)mKeyboardView.getContext(), mKeyboardView);
 			mKeyboardFrame.setVisibility(View.GONE);
 			mQwertyKeyboard = null;
 			mMetaKeyboard = null;

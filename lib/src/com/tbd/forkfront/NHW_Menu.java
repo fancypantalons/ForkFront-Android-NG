@@ -69,8 +69,8 @@ public class NHW_Menu implements NH_Window
 	public void setContext(AppCompatActivity context)
 	{
 		mContext = context;
-		if(mFragment != null && mFragment.isAdded())
-			mFragment.mContext = context;
+		// Fragment will get context updates through its lifecycle methods (onAttach)
+		// No need to manually update fragment's context field
 	}
 
 	// ____________________________________________________________________________________
@@ -249,7 +249,6 @@ public class NHW_Menu implements NH_Window
 	public static class NHW_MenuFragment extends Fragment implements AmountSelector.Listener
 	{
 		private final NHW_Menu mMenu;
-		AppCompatActivity mContext;
 		private View mRoot;
 
 		private ListView mListView;
@@ -265,7 +264,7 @@ public class NHW_Menu implements NH_Window
 		public void onAttach(@NonNull android.content.Context context)
 		{
 			super.onAttach(context);
-			mContext = (AppCompatActivity) context;
+			// Context is available through requireActivity() - no need to store it
 		}
 
 		@Override
@@ -683,7 +682,7 @@ public class NHW_Menu implements NH_Window
 		{
 			View root = inflateLayout(mMenu.mHow, inflater, container);
 
-			mListView.setAdapter(new MenuItemAdapter(mContext, R.layout.menu_item, mMenu.mItems, mMenu.mTileset, mMenu.mHow));
+			mListView.setAdapter(new MenuItemAdapter((AppCompatActivity)requireActivity(), R.layout.menu_item, mMenu.mItems, mMenu.mTileset, mMenu.mHow));
 
 			root.requestFocus();
 
@@ -793,7 +792,7 @@ public class NHW_Menu implements NH_Window
 						return false;
 					if(item.getMaxCount() < 2 || mMenu.mHow == MenuSelectMode.PickNone)
 						return false;
-					mAmountSelector = new AmountSelector(NHW_MenuFragment.this, mContext, mMenu.mTileset, item);
+					mAmountSelector = new AmountSelector(NHW_MenuFragment.this, (AppCompatActivity)requireActivity(), mMenu.mTileset, item);
 					return true;
 				}
 			});
