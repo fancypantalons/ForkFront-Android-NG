@@ -10,7 +10,7 @@
     <FrameLayout
         android:id="@+id/command_palette_handle"
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="@dimen/command_palette_peek_height"
         android:clickable="true"
         android:focusable="true">
 

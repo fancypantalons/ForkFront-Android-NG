@@ -5,4 +5,5 @@
     <dimen name="padding_large">16dp</dimen>
     <dimen name="text_size_xlarge">32sp</dimen>
     <dimen name="touch_target_min">48dp</dimen>
+    <dimen name="command_palette_peek_height">32dp</dimen>
 </resources>

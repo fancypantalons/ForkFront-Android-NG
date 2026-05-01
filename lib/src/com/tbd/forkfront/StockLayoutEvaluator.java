@@ -17,12 +17,16 @@ public class StockLayoutEvaluator {
 
     private final Context mContext;
     private final Rect mWindowBounds;
+    private final int mWindowBottom;
     private final float mDensity;
+    private final int mPeekHeight;
 
     public StockLayoutEvaluator(Context context) {
         mContext = context;
         mWindowBounds = WindowMetricsHelper.getSafeBounds(context);
+        mWindowBottom = WindowMetricsHelper.getWindowBounds(context).bottom;
         mDensity = context.getResources().getDisplayMetrics().density;
+        mPeekHeight = context.getResources().getDimensionPixelSize(R.dimen.command_palette_peek_height);
     }
     
     /**
@@ -49,10 +53,15 @@ public class StockLayoutEvaluator {
             JSONArray widgets = root.getJSONArray("widgets");
             
             List<ControlWidget.WidgetData> result = new ArrayList<>();
-            
+
+            Rect evalBounds = new Rect(mWindowBounds);
+            if ("primary".equals(screenId)) {
+                evalBounds.bottom = mWindowBottom - mPeekHeight;
+            }
+
             for (int i = 0; i < widgets.length(); i++) {
                 JSONObject widgetDef = widgets.getJSONObject(i);
-                ControlWidget.WidgetData data = evaluateWidget(widgetDef);
+                ControlWidget.WidgetData data = evaluateWidget(widgetDef, evalBounds);
                 if (data != null) {
                     result.add(data);
                 }
@@ -92,7 +101,7 @@ public class StockLayoutEvaluator {
     /**
      * Evaluate a single widget definition to absolute positions.
      */
-    private ControlWidget.WidgetData evaluateWidget(JSONObject def) throws Exception {
+    private ControlWidget.WidgetData evaluateWidget(JSONObject def, Rect bounds) throws Exception {
         ControlWidget.WidgetData data = new ControlWidget.WidgetData();
 
         // Basic properties
@@ -117,8 +126,8 @@ public class StockLayoutEvaluator {
         boolean isWidthMatchParent = "MATCH_PARENT".equals(widthSpec);
         boolean isHeightMatchParent = "MATCH_PARENT".equals(heightSpec);
 
-        data.w = evaluateSize(widthSpec, true, marginLeft, marginRight);
-        data.h = evaluateSize(heightSpec, false, marginTop, marginBottom);
+        data.w = evaluateSize(widthSpec, true, marginLeft, marginRight, bounds);
+        data.h = evaluateSize(heightSpec, false, marginTop, marginBottom, bounds);
 
         // Calculate x position
         // When MATCH_PARENT is used, margins are insets (defining available space),
@@ -126,18 +135,18 @@ public class StockLayoutEvaluator {
         // For fixed sizes, margins are positioning offsets applied per anchor.
         switch (hAnchor) {
             case "LEFT":
-                data.x = mWindowBounds.left + marginLeft;
+                data.x = bounds.left + marginLeft;
                 break;
             case "RIGHT":
-                data.x = mWindowBounds.right - data.w - marginRight;
+                data.x = bounds.right - data.w - marginRight;
                 break;
             case "CENTER":
                 if (isWidthMatchParent) {
                     // With MATCH_PARENT, widget fills available space between margins
-                    data.x = mWindowBounds.left + marginLeft;
+                    data.x = bounds.left + marginLeft;
                 } else {
                     // With fixed size, margins are offsets from center
-                    data.x = mWindowBounds.centerX() - data.w / 2 + marginLeft - marginRight;
+                    data.x = bounds.centerX() - data.w / 2 + marginLeft - marginRight;
                 }
                 break;
             default:
@@ -148,18 +157,18 @@ public class StockLayoutEvaluator {
         // Calculate y position
         switch (vAnchor) {
             case "TOP":
-                data.y = mWindowBounds.top + marginTop;
+                data.y = bounds.top + marginTop;
                 break;
             case "BOTTOM":
-                data.y = mWindowBounds.bottom - data.h - marginBottom;
+                data.y = bounds.bottom - data.h - marginBottom;
                 break;
             case "CENTER":
                 if (isHeightMatchParent) {
                     // With MATCH_PARENT, widget fills available space between margins
-                    data.y = mWindowBounds.top + marginTop;
+                    data.y = bounds.top + marginTop;
                 } else {
                     // With fixed size, margins are offsets from center
-                    data.y = mWindowBounds.centerY() - data.h / 2 + marginTop - marginBottom;
+                    data.y = bounds.centerY() - data.h / 2 + marginTop - marginBottom;
                 }
                 break;
             default:
@@ -201,17 +210,17 @@ public class StockLayoutEvaluator {
      * @param marginEnd Right margin (for width) or bottom margin (for height) in pixels
      * @return Size in pixels
      */
-    private int evaluateSize(String spec, boolean isWidth, int marginStart, int marginEnd) {
+    private int evaluateSize(String spec, boolean isWidth, int marginStart, int marginEnd, Rect bounds) {
         if ("MATCH_PARENT".equals(spec)) {
             // MATCH_PARENT with margins: margins define insets, reducing available space
-            int fullSize = isWidth ? mWindowBounds.width() : mWindowBounds.height();
+            int fullSize = isWidth ? bounds.width() : bounds.height();
             return fullSize - marginStart - marginEnd;
         } else if (spec.endsWith("dp")) {
             return dpToPx(spec);
         } else if (spec.endsWith("%")) {
             // Percentage of window dimension
             int percent = Integer.parseInt(spec.substring(0, spec.length() - 1));
-            int windowSize = isWidth ? mWindowBounds.width() : mWindowBounds.height();
+            int windowSize = isWidth ? bounds.width() : bounds.height();
             return (windowSize * percent) / 100;
         }
 

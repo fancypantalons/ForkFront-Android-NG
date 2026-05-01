@@ -110,7 +110,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
-                app:behavior_peekHeight="32dp"
+                app:behavior_peekHeight="@dimen/command_palette_peek_height"
                 app:behavior_hideable="false"
                 app:behavior_skipCollapsed="false" />
 

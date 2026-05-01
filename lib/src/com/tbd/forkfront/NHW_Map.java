@@ -934,7 +934,10 @@ public class NHW_Map implements NH_Window
 			setSurfaceTextureListener(this);
 			setOpaque(false);
 
-			((ViewGroup)mContext.findViewById(R.id.map_frame)).addView(this, 0);
+			ViewGroup mapFrame = (ViewGroup)mContext.findViewById(R.id.map_frame);
+			mapFrame.addView(this, 0, new ViewGroup.LayoutParams(
+				ViewGroup.LayoutParams.MATCH_PARENT,
+				ViewGroup.LayoutParams.MATCH_PARENT));
 			mPaint = new TextPaint();
 			mTypeface = Typeface.createFromAsset(mContext.getAssets(), "fonts/monobold.ttf");
 			mPaint.setTypeface(mTypeface);
