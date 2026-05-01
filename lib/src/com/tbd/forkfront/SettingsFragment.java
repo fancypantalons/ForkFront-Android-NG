@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
+import android.hardware.input.InputManager;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -17,12 +18,14 @@ import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceGroup;
 import androidx.recyclerview.widget.RecyclerView;
+import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
 import com.tbd.forkfront.gamepad.KeyBindingDefaultsLoader;
 import com.tbd.forkfront.gamepad.KeyBindingStore;
 
-public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, InputManager.InputDeviceListener {
 
     private ActivityResultLauncher<String> mImagePickerLauncher;
+    private InputManager mInputManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,6 +70,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         }
 
         updateTilesetVisibility();
+        updateGamepadVisibility();
 
         Preference gamepadReset = findPreference("gamepad_reset_defaults");
         if (gamepadReset != null) {
@@ -106,6 +110,13 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onResume() {
         super.onResume();
+        if (getContext() != null) {
+            mInputManager = (InputManager) getContext().getSystemService(android.content.Context.INPUT_SERVICE);
+            if (mInputManager != null) {
+                mInputManager.registerInputDeviceListener(this, null);
+            }
+            updateGamepadVisibility();
+        }
         SharedPreferences sharedPreferences = getPreferenceManager().getSharedPreferences();
         if (sharedPreferences != null) {
             for(int i = 0; i < 10; i++) {
@@ -122,6 +133,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onPause() {
         super.onPause();
+        if (mInputManager != null) {
+            mInputManager.unregisterInputDeviceListener(this);
+            mInputManager = null;
+        }
         SharedPreferences sharedPreferences = getPreferenceManager().getSharedPreferences();
         if (sharedPreferences != null) {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
@@ -211,6 +226,27 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             f.show(getParentFragmentManager(), "androidx.preference.PreferenceFragment.DIALOG");
         } else {
             super.onDisplayPreferenceDialog(preference);
+        }
+    }
+
+    @Override
+    public void onInputDeviceAdded(int deviceId) {
+        updateGamepadVisibility();
+    }
+
+    @Override
+    public void onInputDeviceRemoved(int deviceId) {
+        updateGamepadVisibility();
+    }
+
+    @Override
+    public void onInputDeviceChanged(int deviceId) {}
+
+    private void updateGamepadVisibility() {
+        if (getContext() == null) return;
+        Preference gamepadScreen = findPreference("gamepad_screen");
+        if (gamepadScreen != null) {
+            gamepadScreen.setVisible(GamepadDeviceWatcher.isGamepadConnected(getContext()));
         }
     }
 }

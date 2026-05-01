@@ -40,4 +40,24 @@ public class GamepadDeviceWatcher implements InputManager.InputDeviceListener {
 
     @Override
     public void onInputDeviceChanged(int deviceId) {}
+
+    public static boolean isGamepadConnected(Context ctx) {
+        InputManager inputManager = (InputManager) ctx.getSystemService(Context.INPUT_SERVICE);
+        if (inputManager == null) return false;
+        for (int deviceId : inputManager.getInputDeviceIds()) {
+            InputDevice device = inputManager.getInputDevice(deviceId);
+            if (device != null && !device.isVirtual()) {
+                int sources = device.getSources();
+                android.util.Log.d(TAG, "Device: " + device.getName() + " id=" + deviceId + " sources=0x" + Integer.toHexString(sources));
+                if ((sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
+                    || (sources & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+                    || (sources & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) {
+                    android.util.Log.d(TAG, "  -> MATCHES gamepad source flags");
+                    return true;
+                }
+            }
+        }
+        android.util.Log.d(TAG, "No gamepad detected");
+        return false;
+    }
 }
