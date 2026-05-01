@@ -74,10 +74,16 @@ public class ForkFront extends AppCompatActivity
 			public void dispatchKey(int keyCode) {
 				android.view.View decor = getWindow().getDecorView();
 				long now = android.os.SystemClock.uptimeMillis();
-				decor.dispatchKeyEvent(new android.view.KeyEvent(now, now,
-					android.view.KeyEvent.ACTION_DOWN, keyCode, 0));
-				decor.dispatchKeyEvent(new android.view.KeyEvent(now, now,
-					android.view.KeyEvent.ACTION_UP, keyCode, 0));
+				android.view.KeyEvent down = new android.view.KeyEvent(now, now,
+					android.view.KeyEvent.ACTION_DOWN, keyCode, 0, 0,
+					android.view.KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
+					GamepadDispatcher.SOURCE_SYNTHETIC);
+				android.view.KeyEvent up = new android.view.KeyEvent(now, now,
+					android.view.KeyEvent.ACTION_UP, keyCode, 0, 0,
+					android.view.KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
+					GamepadDispatcher.SOURCE_SYNTHETIC);
+				decor.dispatchKeyEvent(down);
+				decor.dispatchKeyEvent(up);
 			}
 			@Override
 			public void dispatchBack() {
@@ -220,13 +226,7 @@ public class ForkFront extends AppCompatActivity
 						}
 						mGamepadDispatcher.enterUiCapture(mDrawerUiCapture);
 					}
-					// Move keyboard focus to the first focusable NavigationView item
-					if (nav != null) {
-						nav.post(() -> {
-							View first = findFirstFocusableChild(nav);
-							if (first != null) first.requestFocus();
-						});
-					}
+					if (nav != null) focusFirstMenuItemWhenReady(nav);
 				}
 
 				@Override
@@ -710,6 +710,47 @@ public class ForkFront extends AppCompatActivity
 	}
 
 	// ____________________________________________________________________________________
+	// On first drawer open, NavigationView's internal RecyclerView may not have inflated
+	// item views yet. Wait for layout, then request focus on the first item. We retry up
+	// to a few layout passes in case of multi-stage layout (NavigationView + RecyclerView).
+	private void focusFirstMenuItemWhenReady(NavigationView nav) {
+		final NavigationView navFinal = nav;
+		final int[] tries = {0};
+		final android.view.ViewTreeObserver.OnGlobalLayoutListener[] holder =
+			new android.view.ViewTreeObserver.OnGlobalLayoutListener[1];
+		holder[0] = new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+			@Override
+			public void onGlobalLayout() {
+				View target = findFirstMenuItem(navFinal);
+				if (target != null) {
+					target.requestFocus();
+					navFinal.getViewTreeObserver().removeOnGlobalLayoutListener(holder[0]);
+				} else if (++tries[0] > 5) {
+					navFinal.getViewTreeObserver().removeOnGlobalLayoutListener(holder[0]);
+				}
+			}
+		};
+		navFinal.getViewTreeObserver().addOnGlobalLayoutListener(holder[0]);
+	}
+
+	// Drill into a NavigationView to find the first NavigationMenuItemView (the actual
+	// clickable item), skipping over the RecyclerView container that wraps them.
+	private View findFirstMenuItem(android.view.ViewGroup group) {
+		for (int i = 0; i < group.getChildCount(); i++) {
+			View child = group.getChildAt(i);
+			if (child.getClass().getSimpleName().equals("NavigationMenuItemView")
+				&& child.isFocusable() && child.getVisibility() == View.VISIBLE) {
+				return child;
+			}
+			if (child instanceof android.view.ViewGroup) {
+				View found = findFirstMenuItem((android.view.ViewGroup) child);
+				if (found != null) return found;
+			}
+		}
+		return null;
+	}
+
+	// ____________________________________________________________________________________
 	private View findFirstFocusableChild(android.view.ViewGroup group) {
 		for (int i = 0; i < group.getChildCount(); i++) {
 			View child = group.getChildAt(i);
@@ -770,11 +811,15 @@ public class ForkFront extends AppCompatActivity
 			}
 		}
 
-		// For gamepad events in non-gameplay contexts (drawer open, settings, etc.),
-		// skip the game key handler and let super handle focus traversal instead.
-		boolean shouldHandleKey = !wasGamepadEvent ||
-		                          gamepadCtx == UiContext.GAMEPLAY ||
-		                          gamepadCtx == UiContext.DIRECTION_PROMPT;
+		// In non-gameplay contexts (drawer, settings) and for synthetic events injected
+		// by the dispatcher's baseline fallback, skip the game key handler so D-pad
+		// navigation and synthetic keys go to Android's focus system instead of NetHack.
+		boolean isSynthetic = (event.getSource() & GamepadDispatcher.SOURCE_SYNTHETIC)
+			== GamepadDispatcher.SOURCE_SYNTHETIC;
+		boolean shouldHandleKey = !isSynthetic
+			&& (!wasGamepadEvent
+				|| gamepadCtx == UiContext.GAMEPLAY
+				|| gamepadCtx == UiContext.DIRECTION_PROMPT);
 
 		if(event.getAction() == KeyEvent.ACTION_DOWN && shouldHandleKey)
 		{

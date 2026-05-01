@@ -3,7 +3,7 @@
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <stroke android:width="2dp" android:color="@color/gamepad_focus_stroke"/>
-            <solid android:color="@color/gamepad_focus_fill"/>
+            <solid android:color="@android:color/transparent"/>
         </shape>
     </item>
     <item>

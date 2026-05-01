@@ -3,7 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:focusable="false"
+    android:focusableInTouchMode="false"
+    android:defaultFocusHighlightEnabled="false">
 
     <!-- Main content -->
     <LinearLayout
@@ -12,24 +15,36 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:baselineAligned="false"
-        android:orientation="vertical" >
+        android:orientation="vertical"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:defaultFocusHighlightEnabled="false">
 
     <FrameLayout
         android:id="@+id/dlg_frame"
         android:layout_width="match_parent"
         android:layout_height="@dimen/padding_small"
-        android:layout_weight="1" >
+        android:layout_weight="1"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:defaultFocusHighlightEnabled="false" >
 
         <FrameLayout
             android:id="@+id/map_frame"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:descendantFocusability="blocksDescendants" >
+            android:descendantFocusability="blocksDescendants"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:defaultFocusHighlightEnabled="false" >
 
             <com.tbd.forkfront.WidgetLayout
                 android:id="@+id/widgetLayout1"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" >
+                android:layout_height="match_parent"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
+                android:defaultFocusHighlightEnabled="false" >
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -155,9 +170,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:elevation="24dp"
-        android:focusable="true"
-        android:focusableInTouchMode="false"
-        android:defaultFocusHighlightEnabled="true"
+        android:defaultFocusHighlightEnabled="false"
         app:itemBackground="@drawable/gamepad_focus_selector"
         app:menu="@menu/drawer_menu" />
 

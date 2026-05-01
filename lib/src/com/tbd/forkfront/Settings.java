@@ -24,8 +24,14 @@ public class Settings extends AppCompatActivity
             public void dispatchKey(int keyCode) {
                 android.view.View decor = getWindow().getDecorView();
                 long now = SystemClock.uptimeMillis();
-                decor.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
-                decor.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0));
+                KeyEvent down = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, 0,
+                    android.view.KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
+                    GamepadDispatcher.SOURCE_SYNTHETIC);
+                KeyEvent up = new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, 0,
+                    android.view.KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
+                    GamepadDispatcher.SOURCE_SYNTHETIC);
+                decor.dispatchKeyEvent(down);
+                decor.dispatchKeyEvent(up);
             }
             @Override
             public void dispatchBack() {
