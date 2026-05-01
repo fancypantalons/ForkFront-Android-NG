@@ -33,7 +33,6 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private OnPropertiesListener mListener;
     private String mCurrentLabel;
     private boolean mIsButton;
-    private boolean mIsContextual;
     private boolean mIsCommandPalette;
     private boolean mIsHorizontal;
     private boolean mShowFontSize;
@@ -46,12 +45,11 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private boolean mContextualOnly;
     private java.util.Set<String> mPinnedCommands;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean contextualOnly, java.util.Set<String> pinnedCommands, boolean showMoveButton) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean contextualOnly, java.util.Set<String> pinnedCommands, boolean showMoveButton) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
         args.putBoolean("isButton", isButton);
-        args.putBoolean("isContextual", isContextual);
         args.putBoolean("isCommandPalette", isCommandPalette);
         args.putBoolean("isHorizontal", isHorizontal);
         args.putInt("opacity", opacity);
@@ -78,7 +76,6 @@ public class WidgetPropertiesFragment extends DialogFragment {
         if (getArguments() != null) {
             mCurrentLabel = getArguments().getString("label");
             mIsButton = getArguments().getBoolean("isButton");
-            mIsContextual = getArguments().getBoolean("isContextual");
             mIsCommandPalette = getArguments().getBoolean("isCommandPalette");
             mIsHorizontal = getArguments().getBoolean("isHorizontal");
             mOpacity = getArguments().getInt("opacity", 191);
@@ -135,7 +132,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         View columnsLayout = view.findViewById(R.id.columns_layout);
 
         MaterialSwitch switchOrientation = view.findViewById(R.id.switch_orientation);
-        if (mIsContextual || mIsCommandPalette) {
+        if (mIsCommandPalette) {
             orientationLayout.setVisibility(View.VISIBLE);
             switchOrientation.setChecked(mIsHorizontal);
             switchOrientation.setOnCheckedChangeListener((buttonView, isChecked) -> {

@@ -191,26 +191,6 @@ public class WidgetLayout extends FrameLayout {
             ControlWidget w = new ControlWidget(getContext(), btn, "palette");
             w.getWidgetData().label = data.label;
             return w;
-        } else if ("contextual".equals(data.type)) {
-            ContextualActionBarView contextualView = new ContextualActionBarView(getContext());
-            contextualView.setOrientation(data.horizontal);
-            if (mNHState != null) {
-                contextualView.setOnActionSelectedListener(cmd -> {
-                    if (!mNHState.isEditMode()) {
-                        if (cmd.getCommand().startsWith("#")) {
-                            mNHState.sendStringCmd(cmd.getCommand() + "\n");
-                        } else {
-                            mNHState.sendKeyCmd(cmd.getCommand().charAt(0));
-                        }
-                    }
-                });
-                // Initial update (will be GONE if no actions)
-                contextualView.updateActions(null);
-            }
-            ControlWidget w = new ControlWidget(getContext(), contextualView, "contextual");
-            w.getWidgetData().horizontal = data.horizontal;
-            w.setPlaceholderText("Contextual Bar");
-            return w;
         } else if ("status".equals(data.type)) {
             if (mNHState != null && mNHState.getStatusWindow() != null) {
                 ControlWidget w = new StatusWidget(getContext(), mNHState.getStatusWindow());

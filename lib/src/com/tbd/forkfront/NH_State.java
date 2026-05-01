@@ -875,16 +875,14 @@ public class NH_State
 		if (mActivity == null) return;
 		ControlWidget.WidgetData data = widget.getWidgetData();
 		boolean isButton = "button".equals(data.type);
-		boolean isContextual = "contextual".equals(data.type);
 		boolean isCommandPalette = "command_palette".equals(data.type);
 		boolean isText = "status".equals(data.type) || "message".equals(data.type);
 		boolean showFontSize = isText || "button".equals(data.type) || "dpad".equals(data.type) || 
-				"command_palette".equals(data.type) || "palette".equals(data.type) || 
-				"contextual".equals(data.type);
+				"command_palette".equals(data.type) || "palette".equals(data.type);
 		boolean showMoveButton = mPrimaryWidgetLayout != null && mSecondaryWidgetLayout != null;
 
 		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(
-				data.label, isButton, isContextual, isCommandPalette, data.horizontal,
+				data.label, isButton, isCommandPalette, data.horizontal,
 				data.opacity, showFontSize, data.fontSize, data.rows, data.columns,
 				data.category, data.contextualOnly, data.pinnedCommands, showMoveButton);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
@@ -900,9 +898,7 @@ public class NH_State
 			@Override
 			public void onOrientationChanged(boolean horizontal) {
 				data.horizontal = horizontal;
-				if (isContextual && widget.getContentView() instanceof ContextualActionBarView) {
-					((ContextualActionBarView) widget.getContentView()).setOrientation(horizontal);
-				} else if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
 					CmdRegistry.Category category = null;
 					if (data.category != null && !data.category.isEmpty()) {
 						try {
@@ -1118,29 +1114,6 @@ public class NH_State
 		}
 
 		mCurrentContextualActions = actions;
-
-		if (mPrimaryWidgetLayout != null) {
-			for (int i = 0; i < mPrimaryWidgetLayout.getChildCount(); i++) {
-				View child = mPrimaryWidgetLayout.getChildAt(i);
-				if (child instanceof ControlWidget) {
-					ControlWidget w = (ControlWidget) child;
-					if ("contextual".equals(w.getWidgetData().type) && w.getContentView() instanceof ContextualActionBarView) {
-						((ContextualActionBarView) w.getContentView()).updateActions(actions);
-					}
-				}
-			}
-		}
-		if (mSecondaryWidgetLayout != null) {
-			for (int i = 0; i < mSecondaryWidgetLayout.getChildCount(); i++) {
-				View child = mSecondaryWidgetLayout.getChildAt(i);
-				if (child instanceof ControlWidget) {
-					ControlWidget w = (ControlWidget) child;
-					if ("contextual".equals(w.getWidgetData().type) && w.getContentView() instanceof ContextualActionBarView) {
-						((ContextualActionBarView) w.getContentView()).updateActions(actions);
-					}
-				}
-			}
-		}
 
 		for (GameContextListener listener : mContextListeners) {
 			listener.onContextualActionsChanged(actions);
