@@ -7,6 +7,7 @@
 		android:key="settings">
 		<androidx.preference.PreferenceScreen
 			android:title="Tileset"
+			android:key="tileset_screen"
 			android:summary="The visual style of the game world">
 
 			<com.tbd.forkfront.TilesetPreference
@@ -94,6 +95,7 @@
 
 		<androidx.preference.PreferenceScreen
 			android:title="Directional overlay"
+			android:key="directional_overlay_screen"
 			android:summary="Configure the directional overlay">
 
 			<androidx.preference.CheckBoxPreference
@@ -160,6 +162,7 @@
 		
 		<androidx.preference.PreferenceScreen
 			android:title="Command panels"
+			android:key="command_panels_screen"
 			android:summary="Configure layout and content of the command panels"
 			android:orderingFromXml="true">
 
@@ -703,6 +706,7 @@
 
 		<androidx.preference.PreferenceScreen
 			android:title="Credits"
+			android:key="credits_screen"
 			android:summary="Contributors of this port">
 
 			<com.tbd.forkfront.CreditsPreference
