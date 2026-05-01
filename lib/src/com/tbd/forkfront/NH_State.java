@@ -3,6 +3,7 @@ package com.tbd.forkfront;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import android.annotation.TargetApi;
 import android.app.Application;
@@ -50,6 +51,8 @@ public class NH_State
 	private int mNearbyMonstersMask;
 	private String mDeviceKey;
 	private com.tbd.forkfront.gamepad.UiContextArbiter mUiContextArbiter;
+	private final CopyOnWriteArrayList<GameContextListener> mContextListeners = new CopyOnWriteArrayList<>();
+	private List<CmdRegistry.CmdInfo> mCurrentContextualActions = new ArrayList<>();
 
 	// Single UiCapture that routes to whichever in-game window is currently active.
 	// Registered with GamepadDispatcher once at startup; stays registered for the activity lifetime.
@@ -115,6 +118,19 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void setUiContextArbiter(com.tbd.forkfront.gamepad.UiContextArbiter arbiter) {
 		mUiContextArbiter = arbiter;
+	}
+
+	public void registerGameContextListener(GameContextListener listener) {
+		mContextListeners.add(listener);
+		listener.onContextualActionsChanged(mCurrentContextualActions);
+	}
+
+	public void unregisterGameContextListener(GameContextListener listener) {
+		mContextListeners.remove(listener);
+	}
+
+	public List<CmdRegistry.CmdInfo> getCurrentContextualActions() {
+		return new ArrayList<>(mCurrentContextualActions);
 	}
 
 	public void pushContext(com.tbd.forkfront.gamepad.UiContext ctx) {
@@ -807,7 +823,8 @@ public class NH_State
 		paletteData.horizontal = false; // Vertical scrolling by default
 
 		CommandPaletteWidget paletteWidget = new CommandPaletteWidget(activity, this,
-				paletteData.rows, paletteData.columns, null, paletteData.horizontal);
+				paletteData.rows, paletteData.columns, null, paletteData.horizontal,
+				paletteData.contextualOnly);
 		paletteWidget.setWidgetData(paletteData);
 		layout.addWidget(paletteWidget);
 	}
@@ -868,7 +885,8 @@ public class NH_State
 
 		WidgetPropertiesFragment fragment = WidgetPropertiesFragment.newInstance(
 				data.label, isButton, isContextual, isCommandPalette, data.horizontal,
-				data.opacity, showFontSize, data.fontSize, data.rows, data.columns, data.category, showMoveButton);
+				data.opacity, showFontSize, data.fontSize, data.rows, data.columns,
+				data.category, data.contextualOnly, showMoveButton);
 		fragment.setOnPropertiesListener(new WidgetPropertiesFragment.OnPropertiesListener() {
 			@Override
 			public void onLabelChanged(String newLabel) {
@@ -893,7 +911,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal, data.contextualOnly);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -924,7 +942,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal);
+					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal, data.contextualOnly);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -941,7 +959,7 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal, data.contextualOnly);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -958,7 +976,24 @@ public class NH_State
 							// Invalid category, use null
 						}
 					}
-					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal);
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly);
+				}
+				((WidgetLayout) widget.getParent()).saveLayout();
+			}
+
+			@Override
+			public void onContextualOnlyChanged(boolean contextualOnly) {
+				data.contextualOnly = contextualOnly;
+				if (isCommandPalette && widget instanceof CommandPaletteWidget) {
+					CmdRegistry.Category cat = null;
+					if (data.category != null && !data.category.isEmpty()) {
+						try {
+							cat = CmdRegistry.Category.valueOf(data.category);
+						} catch (IllegalArgumentException e) {
+							// Invalid category, use null
+						}
+					}
+					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, contextualOnly);
 				}
 				((WidgetLayout) widget.getParent()).saveLayout();
 			}
@@ -1064,7 +1099,9 @@ public class NH_State
 				actions.add(info);
 			}
 		}
-		
+
+		mCurrentContextualActions = actions;
+
 		if (mPrimaryWidgetLayout != null) {
 			for (int i = 0; i < mPrimaryWidgetLayout.getChildCount(); i++) {
 				View child = mPrimaryWidgetLayout.getChildAt(i);
@@ -1086,6 +1123,10 @@ public class NH_State
 					}
 				}
 			}
+		}
+
+		for (GameContextListener listener : mContextListeners) {
+			listener.onContextualActionsChanged(actions);
 		}
 	}
 	// ____________________________________________________________________________________

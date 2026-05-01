@@ -60,6 +60,7 @@ public class ControlWidget extends FrameLayout {
         public int rows = 3; // For command_palette widget
         public int columns = 3; // For command_palette widget
         public String category = null; // For command_palette widget (null = all categories)
+        public boolean contextualOnly = false; // For command_palette widget
     }
 
     private WidgetData mData = new WidgetData();

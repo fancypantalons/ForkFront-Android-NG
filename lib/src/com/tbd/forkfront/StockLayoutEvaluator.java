@@ -179,6 +179,7 @@ public class StockLayoutEvaluator {
             if (data.category != null && data.category.isEmpty()) {
                 data.category = null;
             }
+            data.contextualOnly = props.optBoolean("contextualOnly", false);
         }
         
         return data;

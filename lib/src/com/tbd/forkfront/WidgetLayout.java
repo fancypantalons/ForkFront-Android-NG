@@ -137,6 +137,7 @@ public class WidgetLayout extends FrameLayout {
             editor.putInt(prefix + "widget_" + i + "_rows", data.rows);
             editor.putInt(prefix + "widget_" + i + "_columns", data.columns);
             editor.putString(prefix + "widget_" + i + "_category", data.category);
+            editor.putBoolean(prefix + "widget_" + i + "_contextual_only", data.contextualOnly);
         }
         editor.apply();
     }
@@ -238,7 +239,8 @@ public class WidgetLayout extends FrameLayout {
                     }
                 }
                 ControlWidget w = new CommandPaletteWidget(getContext(), mNHState,
-                        data.rows, data.columns, category, data.horizontal);
+                        data.rows, data.columns, category, data.horizontal,
+                        data.contextualOnly);
                 w.setPlaceholderText("Command Palette");
                 return w;
             }
@@ -274,6 +276,7 @@ public class WidgetLayout extends FrameLayout {
             data.rows = prefs.getInt(prefix + "widget_" + i + "_rows", 3);
             data.columns = prefs.getInt(prefix + "widget_" + i + "_columns", 3);
             data.category = prefs.getString(prefix + "widget_" + i + "_category", null);
+            data.contextualOnly = prefs.getBoolean(prefix + "widget_" + i + "_contextual_only", false);
             
             ControlWidget widget = createWidget(data);
             if (widget != null) {
@@ -368,6 +371,7 @@ public class WidgetLayout extends FrameLayout {
             editor.remove(prefix + "widget_" + i + "_rows");
             editor.remove(prefix + "widget_" + i + "_columns");
             editor.remove(prefix + "widget_" + i + "_category");
+            editor.remove(prefix + "widget_" + i + "_contextual_only");
         }
         editor.remove(prefix + "widget_count");
         editor.apply();

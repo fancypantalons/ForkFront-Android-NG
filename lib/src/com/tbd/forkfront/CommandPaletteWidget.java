@@ -18,7 +18,7 @@ import java.util.List;
  * A widget that displays a scrollable grid of command buttons.
  * Can be configured with rows, columns, category filter, and orientation.
  */
-public class CommandPaletteWidget extends ControlWidget {
+public class CommandPaletteWidget extends ControlWidget implements GameContextListener {
 
     private GridLayout mGridLayout;
     private View mScrollContainer;
@@ -27,15 +27,18 @@ public class CommandPaletteWidget extends ControlWidget {
     private int mColumns;
     private CmdRegistry.Category mCategory;
     private boolean mHorizontal;
+    private boolean mContextualOnly;
 
     public CommandPaletteWidget(Context context, NH_State nhState, int rows, int columns,
-                                CmdRegistry.Category category, boolean horizontal) {
+                                CmdRegistry.Category category, boolean horizontal,
+                                boolean contextualOnly) {
         super(context, createScrollContainer(context, horizontal), "command_palette");
         mNHState = nhState;
         mRows = rows;
         mColumns = columns;
         mCategory = category;
         mHorizontal = horizontal;
+        mContextualOnly = contextualOnly;
 
         // Extract the grid layout from the scroll container
         if (horizontal) {
@@ -86,6 +89,12 @@ public class CommandPaletteWidget extends ControlWidget {
             commands = new ArrayList<>(CmdRegistry.getByCategory(mCategory));
         } else {
             commands = new ArrayList<>(CmdRegistry.getAllSorted());
+        }
+
+        // Further filter by context-relevance if enabled
+        if (mContextualOnly && mNHState != null) {
+            List<CmdRegistry.CmdInfo> contextual = mNHState.getCurrentContextualActions();
+            commands.retainAll(contextual);
         }
 
         // Sort alphabetically by display name
@@ -167,17 +176,22 @@ public class CommandPaletteWidget extends ControlWidget {
         return btn;
     }
 
-    public void setConfiguration(int rows, int columns, CmdRegistry.Category category, boolean horizontal) {
+    public void setConfiguration(int rows, int columns, CmdRegistry.Category category,
+                                 boolean horizontal, boolean contextualOnly) {
         boolean orientationChanged = (mHorizontal != horizontal);
+        boolean filterChanged = (mContextualOnly != contextualOnly);
 
         mRows = rows;
         mColumns = columns;
         mCategory = category;
         mHorizontal = horizontal;
+        mContextualOnly = contextualOnly;
 
         if (orientationChanged) {
             // Orientation changed - need to recreate scroll container
             recreateScrollContainer();
+        } else if (filterChanged) {
+            populateCommands();
         } else {
             // Just repopulate with new settings
             populateCommands();
@@ -224,6 +238,29 @@ public class CommandPaletteWidget extends ControlWidget {
         populateCommands();
     }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (mNHState != null) {
+            mNHState.registerGameContextListener(this);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (mNHState != null) {
+            mNHState.unregisterGameContextListener(this);
+        }
+    }
+
+    @Override
+    public void onContextualActionsChanged(List<CmdRegistry.CmdInfo> actions) {
+        if (mContextualOnly) {
+            populateCommands();
+        }
+    }
+
     public int getRows() {
         return mRows;
     }
@@ -238,5 +275,9 @@ public class CommandPaletteWidget extends ControlWidget {
 
     public boolean isHorizontal() {
         return mHorizontal;
+    }
+
+    public boolean isContextualOnly() {
+        return mContextualOnly;
     }
 }

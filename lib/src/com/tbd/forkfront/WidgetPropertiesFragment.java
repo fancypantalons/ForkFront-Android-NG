@@ -24,6 +24,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         void onRowsChanged(int rows);
         void onColumnsChanged(int columns);
         void onCategoryChanged(String category);
+        void onContextualOnlyChanged(boolean contextualOnly);
         void onMoveToOtherScreen();
         void onDelete();
     }
@@ -41,8 +42,9 @@ public class WidgetPropertiesFragment extends DialogFragment {
     private int mRows;
     private int mColumns;
     private String mCategory;
+    private boolean mContextualOnly;
 
-    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean showMoveButton) {
+    public static WidgetPropertiesFragment newInstance(String currentLabel, boolean isButton, boolean isContextual, boolean isCommandPalette, boolean isHorizontal, int opacity, boolean showFontSize, int fontSize, int rows, int columns, String category, boolean contextualOnly, boolean showMoveButton) {
         WidgetPropertiesFragment f = new WidgetPropertiesFragment();
         Bundle args = new Bundle();
         args.putString("label", currentLabel);
@@ -56,6 +58,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
         args.putInt("rows", rows);
         args.putInt("columns", columns);
         args.putString("category", category);
+        args.putBoolean("contextualOnly", contextualOnly);
         args.putBoolean("showMoveButton", showMoveButton);
         f.setArguments(args);
         return f;
@@ -80,6 +83,7 @@ public class WidgetPropertiesFragment extends DialogFragment {
             mRows = getArguments().getInt("rows", 3);
             mColumns = getArguments().getInt("columns", 3);
             mCategory = getArguments().getString("category");
+            mContextualOnly = getArguments().getBoolean("contextualOnly", false);
             mShowMoveButton = getArguments().getBoolean("showMoveButton", false);
         }
     }
@@ -260,10 +264,23 @@ public class WidgetPropertiesFragment extends DialogFragment {
                     }
                 }
             });
+
+            // Context-relevant only switch
+            View contextualOnlyLayout = view.findViewById(R.id.contextual_only_layout);
+            contextualOnlyLayout.setVisibility(View.VISIBLE);
+            MaterialSwitch switchContextualOnly = view.findViewById(R.id.switch_contextual_only);
+            switchContextualOnly.setChecked(mContextualOnly);
+            switchContextualOnly.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (mListener != null) {
+                    mListener.onContextualOnlyChanged(isChecked);
+                }
+            });
         } else {
             rowsLayout.setVisibility(View.GONE);
             columnsLayout.setVisibility(View.GONE);
             categoryLayout.setVisibility(View.GONE);
+            View contextualOnlyLayout = view.findViewById(R.id.contextual_only_layout);
+            contextualOnlyLayout.setVisibility(View.GONE);
         }
 
         View moveBtn = view.findViewById(R.id.btn_move_to_other_screen);
