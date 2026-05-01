@@ -25,10 +25,12 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.ViewModelProvider;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
@@ -37,10 +39,12 @@ import android.view.*;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.MenuItem;
 import android.widget.TextView;
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.tbd.forkfront.Input.Modifier;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,6 +53,7 @@ public class ForkFront extends AppCompatActivity
 {
 	private NetHackViewModel mViewModel;
 	private boolean mBackTracking;
+	private DrawerLayout mDrawerLayout;
 
 	private final int REQUEST_EXTERNAL_STORAGE = 43;
 
@@ -102,6 +107,12 @@ public class ForkFront extends AppCompatActivity
 			// Set to false for dark theme (light icons on dark bars)
 			insetsController.setAppearanceLightStatusBars(false);
 			insetsController.setAppearanceLightNavigationBars(false);
+
+			// Sticky immersive: hide both bars; swipe from a hidden bar's edge
+			// briefly reveals it, then it auto-hides again.
+			insetsController.hide(WindowInsetsCompat.Type.systemBars());
+			insetsController.setSystemBarsBehavior(
+				WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 		}
 
 		if(DEBUG.isOn())
@@ -125,6 +136,27 @@ public class ForkFront extends AppCompatActivity
 		// takeKeyEvents(true);
 
 		setContentView(R.layout.mainwindow);
+
+		// Set up DrawerLayout and NavigationView
+		mDrawerLayout = findViewById(R.id.drawer_layout);
+		NavigationView navigationView = findViewById(R.id.nav_view);
+		if (navigationView != null) {
+			navigationView.setNavigationItemSelectedListener(item -> {
+				handleNavigationItemSelected(item.getItemId());
+				mDrawerLayout.closeDrawers();
+				return true;
+			});
+		}
+
+		// Claim the right edge for our drawer gesture so the system's back gesture
+		// (and gesture nav areas in landscape) don't swallow it.
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && mDrawerLayout != null) {
+			int edgePx = (int)(32 * getResources().getDisplayMetrics().density);
+			mDrawerLayout.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+				Rect rect = new Rect(v.getWidth() - edgePx, 0, v.getWidth(), v.getHeight());
+				v.setSystemGestureExclusionRects(Collections.singletonList(rect));
+			});
+		}
 
 		// Apply window insets to avoid system bars cutting off UI elements
 		View rootView = findViewById(R.id.base_frame);
@@ -531,5 +563,69 @@ public class ForkFront extends AppCompatActivity
 			return true;
 		}
 		return super.onKeyUp(keyCode, event);
+	}
+
+	// ____________________________________________________________________________________
+	public void setDrawerEditMode(boolean editMode)
+	{
+		NavigationView navigationView = findViewById(R.id.nav_view);
+		if (navigationView == null) return;
+		navigationView.getMenu().clear();
+		navigationView.inflateMenu(editMode ? R.menu.drawer_menu_edit : R.menu.drawer_menu);
+	}
+
+	// ____________________________________________________________________________________
+	private void handleNavigationItemSelected(int itemId)
+	{
+		NH_State state = mViewModel != null ? mViewModel.getState() : null;
+		if (state == null) return;
+
+		if (itemId == R.id.nav_settings) {
+			launchSettings();
+		} else if (itemId == R.id.nav_edit_overlay) {
+			state.setEditMode(true);
+		} else if (itemId == R.id.nav_save_game) {
+			state.sendKeyCmd('S');
+		} else if (itemId == R.id.nav_quit) {
+			showQuitConfirmation();
+		} else if (itemId == R.id.nav_quit_no_save) {
+			showQuitNoSaveConfirmation();
+		} else if (itemId == R.id.nav_add_widget) {
+			state.showAddWidgetDialog(this);
+		} else if (itemId == R.id.nav_save_changes) {
+			state.saveLayoutAndExitEditMode();
+		} else if (itemId == R.id.nav_discard_changes) {
+			state.discardChangesAndExitEditMode();
+		}
+	}
+
+	// ____________________________________________________________________________________
+	private void showQuitConfirmation()
+	{
+		new androidx.appcompat.app.AlertDialog.Builder(this)
+			.setTitle("Save and Quit")
+			.setMessage("Save your game and quit?")
+			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+				if (mViewModel != null && mViewModel.getState() != null) {
+					mViewModel.getState().saveAndQuit();
+				}
+			})
+			.setNegativeButton(android.R.string.cancel, null)
+			.show();
+	}
+
+	// ____________________________________________________________________________________
+	private void showQuitNoSaveConfirmation()
+	{
+		new androidx.appcompat.app.AlertDialog.Builder(this)
+			.setTitle("Quit without Saving")
+			.setMessage("Are you sure? All progress since last save will be lost!")
+			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+				if (mViewModel != null && mViewModel.getState() != null) {
+					mViewModel.getState().sendStringCmd("#quit\n");
+				}
+			})
+			.setNegativeButton(android.R.string.cancel, null)
+			.show();
 	}
 }
