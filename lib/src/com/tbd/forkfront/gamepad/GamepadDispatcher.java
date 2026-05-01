@@ -218,6 +218,7 @@ public class GamepadDispatcher {
     public boolean handleKeyEvent(KeyEvent ev, UiContext ctx) {
         if (!mOptions.enabled) return false;
 
+        android.util.Log.d("NH_Gamepad", "handleKeyEvent: " + ev.getKeyCode() + " ctx: " + ctx);
         if (ctx == UiContext.OTHER) return false;
         if (ctx == UiContext.BINDING_CAPTURE) return false; // dialog reads raw events
 
@@ -520,9 +521,13 @@ public class GamepadDispatcher {
         if (ev.getAction() != KeyEvent.ACTION_DOWN) return false;
 
         int keycode = ev.getKeyCode();
+        android.util.Log.d("NH_Gamepad", "baselineFallback: " + keycode);
 
         // D-pad: pass through — returning false lets Android focus-search handle it.
-        if (isDpadKeycode(keycode)) return false;
+        if (isDpadKeycode(keycode)) {
+            android.util.Log.d("NH_Gamepad", "D-pad key in baselineFallback - returning false");
+            return false;
+        }
 
         SyntheticDispatcher sd = mSyntheticDispatcher;
         if (sd == null) return false;

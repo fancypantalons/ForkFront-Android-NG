@@ -55,27 +55,16 @@ public class NH_GetLine
 		mTitle = title;
 		mMaxChars = nMaxChars;
 		mHistory = loadHistory();
-		mUI = new UI(context, true, true, false, getInitText());
+		mUI = new UI(context, true, true, getInitText());
 		mState.pushContext(UiContext.GETLINE);
 	}
 	
-	// ____________________________________________________________________________________
-	public void showWhoAreYou(AppCompatActivity context, final int nMaxChars, List<String> history)
-	{
-		mContext = context;
-		mTitle = "Who are you?";
-		mMaxChars = nMaxChars;
-		mHistory = history;
-		mUI = new UI(context, false, false, true, getInitText());
-		mState.pushContext(UiContext.GETLINE);
-	}
-
 	// ____________________________________________________________________________________
 	public void setContext(AppCompatActivity context)
 	{
 		mContext = context;
 		if(mUI != null)
-			mUI = new UI(context, mUI.mSaveHistory, mUI.mSaveHistory, mUI.mShowWizard, getInitText());
+			mUI = new UI(context, mUI.mSaveHistory, mUI.mSaveHistory, getInitText());
 	}
 
 	private String getInitText()
@@ -196,20 +185,17 @@ public class NH_GetLine
 			return false;
 		}
 		private ListView mHistoryList;
-		private CheckBox mWizardCheck;
 		//private NH_Dialog mDialog;
 		private View mRoot;
 		private ArrayAdapter<String> mAdapter;
 		public boolean mSaveHistory;
-		public boolean mShowWizard;
 
 		// ____________________________________________________________________________________
-		public UI(AppCompatActivity context, boolean saveHistory, boolean showKeyboard, boolean showWizard, String initText)
+		public UI(AppCompatActivity context, boolean saveHistory, boolean showKeyboard, String initText)
 		{
 			mContext = context;
 			
 			mSaveHistory = saveHistory;
-			mShowWizard = showWizard;
 
 			mRoot = Util.inflate(context, R.layout.dialog_getline, R.id.dlg_frame);
 			mInput = (EditText)mRoot.findViewById(R.id.input);
@@ -231,26 +217,6 @@ public class NH_GetLine
 					return false;
 				}
 			});
-			mInput.addTextChangedListener(new TextWatcher() {
-				
-				@Override
-				public void onTextChanged(CharSequence s, int start, int before, int count) {
-					if(mShowWizard) {
-						mWizardCheck.setEnabled(true);
-						String text = mInput.getText().toString();
-						for(String h : mHistory) {
-							if( h.equals( text ) ) {
-								mWizardCheck.setEnabled(false);
-								break;
-							}
-						}
-					}
-				}
-				@Override
-				public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-				@Override
-				public void afterTextChanged(Editable s) { }
-			});
 
 			((TextView)mRoot.findViewById(R.id.title)).setText(mTitle);
 
@@ -268,9 +234,6 @@ public class NH_GetLine
 			
 			mHistoryList = (ListView)mRoot.findViewById(R.id.history_list);
 			
-			mWizardCheck = (CheckBox)mRoot.findViewById(R.id.wizard);
-			mWizardCheck.setVisibility(showWizard ? View.VISIBLE : View.GONE);
-			
 			mAdapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, mHistory);
 			mHistoryList.setAdapter(mAdapter);
 			
@@ -284,7 +247,6 @@ public class NH_GetLine
 					mInput.setText(mAdapter.getItem(position));
 					mInput.selectAll();
 					mHistoryList.setVisibility(View.GONE);
-					mWizardCheck.setEnabled(false);
 				}
 			});
 
@@ -383,10 +345,7 @@ public class NH_GetLine
 			if(mRoot != null)
 			{
 				String text = mInput.getText().toString();
-				String app = "";
-				if(mShowWizard && text.length() > 0)
-					app = mWizardCheck.isEnabled() && mWizardCheck.isChecked() ? "1" : "0";
-				mIO.sendLineCmd(text + app);
+				mIO.sendLineCmd(text);
 				if(mSaveHistory)
 					storeHistory(mHistory, text);
 				mState.popContext(UiContext.GETLINE);

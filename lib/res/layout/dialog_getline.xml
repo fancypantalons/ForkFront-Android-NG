@@ -79,12 +79,6 @@
                         android:layout_width="match_parent"
                         android:layout_height="@dimen/padding_small"/>
 
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/wizard"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Wizard mode" />
-        
                 <LinearLayout
                     style="?attr/buttonBarStyle"
                     android:layout_width="match_parent"
