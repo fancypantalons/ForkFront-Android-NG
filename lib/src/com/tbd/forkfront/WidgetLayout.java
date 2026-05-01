@@ -19,6 +19,9 @@ import java.util.List;
  */
 public class WidgetLayout extends FrameLayout {
 
+    private static final String COMMITTED_PREFIX = "layouts/";
+    private static final String DRAFT_PREFIX = "draft_layouts/";
+
     private boolean mEditMode = false;
     private final List<ControlWidget> mWidgets = new ArrayList<>();
     private NH_State mNHState;
@@ -94,7 +97,9 @@ public class WidgetLayout extends FrameLayout {
             widget.setOnWidgetChangeListener(new ControlWidget.OnWidgetChangeListener() {
                 @Override
                 public void onWidgetChanged(ControlWidget w) {
-                    // Manual save only
+                    if (mEditMode) {
+                        saveDraftLayout();
+                    }
                 }
             });
 
@@ -114,12 +119,32 @@ public class WidgetLayout extends FrameLayout {
         removeView(widget);
     }
 
+    private String getLayoutKey() {
+        return LayoutConfiguration.getLayoutKey(getContext(), mScreenId);
+    }
+
+    private String buildPrefix(String basePrefix, String layoutKey) {
+        return basePrefix + mScreenId + "/" + layoutKey + "/";
+    }
+
+    private android.content.SharedPreferences getPrefs() {
+        return getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
+    }
+
     public void saveLayout() {
-        String layoutKey = LayoutConfiguration.getLayoutKey(getContext(), mScreenId);
-        android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
+        saveLayoutToPrefs(COMMITTED_PREFIX);
+    }
+
+    public void saveDraftLayout() {
+        saveLayoutToPrefs(DRAFT_PREFIX);
+    }
+
+    private void saveLayoutToPrefs(String basePrefix) {
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
         android.content.SharedPreferences.Editor editor = prefs.edit();
         
-        String prefix = "layouts/" + mScreenId + "/" + layoutKey + "/";
+        String prefix = buildPrefix(basePrefix, layoutKey);
         
         editor.putInt(prefix + "widget_count", mWidgets.size());
         for (int i = 0; i < mWidgets.size(); i++) {
@@ -145,17 +170,154 @@ public class WidgetLayout extends FrameLayout {
     }
 
     public void loadLayout() {
-        String layoutKey = LayoutConfiguration.getLayoutKey(getContext(), mScreenId);
-        android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
 
-        String userLayoutKey = "layouts/" + mScreenId + "/" + layoutKey + "/widget_count";
+        // In edit mode, prefer draft if it exists
+        if (mEditMode) {
+            String draftKey = buildPrefix(DRAFT_PREFIX, layoutKey) + "widget_count";
+            if (prefs.contains(draftKey)) {
+                loadUserLayout(layoutKey, prefs, DRAFT_PREFIX);
+                return;
+            }
+        }
+
+        String userLayoutKey = buildPrefix(COMMITTED_PREFIX, layoutKey) + "widget_count";
 
         if (prefs.contains(userLayoutKey)) {
-            loadUserLayout(layoutKey, prefs);
+            loadUserLayout(layoutKey, prefs, COMMITTED_PREFIX);
         } else {
             loadStockLayout(layoutKey);
         }
     }
+
+    public void loadCommittedLayout() {
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
+
+        String userLayoutKey = buildPrefix(COMMITTED_PREFIX, layoutKey) + "widget_count";
+
+        if (prefs.contains(userLayoutKey)) {
+            loadUserLayout(layoutKey, prefs, COMMITTED_PREFIX);
+        } else {
+            loadStockLayout(layoutKey);
+        }
+    }
+
+    public void enterEditMode() {
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
+
+        String draftCountKey = buildPrefix(DRAFT_PREFIX, layoutKey) + "widget_count";
+        if (prefs.contains(draftCountKey)) {
+            // Draft already exists from a previous edit session; preserve it
+            return;
+        }
+
+        // No draft yet: snapshot committed layout into draft
+        String committedPrefix = buildPrefix(COMMITTED_PREFIX, layoutKey);
+        String draftPrefix = buildPrefix(DRAFT_PREFIX, layoutKey);
+        int count = prefs.getInt(committedPrefix + "widget_count", 0);
+
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(draftPrefix + "widget_count", count);
+        for (int i = 0; i < count; i++) {
+            copyPref(editor, prefs, committedPrefix, draftPrefix, i);
+        }
+        editor.apply();
+    }
+
+    public void commitDraftToLayout() {
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
+
+        String draftPrefix = buildPrefix(DRAFT_PREFIX, layoutKey);
+        String committedPrefix = buildPrefix(COMMITTED_PREFIX, layoutKey);
+        int count = prefs.getInt(draftPrefix + "widget_count", 0);
+
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(committedPrefix + "widget_count", count);
+        for (int i = 0; i < count; i++) {
+            copyPref(editor, prefs, draftPrefix, committedPrefix, i);
+        }
+        // Clear draft
+        clearDraftInternal(editor, prefs, draftPrefix, count);
+        editor.apply();
+    }
+
+    public void clearDraft() {
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
+
+        String draftPrefix = buildPrefix(DRAFT_PREFIX, layoutKey);
+        int count = prefs.getInt(draftPrefix + "widget_count", 0);
+
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        clearDraftInternal(editor, prefs, draftPrefix, count);
+        editor.apply();
+    }
+
+    private void copyPref(android.content.SharedPreferences.Editor editor,
+                          android.content.SharedPreferences prefs,
+                          String fromPrefix, String toPrefix, int index) {
+        String suffix = "widget_" + index + "_";
+        editor.putString(toPrefix + suffix + "type",
+                prefs.getString(fromPrefix + suffix + "type", ""));
+        editor.putString(toPrefix + suffix + "label",
+                prefs.getString(fromPrefix + suffix + "label", ""));
+        editor.putString(toPrefix + suffix + "command",
+                prefs.getString(fromPrefix + suffix + "command", ""));
+        editor.putBoolean(toPrefix + suffix + "horizontal",
+                prefs.getBoolean(fromPrefix + suffix + "horizontal", true));
+        editor.putFloat(toPrefix + suffix + "x",
+                prefs.getFloat(fromPrefix + suffix + "x", 0));
+        editor.putFloat(toPrefix + suffix + "y",
+                prefs.getFloat(fromPrefix + suffix + "y", 0));
+        editor.putInt(toPrefix + suffix + "w",
+                prefs.getInt(fromPrefix + suffix + "w", 200));
+        editor.putInt(toPrefix + suffix + "h",
+                prefs.getInt(fromPrefix + suffix + "h", 200));
+        editor.putInt(toPrefix + suffix + "opacity",
+                prefs.getInt(fromPrefix + suffix + "opacity", 191));
+        editor.putInt(toPrefix + suffix + "font_size",
+                prefs.getInt(fromPrefix + suffix + "font_size", 15));
+        editor.putInt(toPrefix + suffix + "rows",
+                prefs.getInt(fromPrefix + suffix + "rows", 3));
+        editor.putInt(toPrefix + suffix + "columns",
+                prefs.getInt(fromPrefix + suffix + "columns", 3));
+        editor.putString(toPrefix + suffix + "category",
+                prefs.getString(fromPrefix + suffix + "category", null));
+        editor.putBoolean(toPrefix + suffix + "contextual_only",
+                prefs.getBoolean(fromPrefix + suffix + "contextual_only", false));
+        java.util.Set<String> pinned = prefs.getStringSet(
+                fromPrefix + suffix + "pinned_commands", null);
+        editor.putStringSet(toPrefix + suffix + "pinned_commands", pinned);
+    }
+
+    private void clearDraftInternal(android.content.SharedPreferences.Editor editor,
+                                    android.content.SharedPreferences prefs,
+                                    String draftPrefix, int count) {
+        for (int i = 0; i < count; i++) {
+            String suffix = "widget_" + i + "_";
+            editor.remove(draftPrefix + suffix + "type");
+            editor.remove(draftPrefix + suffix + "label");
+            editor.remove(draftPrefix + suffix + "command");
+            editor.remove(draftPrefix + suffix + "horizontal");
+            editor.remove(draftPrefix + suffix + "x");
+            editor.remove(draftPrefix + suffix + "y");
+            editor.remove(draftPrefix + suffix + "w");
+            editor.remove(draftPrefix + suffix + "h");
+            editor.remove(draftPrefix + suffix + "opacity");
+            editor.remove(draftPrefix + suffix + "font_size");
+            editor.remove(draftPrefix + suffix + "rows");
+            editor.remove(draftPrefix + suffix + "columns");
+            editor.remove(draftPrefix + suffix + "category");
+            editor.remove(draftPrefix + suffix + "contextual_only");
+            editor.remove(draftPrefix + suffix + "pinned_commands");
+        }
+        editor.remove(draftPrefix + "widget_count");
+    }
+
     ControlWidget createWidget(ControlWidget.WidgetData data) {
         if ("dpad".equals(data.type)) {
             DirectionalPadView dpadView = new DirectionalPadView(getContext());
@@ -266,14 +428,15 @@ public class WidgetLayout extends FrameLayout {
     /**
      * Load user's customized layout from SharedPreferences.
      */
-    private void loadUserLayout(String layoutKey, android.content.SharedPreferences prefs) {
+    private void loadUserLayout(String layoutKey, android.content.SharedPreferences prefs,
+                                String basePrefix) {
         // Clear existing widgets
         for (ControlWidget w : mWidgets) {
             removeView(w);
         }
         mWidgets.clear();
         
-        String prefix = "layouts/" + mScreenId + "/" + layoutKey + "/";
+        String prefix = buildPrefix(basePrefix, layoutKey);
         int count = prefs.getInt(prefix + "widget_count", 0);
         
         for (int i = 0; i < count; i++) {
@@ -349,9 +512,9 @@ public class WidgetLayout extends FrameLayout {
      * Called by NH_State when configuration changes, not by Android framework.
      */
     public void reloadForNewOrientation(android.content.res.Configuration newConfig) {
-        // Save current layout if in edit mode (preserve unsaved changes)
+        // Save current layout if in edit mode (preserve unsaved changes to draft)
         if (mEditMode) {
-            saveLayout();
+            saveDraftLayout();
         }
         
         // Reload layout for new orientation
@@ -368,11 +531,11 @@ public class WidgetLayout extends FrameLayout {
      * Deletes user customizations for the current orientation only.
      */
     public void resetToDefault() {
-        String layoutKey = LayoutConfiguration.getLayoutKey(getContext(), mScreenId);
-        android.content.SharedPreferences prefs = getContext().getSharedPreferences("widget_layout", Context.MODE_PRIVATE);
+        String layoutKey = getLayoutKey();
+        android.content.SharedPreferences prefs = getPrefs();
         android.content.SharedPreferences.Editor editor = prefs.edit();
         
-        String prefix = "layouts/" + mScreenId + "/" + layoutKey + "/";
+        String prefix = buildPrefix(COMMITTED_PREFIX, layoutKey);
         
         // Remove all user customizations for this layout
         int count = prefs.getInt(prefix + "widget_count", 0);
@@ -394,9 +557,15 @@ public class WidgetLayout extends FrameLayout {
             editor.remove(prefix + "widget_" + i + "_pinned_commands");
         }
         editor.remove(prefix + "widget_count");
+
+        // Also clear any draft for this layout
+        String draftPrefix = buildPrefix(DRAFT_PREFIX, layoutKey);
+        int draftCount = prefs.getInt(draftPrefix + "widget_count", 0);
+        clearDraftInternal(editor, prefs, draftPrefix, draftCount);
+
         editor.apply();
         
         // Reload stock layout
-        loadLayout();
+        loadCommittedLayout();
     }
 }

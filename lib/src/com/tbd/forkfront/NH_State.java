@@ -277,8 +277,13 @@ public class NH_State
 		mSecondaryWidgetLayout = layout;
 		if (mSecondaryWidgetLayout != null) {
 			mSecondaryWidgetLayout.setNHState(this);
-			mSecondaryWidgetLayout.loadLayout();
-			mSecondaryWidgetLayout.setEditMode(isEditMode());
+			if (isEditMode()) {
+				mSecondaryWidgetLayout.enterEditMode();
+				mSecondaryWidgetLayout.setEditMode(true);
+				mSecondaryWidgetLayout.loadLayout();
+			} else {
+				mSecondaryWidgetLayout.loadLayout();
+			}
 		}
 	}
 
@@ -314,15 +319,21 @@ public class NH_State
 			data.y = yFraction * destHeight;
 		}
 
-		// Remove from source (triggers save)
+		// Remove from source
 		source.removeWidget(w);
 
-		// Create and add to destination (triggers save)
+		// Create and add to destination
 		ControlWidget newWidget = destination.createWidget(data);
 		if (newWidget != null) {
 			newWidget.setWidgetData(data);
 			newWidget.setFontSize(data.fontSize);
 			destination.addWidget(newWidget);
+		}
+
+		// Persist move to draft when in edit mode
+		if (isEditMode()) {
+			source.saveDraftLayout();
+			destination.saveDraftLayout();
 		}
 	}
 
@@ -742,7 +753,9 @@ public class NH_State
 		dpadData.w = dpadSize;
 		dpadData.h = dpadSize;
 
-		ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
+		DirectionalPadView dpadView = new DirectionalPadView(activity);
+		dpadView.setOnDirectionListener(cmd -> sendDirKeyCmd(cmd));
+		ControlWidget dpadWidget = new ControlWidget(activity, dpadView, "dpad");
 		dpadWidget.setWidgetData(dpadData);
 		layout.addWidget(dpadWidget);
 	}
@@ -892,7 +905,7 @@ public class NH_State
 				if (isButton && widget.getContentView() instanceof MaterialButton) {
 					((MaterialButton) widget.getContentView()).setText(newLabel);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -909,21 +922,21 @@ public class NH_State
 					}
 					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, category, horizontal, data.contextualOnly, data.pinnedCommands);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
 			public void onOpacityChanged(int opacity) {
 				data.opacity = opacity;
 				applyWidgetOpacity(widget, opacity);
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
 			public void onFontSizeChanged(int fontSize) {
 				data.fontSize = fontSize;
 				widget.setFontSize(fontSize);
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -940,7 +953,7 @@ public class NH_State
 					}
 					((CommandPaletteWidget) widget).setConfiguration(rows, data.columns, category, data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -957,7 +970,7 @@ public class NH_State
 					}
 					((CommandPaletteWidget) widget).setConfiguration(data.rows, columns, category, data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -974,7 +987,7 @@ public class NH_State
 					}
 					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly, data.pinnedCommands);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -991,7 +1004,7 @@ public class NH_State
 					}
 					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, contextualOnly, data.pinnedCommands);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -1008,7 +1021,7 @@ public class NH_State
 					}
 					((CommandPaletteWidget) widget).setConfiguration(data.rows, data.columns, cat, data.horizontal, data.contextualOnly, pinnedCommands);
 				}
-				((WidgetLayout) widget.getParent()).saveLayout();
+				((WidgetLayout) widget.getParent()).saveDraftLayout();
 			}
 
 			@Override
@@ -1122,15 +1135,34 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void setEditMode(boolean enabled)
 	{
-		if (mPrimaryWidgetLayout != null) {
-			mPrimaryWidgetLayout.setEditMode(enabled);
-		}
-		if (mSecondaryWidgetLayout != null) {
-			mSecondaryWidgetLayout.setEditMode(enabled);
-			if (mSecondaryWidgetLayout.getParent() instanceof View) {
-				View secondaryEditBar = ((View) mSecondaryWidgetLayout.getParent()).findViewById(R.id.secondary_edit_bar);
-				if (secondaryEditBar != null) {
-					secondaryEditBar.setVisibility(enabled ? View.VISIBLE : View.GONE);
+		if (enabled) {
+			if (mPrimaryWidgetLayout != null) {
+				mPrimaryWidgetLayout.enterEditMode();
+				mPrimaryWidgetLayout.loadLayout();
+				mPrimaryWidgetLayout.setEditMode(true);
+			}
+			if (mSecondaryWidgetLayout != null) {
+				mSecondaryWidgetLayout.enterEditMode();
+				mSecondaryWidgetLayout.loadLayout();
+				mSecondaryWidgetLayout.setEditMode(true);
+				if (mSecondaryWidgetLayout.getParent() instanceof View) {
+					View secondaryEditBar = ((View) mSecondaryWidgetLayout.getParent()).findViewById(R.id.secondary_edit_bar);
+					if (secondaryEditBar != null) {
+						secondaryEditBar.setVisibility(View.VISIBLE);
+					}
+				}
+			}
+		} else {
+			if (mPrimaryWidgetLayout != null) {
+				mPrimaryWidgetLayout.setEditMode(false);
+			}
+			if (mSecondaryWidgetLayout != null) {
+				mSecondaryWidgetLayout.setEditMode(false);
+				if (mSecondaryWidgetLayout.getParent() instanceof View) {
+					View secondaryEditBar = ((View) mSecondaryWidgetLayout.getParent()).findViewById(R.id.secondary_edit_bar);
+					if (secondaryEditBar != null) {
+						secondaryEditBar.setVisibility(View.GONE);
+					}
 				}
 			}
 		}
@@ -1148,10 +1180,10 @@ public class NH_State
 	public void saveLayoutAndExitEditMode()
 	{
 		if (mPrimaryWidgetLayout != null) {
-			mPrimaryWidgetLayout.saveLayout();
+			mPrimaryWidgetLayout.commitDraftToLayout();
 		}
 		if (mSecondaryWidgetLayout != null) {
-			mSecondaryWidgetLayout.saveLayout();
+			mSecondaryWidgetLayout.commitDraftToLayout();
 		}
 		setEditMode(false);
 	}
@@ -1159,10 +1191,12 @@ public class NH_State
 	public void discardChangesAndExitEditMode()
 	{
 		if (mPrimaryWidgetLayout != null) {
-			mPrimaryWidgetLayout.loadLayout();
+			mPrimaryWidgetLayout.clearDraft();
+			mPrimaryWidgetLayout.loadCommittedLayout();
 		}
 		if (mSecondaryWidgetLayout != null) {
-			mSecondaryWidgetLayout.loadLayout();
+			mSecondaryWidgetLayout.clearDraft();
+			mSecondaryWidgetLayout.loadCommittedLayout();
 		}
 		setEditMode(false);
 	}
