@@ -1,6 +1,7 @@
 package com.tbd.forkfront;
 
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -16,6 +17,21 @@ public class Settings extends AppCompatActivity
 
     private SettingsFragment fragment;
 
+    private final GamepadDispatcher.SyntheticDispatcher mSyntheticDispatcher =
+        new GamepadDispatcher.SyntheticDispatcher() {
+            @Override
+            public void dispatchKey(int keyCode) {
+                android.view.View decor = getWindow().getDecorView();
+                long now = SystemClock.uptimeMillis();
+                decor.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
+                decor.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0));
+            }
+            @Override
+            public void dispatchBack() {
+                onBackPressed();
+            }
+        };
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         GamepadDispatcher gd = GamepadDispatcher.getInstance();
@@ -23,6 +39,20 @@ public class Settings extends AppCompatActivity
             if (gd.handleKeyEvent(event, UiContext.SETTINGS_OPEN)) return true;
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        GamepadDispatcher gd = GamepadDispatcher.getInstance();
+        if (gd != null) gd.setSyntheticDispatcher(mSyntheticDispatcher);
+    }
+
+    @Override
+    protected void onPause() {
+        GamepadDispatcher gd = GamepadDispatcher.getInstance();
+        if (gd != null) gd.setSyntheticDispatcher(null);
+        super.onPause();
     }
 
     @Override
