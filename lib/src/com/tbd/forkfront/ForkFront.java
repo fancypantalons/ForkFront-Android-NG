@@ -442,11 +442,13 @@ public class ForkFront extends AppCompatActivity
 	public void onConfigurationChanged(Configuration newConfig)
 	{
 		Log.print("onConfigurationChanged");
+		// Let AppCompat update the theme/night-mode override on the
+		// configuration before widgets query it for their colors.
+		super.onConfigurationChanged(newConfig);
 		NH_State nhState = mViewModel.getState();
 		if (nhState != null) {
 			nhState.onConfigurationChanged(newConfig);
 		}
-		super.onConfigurationChanged(newConfig);
 	}
 
 	// ____________________________________________________________________________________
