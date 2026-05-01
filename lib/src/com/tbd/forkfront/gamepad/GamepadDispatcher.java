@@ -129,11 +129,17 @@ public class GamepadDispatcher {
         mCaptureStack.remove(capture);
     }
 
+    public UiContextArbiter getArbiter() { return mArbiter; }
+    public void pushContext(UiContext ctx) { mArbiter.push(ctx); }
+    public void popContext(UiContext ctx) { mArbiter.pop(ctx); }
+
     // ─── Event source detection ───────────────────────────────────────────────
 
     public boolean isGamepadEvent(KeyEvent ev) {
         // Reject synthetic re-injected events
         if ((ev.getSource() & SOURCE_SYNTHETIC) == SOURCE_SYNTHETIC) return false;
+        // BACK is always system-handled and never appears in the binding map
+        if (ev.getKeyCode() == KeyEvent.KEYCODE_BACK) return false;
         int src = ev.getSource();
         return (src & (InputDevice.SOURCE_GAMEPAD | InputDevice.SOURCE_JOYSTICK |
                        InputDevice.SOURCE_DPAD)) != 0;

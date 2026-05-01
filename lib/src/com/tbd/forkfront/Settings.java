@@ -1,17 +1,29 @@
 package com.tbd.forkfront;
 
 import android.os.Bundle;
+import android.view.KeyEvent;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
+import com.tbd.forkfront.gamepad.GamepadDispatcher;
+import com.tbd.forkfront.gamepad.UiContext;
 
 public class Settings extends AppCompatActivity
     implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback,
                PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
     private SettingsFragment fragment;
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        GamepadDispatcher gd = GamepadDispatcher.getInstance();
+        if (gd != null && gd.isGamepadEvent(event)) {
+            if (gd.handleKeyEvent(event, UiContext.SETTINGS_OPEN)) return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
