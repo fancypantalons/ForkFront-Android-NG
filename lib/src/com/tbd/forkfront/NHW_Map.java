@@ -20,8 +20,8 @@ import androidx.preference.PreferenceManager;
 import android.text.TextPaint;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.graphics.SurfaceTexture;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -824,7 +824,6 @@ public class NHW_Map implements NH_Window
 		private final float mBaseTextSize;
 
 		// Rendering thread fields
-		private SurfaceHolder mSurfaceHolder;
 		private Thread mRenderingThread;
 		private volatile boolean mIsRendering;
 		private volatile boolean mNeedsRedraw;
@@ -839,10 +838,9 @@ public class NHW_Map implements NH_Window
 			setFocusable(false);
 			setFocusableInTouchMode(false);
 
-			// Set up SurfaceView
-			mSurfaceHolder = getHolder();
-			mSurfaceHolder.addCallback(this);
-			setZOrderOnTop(false);
+			// Set up TextureView
+			setSurfaceTextureListener(this);
+			setOpaque(false);
 
 			((ViewGroup)mContext.findViewById(R.id.map_frame)).addView(this, 0);
 			mPaint = new TextPaint();
@@ -914,11 +912,11 @@ public class NHW_Map implements NH_Window
 		}
 
 		// ____________________________________________________________________________________
-		// SurfaceHolder.Callback implementation
+		// TextureView.SurfaceTextureListener implementation
 		// ____________________________________________________________________________________
 
 		@Override
-		public void surfaceCreated(SurfaceHolder holder)
+		public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height)
 		{
 			mIsRendering = true;
 			mNeedsRedraw = true;
@@ -938,14 +936,14 @@ public class NHW_Map implements NH_Window
 		}
 
 		@Override
-		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
+		public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height)
 		{
 			// Trigger a redraw when surface dimensions change
 			mNeedsRedraw = true;
 		}
 
 		@Override
-		public void surfaceDestroyed(SurfaceHolder holder)
+		public boolean onSurfaceTextureDestroyed(SurfaceTexture surface)
 		{
 			mIsRendering = false;
 			if (mRenderingThread != null)
@@ -967,7 +965,12 @@ public class NHW_Map implements NH_Window
 				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
 				prefs.unregisterOnSharedPreferenceChangeListener(mPrefListener);
 			}
+
+			return true;
 		}
+
+		@Override
+		public void onSurfaceTextureUpdated(SurfaceTexture surface) {}
 
 		// ____________________________________________________________________________________
 		// Render Loop
@@ -986,7 +989,7 @@ public class NHW_Map implements NH_Window
 						Canvas canvas = null;
 						try
 						{
-							canvas = mSurfaceHolder.lockCanvas();
+							canvas = lockCanvas();
 							if (canvas != null)
 							{
 								// Clear the canvas before drawing
@@ -1007,7 +1010,7 @@ public class NHW_Map implements NH_Window
 						{
 							if (canvas != null)
 							{
-								mSurfaceHolder.unlockCanvasAndPost(canvas);
+								unlockCanvasAndPost(canvas);
 							}
 						}
 					}
@@ -1818,12 +1821,6 @@ public class NHW_Map implements NH_Window
 		{
 			if(isTTY())
 				return mBaseTextSize;
-			return mTileset.getTileHeight();
-		}
-
-	}
-}
- mBaseTextSize;
 			return mTileset.getTileHeight();
 		}
 
