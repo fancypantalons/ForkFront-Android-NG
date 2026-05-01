@@ -415,6 +415,15 @@ public class ForkFront extends AppCompatActivity
 			CmdRegistry.getPaletteSorted(), cmd -> {
 				if (mCommandPaletteListener != null) {
 					mCommandPaletteListener.onCommandExecute(cmd);
+				} else {
+					NH_State s = mViewModel != null ? mViewModel.getState() : null;
+					if (s != null) {
+						if (cmd.getCommand().startsWith("#")) {
+							s.sendStringCmd(cmd.getCommand() + "\n");
+						} else {
+							s.sendKeyCmd(cmd.getCommand().charAt(0));
+						}
+					}
 				}
 				collapseCommandPalette();
 			});
@@ -452,6 +461,32 @@ public class ForkFront extends AppCompatActivity
 
 		mCommandPaletteBehavior = BottomSheetBehavior.from(sheetContainer);
 		mCommandPaletteBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+		ViewGroup mapFrame = findViewById(R.id.map_frame);
+		SearchView searchViewRef = searchView;
+		mCommandPaletteBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+			@Override
+			public void onStateChanged(@NonNull View bottomSheet, int newState) {
+				if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+					if (mapFrame != null) {
+						mapFrame.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+					}
+				} else if (newState == BottomSheetBehavior.STATE_COLLAPSED
+						|| newState == BottomSheetBehavior.STATE_HIDDEN) {
+					if (searchViewRef != null) {
+						searchViewRef.clearFocus();
+					}
+					if (mapFrame != null) {
+						mapFrame.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+					}
+					mCommandPaletteListener = null;
+				}
+			}
+
+			@Override
+			public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+			}
+		});
 	}
 
 	public void expandCommandPalette(CmdRegistry.OnCommandListener listener) {
