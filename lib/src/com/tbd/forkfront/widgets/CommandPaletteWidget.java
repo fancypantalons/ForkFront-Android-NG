@@ -1,4 +1,4 @@
-package com.tbd.forkfront;
+package com.tbd.forkfront.widgets;
 
 import android.content.Context;
 import android.view.Gravity;
@@ -11,6 +11,13 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import com.google.android.material.button.MaterialButton;
+import com.tbd.forkfront.EngineCommands;
+import com.tbd.forkfront.R;
+import com.tbd.forkfront.ThemeUtils;
+import com.tbd.forkfront.TouchRepeatHelper;
+import com.tbd.forkfront.context.CmdRegistry;
+import com.tbd.forkfront.context.ContextualActionsEngine;
+import com.tbd.forkfront.context.GameContextListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,7 +33,8 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
 
     private GridLayout mGridLayout;
     private View mScrollContainer;
-    private NH_State mNHState;
+    private ContextualActionsEngine mContextActions;
+    private EngineCommands mCommands;
     private int mRows;
     private int mColumns;
     private CmdRegistry.Category mCategory;
@@ -37,11 +45,13 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     private boolean mPendingPopulate = false;
     private List<CmdRegistry.CmdInfo> mLastCommands;
 
-    public CommandPaletteWidget(Context context, NH_State nhState, int rows, int columns,
+    public CommandPaletteWidget(Context context, ContextualActionsEngine contextActions,
+                                EngineCommands commands, int rows, int columns,
                                 CmdRegistry.Category category, boolean horizontal,
                                 boolean contextualOnly, Set<String> pinnedCommands) {
         super(context, createScrollContainer(context, horizontal), "command_palette");
-        mNHState = nhState;
+        mContextActions = contextActions;
+        mCommands = commands;
         mRows = rows;
         mColumns = columns;
         mCategory = category;
@@ -119,8 +129,8 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         commands = filtered;
 
         // Further filter by context-relevance if enabled
-        if (mContextualOnly && mNHState != null) {
-            List<CmdRegistry.CmdInfo> contextual = mNHState.getCurrentContextualActions();
+        if (mContextualOnly && mContextActions != null) {
+            List<CmdRegistry.CmdInfo> contextual = mContextActions.snapshot();
             commands.retainAll(contextual);
         }
 
@@ -228,11 +238,11 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         final Runnable fireCommand = new Runnable() {
             @Override
             public void run() {
-                if (mNHState != null && !mNHState.isEditMode()) {
+                if (mCommands != null && !isEditMode()) {
                     if (cmd.getCommand().startsWith("#")) {
-                        mNHState.sendStringCmd(cmd.getCommand() + "\n");
+                        mCommands.sendStringCmd(cmd.getCommand() + "\n");
                     } else {
-                        mNHState.sendKeyCmd(cmd.getCommand().charAt(0));
+                        mCommands.sendKeyCmd(cmd.getCommand().charAt(0));
                     }
                 }
             }
@@ -425,8 +435,8 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (mNHState != null) {
-            mNHState.registerGameContextListener(this);
+        if (mContextActions != null) {
+            mContextActions.register(this);
         }
     }
 
@@ -435,8 +445,8 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
         super.onDetachedFromWindow();
         mActiveTouchCount = 0;
         mPendingPopulate = false;
-        if (mNHState != null) {
-            mNHState.unregisterGameContextListener(this);
+        if (mContextActions != null) {
+            mContextActions.unregister(this);
         }
     }
 

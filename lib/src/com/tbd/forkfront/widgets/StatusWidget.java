@@ -1,10 +1,16 @@
-package com.tbd.forkfront;
+package com.tbd.forkfront.widgets;
 
 import android.content.Context;
 import android.text.SpannableStringBuilder;
 import android.widget.LinearLayout;
 
 import android.util.TypedValue;
+
+import com.tbd.forkfront.AutoFitTextView;
+import com.tbd.forkfront.NHW_Status;
+import com.tbd.forkfront.R;
+import com.tbd.forkfront.TextAttr;
+import com.tbd.forkfront.ThemeUtils;
 
 import java.util.HashMap;
 import java.util.Map;

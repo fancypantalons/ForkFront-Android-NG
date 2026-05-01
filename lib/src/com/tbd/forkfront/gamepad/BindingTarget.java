@@ -1,4 +1,5 @@
 package com.tbd.forkfront.gamepad;
+import com.tbd.forkfront.context.CmdRegistry;
 
 public abstract class BindingTarget {
     public enum Kind { NH_KEY, NH_STRING, UI_ACTION }

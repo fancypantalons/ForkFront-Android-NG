@@ -19,7 +19,7 @@ public class NHW_Message implements NH_Window
 		void onMoreCountChanged(int moreCount);
 	}
 
-	protected static final int SHOW_MAX_LINES = 3;
+	public static final int SHOW_MAX_LINES = 10;
 
 	private NetHackIO mIO;
 	private AppCompatActivity mContext;

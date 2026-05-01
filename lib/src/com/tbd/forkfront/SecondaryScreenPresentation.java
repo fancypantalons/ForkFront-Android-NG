@@ -43,7 +43,7 @@ public class SecondaryScreenPresentation extends Presentation {
 
     public void wireButtons(NH_State state) {
         if (state != null && mWidgetLayout != null) {
-            state.wireWidgetLayoutButtons(mWidgetLayout, mWidgetLayout.getRootView());
+            state.getWidgets().wireButtons(mWidgetLayout, mWidgetLayout.getRootView());
         }
     }
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package com.tbd.forkfront;
+import com.tbd.forkfront.context.CmdRegistry;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -60,7 +61,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ForkFront extends AppCompatActivity
+public class ForkFront extends AppCompatActivity implements ForkFrontHost
 {
 	private NetHackViewModel mViewModel;
 	private boolean mBackTracking;
@@ -134,7 +135,7 @@ public class ForkFront extends AppCompatActivity
                         }
                         NH_State state = getState();
                         if (state != null) {
-                            state.preferencesUpdated();
+                            state.getPrefs().apply();
                         }
                     }
             );
@@ -414,7 +415,7 @@ public class ForkFront extends AppCompatActivity
 				} else {
 					NH_State s = getState();
 					if (s != null) {
-						s.executeCommand(cmd);
+						s.getCommands().executeCommand(cmd);
 					}
 				}
 				collapseCommandPalette();
@@ -515,7 +516,7 @@ public class ForkFront extends AppCompatActivity
 			public void onCommandPicked(CmdRegistry.CmdInfo cmd) {
 				NH_State state = getState();
 				if (state != null) {
-					state.executeCommand(cmd);
+					state.getCommands().executeCommand(cmd);
 				}
 				dismissCommandPicker();
 			}
@@ -576,7 +577,7 @@ public class ForkFront extends AppCompatActivity
 		super.onConfigurationChanged(newConfig);
 		NH_State nhState = getState();
 		if (nhState != null) {
-			nhState.onConfigurationChanged(newConfig);
+			nhState.getWidgets().onConfigurationChanged(newConfig);
 		}
 	}
 
@@ -631,7 +632,7 @@ public class ForkFront extends AppCompatActivity
 			WidgetLayout refreshedLayout = mPresentation.refreshTheme();
 			NH_State state = mViewModel != null ? mViewModel.getState() : null;
 			if (state != null) {
-				state.attachSecondaryWidgetLayout(refreshedLayout);
+				state.getWidgets().attachSecondaryWidgetLayout(refreshedLayout);
 				mPresentation.wireButtons(state);
 			}
 		}
@@ -693,7 +694,7 @@ public class ForkFront extends AppCompatActivity
 					mPresentation.show();
 					NH_State state = mViewModel != null ? mViewModel.getState() : null;
 					if (state != null) {
-						state.attachSecondaryWidgetLayout(mPresentation.getWidgetLayout());
+						state.getWidgets().attachSecondaryWidgetLayout(mPresentation.getWidgetLayout());
 						mPresentation.wireButtons(state);
 					}
 				} catch (WindowManager.InvalidDisplayException e) {
@@ -706,7 +707,7 @@ public class ForkFront extends AppCompatActivity
 				mPresentation = null;
 				NH_State state = mViewModel != null ? mViewModel.getState() : null;
 				if (state != null) {
-					state.detachSecondaryWidgetLayout();
+					state.getWidgets().detachSecondaryWidgetLayout();
 				}
 			}
 		}
@@ -761,15 +762,13 @@ public class ForkFront extends AppCompatActivity
 	{
 
 		super.onCreateContextMenu(menu, v, menuInfo);
-		NH_State state = getState();
-		if (state != null) state.onCreateContextMenu(menu, v);
 	}
 
 	// ____________________________________________________________________________________
 	public void onContextMenuClosed(Menu menu) {
 		super.onContextMenuClosed(menu);
 		NH_State state = getState();
-		if (state != null) state.onContextMenuClosed();
+		if (state != null) state.getSysUi().applyImmersiveFlags();
 	}
 
 	// ____________________________________________________________________________________
@@ -777,8 +776,6 @@ public class ForkFront extends AppCompatActivity
 	public boolean onContextItemSelected(MenuItem item)
 	{
 
-		NH_State state = getState();
-		if (state != null) state.onContextItemSelected(item);
 		return super.onContextItemSelected(item);
 	}
 
@@ -803,7 +800,7 @@ public class ForkFront extends AppCompatActivity
 		super.onSaveInstanceState(outState);
 		Log.print("onSaveInstanceState(Bundle outState)");
 		NH_State state = getState();
-		if (state != null) state.saveState();
+		if (state != null) state.getCommands().saveState();
 	}
 
 	// ____________________________________________________________________________________
@@ -818,22 +815,22 @@ public class ForkFront extends AppCompatActivity
 			@Override
 			public boolean expectsDirection() {
 				NH_State s = getState();
-				return s != null && s.expectsDirection();
+				return s != null && s.getCommands().expectsDirection();
 			}
 			@Override
 			public boolean isMouseLocked() {
 				NH_State s = getState();
-				return s != null && s.isMouseLocked();
+				return s != null && s.getCommands().isMouseLocked();
 			}
 		});
 
 		final NH_State finalState = state;
 		GamepadDispatcher.NH_StateRef stateRef = new GamepadDispatcher.NH_StateRef() {
-			@Override public boolean sendKeyCmd(int nhKey)     { return finalState.sendKeyCmd(nhKey); }
-			@Override public boolean sendDirKeyCmd(int nhKey)  { return finalState.sendDirKeyCmd(nhKey); }
-			@Override public void sendStringCmd(String str)    { finalState.sendStringCmd(str); }
-			@Override public boolean expectsDirection()        { return finalState.expectsDirection(); }
-			@Override public boolean isMouseLocked()           { return finalState.isMouseLocked(); }
+			@Override public boolean sendKeyCmd(int nhKey)     { return finalState.getCommands().sendKeyCmd(nhKey); }
+			@Override public boolean sendDirKeyCmd(int nhKey)  { return finalState.getCommands().sendDirKeyCmd(nhKey); }
+			@Override public void sendStringCmd(String str)    { finalState.getCommands().sendStringCmd(str); }
+			@Override public boolean expectsDirection()        { return finalState.getCommands().expectsDirection(); }
+			@Override public boolean isMouseLocked()           { return finalState.getCommands().isMouseLocked(); }
 		};
 
 		UiActionExecutor executor = new UiActionExecutor(new UiActionExecutor.ActionHost() {
@@ -859,16 +856,16 @@ public class ForkFront extends AppCompatActivity
 			}
 			@Override public void zoomIn() {
 				NH_State s = getState();
-				if (s != null) s.zoomIn();
+				if (s != null) s.getMapInput().zoomIn();
 			}
 			@Override public void zoomOut() {
 				NH_State s = getState();
-				if (s != null) s.zoomOut();
+				if (s != null) s.getMapInput().zoomOut();
 			}
 			@Override public void toggleMapLock() { /* TODO */ }
 			@Override public void recenterMap() {
 				NH_State s = getState();
-				if (s != null) s.recenterMap();
+				if (s != null) s.getMapInput().recenterMap();
 			}
 			@Override public void resendLastCmd() { /* TODO */ }
 		});
@@ -876,10 +873,10 @@ public class ForkFront extends AppCompatActivity
 		mGamepadDispatcher = new GamepadDispatcher(getApplicationContext(),
 			stateRef, mUiContextArbiter, executor);
 
-		state.setUiContextArbiter(mUiContextArbiter);
+		state.getGamepadContext().setArbiter(mUiContextArbiter);
 
 		// Register the game UiCapture so in-game windows get routed correctly
-		mGamepadDispatcher.enterUiCapture(state.getGameUiCapture());
+		mGamepadDispatcher.enterUiCapture(state.getRouter().asUiCapture());
 
 		mGamepadDeviceWatcher = new GamepadDeviceWatcher(this, mGamepadDispatcher);
 		mGamepadDeviceWatcher.register();
@@ -1048,9 +1045,9 @@ public class ForkFront extends AppCompatActivity
 
         char ch = (char)unicodeChar;
 
-        int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, state.isNumPadOn());
+        int nhKey = Input.nhKeyFromKeyCode(fixedCode, ch, modifiers, state.getCommands().isNumPadOn());
 
-        if(state.handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount))
+        if(state.getRouter().handleKeyDown(ch, nhKey, fixedCode, modifiers, repeatCount))
             return true;
 
         if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
@@ -1082,7 +1079,7 @@ public class ForkFront extends AppCompatActivity
             return false;
 
         NH_State state = getState();
-        if(state != null && state.handleKeyUp(fixedCode))
+        if(state != null && state.getMapInput().handleKeyUp(fixedCode))
             return true;
 
         if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)
@@ -1111,23 +1108,23 @@ public class ForkFront extends AppCompatActivity
 		if (itemId == R.id.nav_settings) {
 			launchSettings();
 		} else if (itemId == R.id.nav_edit_overlay) {
-			state.setEditMode(true);
+			state.getWidgets().setEditMode(true);
 		} else if (itemId == R.id.nav_save_game) {
-			state.sendKeyCmd('S');
+			state.getCommands().sendKeyCmd('S');
 		} else if (itemId == R.id.nav_quit) {
 			showQuitConfirmation();
 		} else if (itemId == R.id.nav_quit_no_save) {
 			showQuitNoSaveConfirmation();
 		} else if (itemId == R.id.nav_help) {
-			state.sendKeyCmd('?');
+			state.getCommands().sendKeyCmd('?');
 		} else if (itemId == R.id.nav_version) {
-			state.sendStringCmd("#version\n");
+			state.getCommands().sendStringCmd("#version\n");
 		} else if (itemId == R.id.nav_add_widget) {
-			state.showAddWidgetDialog(this);
+			state.getWidgets().showAddWidgetDialog(this, state.getWidgets().getPrimaryWidgetLayout());
 		} else if (itemId == R.id.nav_save_changes) {
-			state.saveLayoutAndExitEditMode();
+			state.getWidgets().saveLayoutAndExitEditMode();
 		} else if (itemId == R.id.nav_discard_changes) {
-			state.discardChangesAndExitEditMode();
+			state.getWidgets().discardChangesAndExitEditMode();
 		}
 	}
 
@@ -1140,7 +1137,7 @@ public class ForkFront extends AppCompatActivity
 			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
 				NH_State state = getState();
 				if (state != null) {
-					state.saveAndQuit();
+					state.getCommands().saveAndQuit();
 				}
 			})
 			.setNegativeButton(android.R.string.cancel, null)
@@ -1156,7 +1153,7 @@ public class ForkFront extends AppCompatActivity
 			.setPositiveButton(android.R.string.ok, (dialog, which) -> {
 				NH_State state = getState();
 				if (state != null) {
-					state.sendStringCmd("#quit\n");
+					state.getCommands().sendStringCmd("#quit\n");
 				}
 			})
 			.setNegativeButton(android.R.string.cancel, null)

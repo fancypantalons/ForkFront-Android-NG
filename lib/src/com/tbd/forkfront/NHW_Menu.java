@@ -105,14 +105,14 @@ public class NHW_Menu implements NH_Window
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
 				.commitAllowingStateLoss();
 		}
-		mState.pushContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+		mState.getGamepadContext().pushContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 	}
 
 	// ____________________________________________________________________________________
 	private void hide()
 	{
 		if (mIsVisible) {
-			mState.popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+			mState.getGamepadContext().popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 		}
 		mIsVisible = false;
 		removeFragment();
@@ -149,7 +149,7 @@ public class NHW_Menu implements NH_Window
 	private void close()
 	{
 		if (mIsVisible) {
-			mState.popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
+			mState.getGamepadContext().popContext(mType == Type.Text ? UiContext.MENU_TEXT : UiContext.MENU);
 		}
 		if(mIsBlocking)
 			mIO.sendKeyCmd(' ');

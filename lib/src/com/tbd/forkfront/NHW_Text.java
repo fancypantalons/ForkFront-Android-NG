@@ -94,14 +94,14 @@ public class NHW_Text implements NH_Window
 				.add(R.id.window_fragment_host, mFragment, "nhw_" + mWid)
 				.commitAllowingStateLoss();
 		}
-		mState.pushContext(UiContext.TEXT_WINDOW);
+		mState.getGamepadContext().pushContext(UiContext.TEXT_WINDOW);
 	}
 
 	// ____________________________________________________________________________________
 	private void hide()
 	{
 		if (mIsVisible) {
-			mState.popContext(UiContext.TEXT_WINDOW);
+			mState.getGamepadContext().popContext(UiContext.TEXT_WINDOW);
 		}
 		mIsVisible = false;
 		removeFragment();
@@ -143,7 +143,7 @@ public class NHW_Text implements NH_Window
 	void close()
 	{
 		if (mIsVisible) {
-			mState.popContext(UiContext.TEXT_WINDOW);
+			mState.getGamepadContext().popContext(UiContext.TEXT_WINDOW);
 		}
 		if(mIsBlocking)
 			mIO.sendKeyCmd(' ');

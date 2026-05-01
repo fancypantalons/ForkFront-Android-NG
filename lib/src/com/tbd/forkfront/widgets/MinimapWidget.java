@@ -1,4 +1,4 @@
-package com.tbd.forkfront;
+package com.tbd.forkfront.widgets;
 
 import android.content.Context;
 import android.content.res.Configuration;
@@ -9,6 +9,12 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.view.MotionEvent;
 import android.view.View;
+
+import com.tbd.forkfront.DEBUG;
+import com.tbd.forkfront.NHW_Map;
+import com.tbd.forkfront.R;
+import com.tbd.forkfront.ThemeUtils;
+import com.tbd.forkfront.Tileset;
 
 /**
  * A widget that displays a minimap overview of the entire dungeon.

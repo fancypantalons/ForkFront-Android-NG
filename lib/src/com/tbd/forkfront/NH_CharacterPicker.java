@@ -55,7 +55,7 @@ public class NH_CharacterPicker {
         mMaxChars = nMaxChars;
         mSaves = new ArrayList<>(Arrays.asList(saves));
         
-        mState.runOnActivity(() -> {
+        mState.getScope().runOnActivity(() -> {
             AppCompatActivity activity = mActivity;
             if (activity == null || activity.isFinishing()) return;
 
@@ -65,7 +65,7 @@ public class NH_CharacterPicker {
 
             mRoot = (ViewGroup) Util.inflate(activity, R.layout.dialog_character_picker, R.id.dlg_frame);
             
-            mState.pushContext(UiContext.CHARACTER_PICKER);
+            mState.getGamepadContext().pushContext(UiContext.CHARACTER_PICKER);
             
             mList = mRoot.findViewById(R.id.character_list);
             mNewCharacterPanel = mRoot.findViewById(R.id.new_character_panel);
@@ -75,7 +75,7 @@ public class NH_CharacterPicker {
             
             mList.setLayoutManager(new LinearLayoutManager(activity));
             mList.addItemDecoration(new androidx.recyclerview.widget.DividerItemDecoration(activity, androidx.recyclerview.widget.DividerItemDecoration.VERTICAL));
-            mList.setAdapter(new CharacterAdapter(mSaves, mState.getLastUsername(), mSaveDir, new CharacterAdapter.OnCharacterSelectedListener() {
+            mList.setAdapter(new CharacterAdapter(mSaves, mState.getPrefs().getLastUsername(), mSaveDir, new CharacterAdapter.OnCharacterSelectedListener() {
                 @Override
                 public void onCharacterSelected(String plname) {
                     submit(plname, false);
@@ -190,7 +190,7 @@ public class NH_CharacterPicker {
 
     public void dismiss() {
         if (mRoot != null) {
-            mState.popContext(UiContext.CHARACTER_PICKER);
+            mState.getGamepadContext().popContext(UiContext.CHARACTER_PICKER);
             ((ViewGroup) mRoot.getParent()).removeView(mRoot);
             mRoot = null;
         }

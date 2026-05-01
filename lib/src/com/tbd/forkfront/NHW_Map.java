@@ -50,7 +50,7 @@ public class NHW_Map implements NH_Window
 
 	char getDirChar(int dir)
 	{
-		return mNHState.isNumPadOn() ? NUM_DIRS[dir] : VI_DIRS[dir];
+		return mCommands.isNumPadOn() ? NUM_DIRS[dir] : VI_DIRS[dir];
 	}
 
 	class Tile
@@ -85,7 +85,8 @@ public class NHW_Map implements NH_Window
 	private boolean mIsVisible;
 	boolean mIsBlocking;
 	private int mWid;
-	NH_State mNHState;
+	final EngineCommands mCommands;
+	final MapInputCoordinator mMapInput;
 	final ByteDecoder mDecoder;
 	int mBorderColor;
 	int mScreenSizeClass;
@@ -105,9 +106,10 @@ public class NHW_Map implements NH_Window
 	private final List<MapUpdateListener> mMapListeners = new ArrayList<>();
 
 	// ____________________________________________________________________________________
-	public NHW_Map(AppCompatActivity context, Tileset tileset, NHW_Status status, NH_State nhState, ByteDecoder decoder)
+	public NHW_Map(AppCompatActivity context, Tileset tileset, NHW_Status status, EngineCommands commands, MapInputCoordinator mapInput, ByteDecoder decoder)
 	{
-		mNHState = nhState;
+		mCommands = commands;
+		mMapInput = mapInput;
 		mDecoder = decoder;
 		mTileset = tileset;
 		mTiles = new Tile[TileRows][TileCols];
@@ -339,11 +341,11 @@ public class NHW_Map implements NH_Window
 		case KeyEvent.KEYCODE_DPAD_RIGHT:
 			return moveCursor(1, 0, now);
 		case KeyEvent.KEYCODE_BUTTON_A:
-			mNHState.sendPosCmd(mCursorPos.x, mCursorPos.y);
+			mCommands.sendPosCmd(mCursorPos.x, mCursorPos.y);
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_B:
 		case KeyEvent.KEYCODE_BUTTON_SELECT:
-			mNHState.sendDirKeyCmd('\033');
+			mCommands.sendDirKeyCmd('\033');
 			return true;
 		case KeyEvent.KEYCODE_BUTTON_X:
 			setCursorPos(mPlayerPos.x, mPlayerPos.y);
@@ -474,7 +476,8 @@ public class NHW_Map implements NH_Window
 			return;
 		}
 
-		Log.print(String.format(Locale.ROOT, "cursor pos clicked: %dx%d", mCursorPos.x, mCursorPos.y));		mNHState.sendPosCmd(mCursorPos.x, mCursorPos.y);
+		Log.print(String.format(Locale.ROOT, "cursor pos clicked: %dx%d", mCursorPos.x, mCursorPos.y));
+		mCommands.sendPosCmd(mCursorPos.x, mCursorPos.y);
 	}
 
 	// ____________________________________________________________________________________
@@ -622,7 +625,7 @@ public class NHW_Map implements NH_Window
 		{
 			showControls();
 			if(mIsBlocking)
-				mNHState.sendKeyCmd(' ');
+				mCommands.sendKeyCmd(' ');
 			mUI.setBlockingInternal(bBlocking);
 		}
 		mIsBlocking = bBlocking;
@@ -632,14 +635,14 @@ public class NHW_Map implements NH_Window
 	private void hideControls()
 	{
 		mStatus.hide();
-		mNHState.hideControls();
+		mMapInput.hideControls();
 	}
 
 	// ____________________________________________________________________________________
 	private void showControls()
 	{
 		mStatus.show(false);
-		mNHState.showControls();
+		mMapInput.showControls();
 	}
 
 	// ____________________________________________________________________________________

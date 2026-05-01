@@ -1,4 +1,4 @@
-package com.tbd.forkfront;
+package com.tbd.forkfront.widgets;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -14,6 +14,9 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+
+import com.tbd.forkfront.R;
+import com.tbd.forkfront.ThemeUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -166,6 +169,10 @@ public class ControlWidget extends FrameLayout {
         mEditPlaceholder.setVisibility(enabled && mEditPlaceholder.getText().length() > 0 ? VISIBLE : GONE);
     }
 
+    public boolean isEditMode() {
+        return mEditMode;
+    }
+
     public void setPlaceholderText(String text) {
         mEditPlaceholder.setText(text);
         if (mEditMode && text != null && text.length() > 0) {
@@ -198,10 +205,10 @@ public class ControlWidget extends FrameLayout {
                 switch (action) {
                     case MotionEvent.ACTION_DOWN:
                         mActivePointerId = event.getPointerId(0);
-                        mLastTouchX = event.getX();
-                        mLastTouchY = event.getY();
-                        mStartX = mLastTouchX;
-                        mStartY = mLastTouchY;
+                        mLastTouchX = event.getRawX();
+                        mLastTouchY = event.getRawY();
+                        mStartX = event.getX();
+                        mStartY = event.getY();
                         mHasMovedPastSlop = false;
                         mGestureDetector.setIsLongpressEnabled(true);
                         
@@ -225,12 +232,14 @@ public class ControlWidget extends FrameLayout {
                         int pointerIndex = event.findPointerIndex(mActivePointerId);
                         if (pointerIndex < 0) return false;
                         
-                        float x = event.getX(pointerIndex);
-                        float y = event.getY(pointerIndex);
+                        float x = event.getRawX();
+                        float y = event.getRawY();
                         float dx = x - mLastTouchX;
                         float dy = y - mLastTouchY;
                         
-                        if (Math.abs(x - mStartX) > mTouchSlop || Math.abs(y - mStartY) > mTouchSlop) {
+                        // For slop, we still use relative start to avoid big jump on first move
+                        if (Math.abs(event.getX(pointerIndex) - mStartX) > mTouchSlop || 
+                            Math.abs(event.getY(pointerIndex) - mStartY) > mTouchSlop) {
                             mHasMovedPastSlop = true;
                             mGestureDetector.setIsLongpressEnabled(false);
                         }

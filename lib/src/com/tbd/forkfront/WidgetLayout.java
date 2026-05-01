@@ -1,4 +1,10 @@
 package com.tbd.forkfront;
+import com.tbd.forkfront.context.CmdRegistry;
+import com.tbd.forkfront.widgets.CommandPaletteWidget;
+import com.tbd.forkfront.widgets.MinimapWidget;
+import com.tbd.forkfront.widgets.MessageWidget;
+import com.tbd.forkfront.widgets.StatusWidget;
+import com.tbd.forkfront.widgets.ControlWidget;
 
 import android.content.Context;
 import android.graphics.Rect;
@@ -10,6 +16,7 @@ import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
+import com.tbd.forkfront.widgets.WidgetLayoutController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +31,9 @@ public class WidgetLayout extends FrameLayout {
 
     private boolean mEditMode = false;
     private final List<ControlWidget> mWidgets = new ArrayList<>();
-    private NH_State mNHState;
+    private WidgetLayoutController mController;
+    private EngineCommands mCommands;
+    private MapInputCoordinator mMapInput;
     private View mViewArea;
     private final Rect mViewRect = new Rect();
     private String mScreenId = "primary";
@@ -55,8 +64,10 @@ public class WidgetLayout extends FrameLayout {
         return mScreenId;
     }
 
-    public void setNHState(NH_State state) {
-        mNHState = state;
+    public void setDependencies(WidgetLayoutController controller, EngineCommands commands, MapInputCoordinator mapInput) {
+        mController = controller;
+        mCommands = commands;
+        mMapInput = mapInput;
     }
 
     public void setEditMode(boolean enabled) {
@@ -75,7 +86,7 @@ public class WidgetLayout extends FrameLayout {
         super.onLayout(changed, left, top, right, bottom);
         
         // Notify map about view area changes
-        if (mViewArea != null && mNHState != null) {
+        if (mViewArea != null && mMapInput != null) {
             int l = mViewArea.getLeft();
             int t = mViewArea.getTop();
             int r = mViewArea.getRight();
@@ -83,7 +94,7 @@ public class WidgetLayout extends FrameLayout {
             
             if (mViewRect.left != l || mViewRect.top != t || mViewRect.right != r || mViewRect.bottom != b) {
                 mViewRect.set(l, t, r, b);
-                mNHState.viewAreaChanged(mViewRect);
+                mMapInput.viewAreaChanged(mViewRect);
             }
         }
     }
@@ -106,8 +117,8 @@ public class WidgetLayout extends FrameLayout {
             widget.setOnWidgetLongClickListener(new ControlWidget.OnWidgetLongClickListener() {
                 @Override
                 public void onWidgetLongClick(ControlWidget w) {
-                    if (mNHState != null) {
-                        mNHState.showWidgetProperties(w);
+                    if (mController != null) {
+                        mController.showWidgetProperties(w);
                     }
                 }
             });
@@ -119,6 +130,9 @@ public class WidgetLayout extends FrameLayout {
         widget.setOnWidgetLongClickListener(null);
         mWidgets.remove(widget);
         removeView(widget);
+        if (mEditMode) {
+            saveDraftLayout();
+        }
     }
 
     private String getLayoutKey() {
@@ -320,26 +334,26 @@ public class WidgetLayout extends FrameLayout {
         editor.remove(draftPrefix + "widget_count");
     }
 
-    ControlWidget createWidget(ControlWidget.WidgetData data) {
+    public ControlWidget createWidget(ControlWidget.WidgetData data) {
         if ("dpad".equals(data.type)) {
             DirectionalPadView dpadView = new DirectionalPadView(getContext());
-            if (mNHState != null) {
-                dpadView.setOnDirectionListener(cmd -> mNHState.sendDirKeyCmd(cmd));
+            if (mCommands != null) {
+                dpadView.setOnDirectionListener(cmd -> mCommands.sendDirKeyCmd(cmd));
             }
             return new ControlWidget(getContext(), dpadView, "dpad");
         } else if ("button".equals(data.type)) {
             MaterialButton btn = ThemeUtils.createButtonText(getContext());
             btn.setText(data.label);
-            if (mNHState != null && data.command != null && data.command.length() > 0) {
+            if (mCommands != null && data.command != null && data.command.length() > 0) {
                 final TouchRepeatHelper repeatHelper = new TouchRepeatHelper();
                 final Runnable fireCommand = new Runnable() {
                     @Override
                     public void run() {
-                        if (mNHState.isEditMode()) return;
+                        if (isEditMode()) return;
                         if (data.command.startsWith("#")) {
-                            mNHState.sendStringCmd(data.command + "\n");
+                            mCommands.sendStringCmd(data.command + "\n");
                         } else {
-                            mNHState.sendKeyCmd(data.command.charAt(0));
+                            mCommands.sendKeyCmd(data.command.charAt(0));
                         }
                     }
                 };
@@ -382,33 +396,33 @@ public class WidgetLayout extends FrameLayout {
             btn.setText(data.label);
             btn.setIconResource(android.R.drawable.ic_menu_search);
             btn.setOnClickListener(v -> {
-                if (mNHState != null && !mNHState.isEditMode() && getContext() instanceof AppCompatActivity) {
-                    mNHState.showCommandPalette((AppCompatActivity) getContext());
+                if (mController != null && !isEditMode() && getContext() instanceof AppCompatActivity) {
+                    mController.showCommandPaletteForLayout((AppCompatActivity) getContext(), this);
                 }
             });
             ControlWidget w = new ControlWidget(getContext(), btn, "palette");
             w.getWidgetData().label = data.label;
             return w;
         } else if ("status".equals(data.type)) {
-            if (mNHState != null && mNHState.getStatusWindow() != null) {
-                ControlWidget w = new StatusWidget(getContext(), mNHState.getStatusWindow());
+            if (mController != null && mController.getStatusWindow() != null) {
+                ControlWidget w = new StatusWidget(getContext(), mController.getStatusWindow());
                 w.setPlaceholderText("Status Window");
                 return w;
             }
         } else if ("message".equals(data.type)) {
-            if (mNHState != null && mNHState.getMessageWindow() != null) {
-                ControlWidget w = new MessageWidget(getContext(), mNHState.getMessageWindow());
+            if (mController != null && mController.getMessageWindow() != null) {
+                ControlWidget w = new MessageWidget(getContext(), mController.getMessageWindow());
                 w.setPlaceholderText("Message Window");
                 return w;
             }
         } else if ("minimap".equals(data.type)) {
-            if (mNHState != null && mNHState.getMapWindow() != null && mNHState.getTileset() != null) {
-                ControlWidget w = new MinimapWidget(getContext(), mNHState.getMapWindow(), mNHState.getTileset());
+            if (mController != null && mController.getMapWindow() != null && mController.getTileset() != null) {
+                ControlWidget w = new MinimapWidget(getContext(), mController.getMapWindow(), mController.getTileset());
                 w.setPlaceholderText("Minimap");
                 return w;
             }
         } else if ("command_palette".equals(data.type)) {
-            if (mNHState != null) {
+            if (mController != null) {
                 CmdRegistry.Category category = null;
                 if (data.category != null && !data.category.isEmpty()) {
                     try {
@@ -417,8 +431,8 @@ public class WidgetLayout extends FrameLayout {
                         // Invalid category, use null (all categories)
                     }
                 }
-                ControlWidget w = new CommandPaletteWidget(getContext(), mNHState,
-                        data.rows, data.columns, category, data.horizontal,
+                ControlWidget w = new CommandPaletteWidget(getContext(), mController.getContextActions(),
+                        mCommands, data.rows, data.columns, category, data.horizontal,
                         data.contextualOnly, data.pinnedCommands);
                 w.setPlaceholderText("Command Palette");
                 return w;
@@ -482,7 +496,7 @@ public class WidgetLayout extends FrameLayout {
         }
         mWidgets.clear();
         
-        String deviceKey = mNHState != null ? mNHState.getDeviceKey() : null;
+        String deviceKey = mController != null ? mController.getDeviceKey() : null;
 
         // Check if stock layout exists
         if (!LayoutConfiguration.hasStockLayout(getContext(), mScreenId, deviceKey, layoutKey)) {

@@ -1,4 +1,5 @@
 package com.tbd.forkfront;
+import com.tbd.forkfront.context.CmdRegistry;
 
 import android.view.LayoutInflater;
 import android.view.View;

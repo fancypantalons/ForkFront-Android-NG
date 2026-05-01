@@ -167,7 +167,7 @@ public class NetHackViewModel extends ViewModel {
     protected void onCleared() {
         Log.d(TAG, "NetHackViewModel cleared - saving and quitting");
         if (mNHState != null) {
-            mNHState.saveAndQuit();
+            mNHState.getCommands().saveAndQuit();
         }
         super.onCleared();
     }

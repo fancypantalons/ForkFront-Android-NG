@@ -396,22 +396,22 @@ class MapGestureController
 			case SEND_POS:
 				tileX = NHW_Map.clamp(tileX, 0, NHW_Map.TileCols - 1);
 				tileY = NHW_Map.clamp(tileY, 0, NHW_Map.TileRows - 1);
-				if(mMap.mNHState.isMouseLocked())
+				if(mMap.mCommands.isMouseLocked())
 					mMap.setCursorPos(tileX, tileY);
-				mMap.mNHState.sendPosCmd(tileX, tileY);
+				mMap.mCommands.sendPosCmd(tileX, tileY);
 			break;
 
 			case SEND_DIR:
 				char dir = getDir(tileX, tileY, dx, dy, distFromSelfSquared);
 
-				if(bLongClick && !mMap.mNHState.expectsDirection())
+				if(bLongClick && !mMap.mCommands.expectsDirection())
 				{
-					mMap.mNHState.sendKeyCmd('g');
-					mMap.mNHState.sendKeyCmd(dir);
+					mMap.mCommands.sendKeyCmd('g');
+					mMap.mCommands.sendKeyCmd(dir);
 				}
 				else
 				{
-					mMap.mNHState.sendDirKeyCmd(dir);
+					mMap.mCommands.sendDirKeyCmd(dir);
 				}
 			break;
 		}
@@ -443,7 +443,7 @@ class MapGestureController
 	// ____________________________________________________________________________________
 	private void sendDirKeyCmd(int c)
 	{
-		if(mMap.mIsBlocking || mMap.mNHState.isMouseLocked() || mIsdPadCenterDown || mIsTrackBallDown)
+		if(mMap.mIsBlocking || mMap.mCommands.isMouseLocked() || mIsdPadCenterDown || mIsTrackBallDown)
 		{
 			mIsPannedSinceDown = true;
 			mIsViewPanned = true;
@@ -452,17 +452,17 @@ class MapGestureController
 		}
 		else
 		{
-			mMap.mNHState.sendDirKeyCmd(c);
+			mMap.mCommands.sendDirKeyCmd(c);
 		}
 	}
 
 	// ____________________________________________________________________________________
 	private NHW_Map.TouchResult getTouchResult(int tileX, int tileY, float distFromSelfSquared)
 	{
-		if(mMap.mNHState.isMouseLocked())
+		if(mMap.mCommands.isMouseLocked())
 			return NHW_Map.TouchResult.SEND_POS;
 
-		if(mMap.mNHState.expectsDirection())
+		if(mMap.mCommands.expectsDirection())
 			return NHW_Map.TouchResult.SEND_DIR;
 
 		if(mMap.mPlayerPos.equals(tileX, tileY) || distFromSelfSquared < mMap.mSelfRadiusSquared)
@@ -515,7 +515,7 @@ class MapGestureController
 			return true;
 		}
 
-		if(mMap.mNHState.isMouseLocked())
+		if(mMap.mCommands.isMouseLocked())
 		{
 			if(mPickChars.contains((char)nhKey))
 			{
@@ -524,7 +524,7 @@ class MapGestureController
 			}
 			if(mCancelKeys.contains((char)nhKey))
 			{
-				mMap.mNHState.sendDirKeyCmd(nhKey);
+				mMap.mCommands.sendDirKeyCmd(nhKey);
 				return true;
 			}
 		}

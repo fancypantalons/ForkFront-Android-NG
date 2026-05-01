@@ -1,4 +1,5 @@
 package com.tbd.forkfront.gamepad;
+import com.tbd.forkfront.context.CmdRegistry;
 
 public final class KeyBinding {
     public final Chord chord;

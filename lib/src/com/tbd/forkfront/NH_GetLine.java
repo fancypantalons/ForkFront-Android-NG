@@ -56,7 +56,7 @@ public class NH_GetLine
 		mMaxChars = nMaxChars;
 		mHistory = loadHistory();
 		mUI = new UI(context, true, true, getInitText());
-		mState.pushContext(UiContext.GETLINE);
+		mState.getGamepadContext().pushContext(UiContext.GETLINE);
 	}
 	
 	// ____________________________________________________________________________________
@@ -279,7 +279,7 @@ public class NH_GetLine
 				}
 			});
 
-			mState.hideControls();
+			mState.getMapInput().hideControls();
 			mInput.requestFocus();
 			
 			mInput.setText(initText);
@@ -336,7 +336,7 @@ public class NH_GetLine
 				mRoot.setVisibility(View.GONE);
 				((ViewGroup)mRoot.getParent()).removeView(mRoot);
 				mRoot = null;
-				mState.showControls();
+				mState.getMapInput().showControls();
 			}
 			mUI = null;
 		}
@@ -350,7 +350,7 @@ public class NH_GetLine
 				mIO.sendLineCmd(text);
 				if(mSaveHistory)
 					storeHistory(mHistory, text);
-				mState.popContext(UiContext.GETLINE);
+				mState.getGamepadContext().popContext(UiContext.GETLINE);
 				dismiss();
 			}
 		}
@@ -361,7 +361,7 @@ public class NH_GetLine
 			if(mRoot != null)
 			{
 				mIO.sendLineCmd("\033 ");
-				mState.popContext(UiContext.GETLINE);
+				mState.getGamepadContext().popContext(UiContext.GETLINE);
 				dismiss();
 			}
 		}

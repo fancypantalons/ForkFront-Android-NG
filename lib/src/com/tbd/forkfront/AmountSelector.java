@@ -194,7 +194,7 @@ public class AmountSelector
 		seek.requestFocus();
 		seek.requestFocusFromTouch();
 
-		mState.pushContext(UiContext.AMOUNT_SELECTOR);
+		mState.getGamepadContext().pushContext(UiContext.AMOUNT_SELECTOR);
 	}
 
 	public boolean handleGamepadKey(KeyEvent ev)
@@ -269,7 +269,7 @@ public class AmountSelector
 	{
 		if(mRoot != null)
 		{
-			mState.popContext(UiContext.AMOUNT_SELECTOR);
+			mState.getGamepadContext().popContext(UiContext.AMOUNT_SELECTOR);
 			mRoot.setVisibility(View.GONE);
 			((ViewGroup)mRoot.getParent()).removeView(mRoot);
 			mRoot = null;

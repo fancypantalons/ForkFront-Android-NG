@@ -16,7 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
-import com.tbd.forkfront.CmdRegistry;
+import com.tbd.forkfront.context.CmdRegistry;
 import com.tbd.forkfront.DeviceProfile;
 import com.tbd.forkfront.R;
 

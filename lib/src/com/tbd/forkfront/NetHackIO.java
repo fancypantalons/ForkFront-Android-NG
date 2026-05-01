@@ -12,6 +12,11 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
+/**
+ * NetHackIO is responsible for JNI communication.
+ * It ensures that every JNI callback is posted to the Android main UI thread
+ * using a Handler(Looper.getMainLooper()).
+ */
 public class NetHackIO
 {
 	private final Handler mHandler;

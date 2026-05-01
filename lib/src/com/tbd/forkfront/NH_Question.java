@@ -54,7 +54,7 @@ public class NH_Question
 
 		mUI = new UI(context);
 		if (!alreadyShowing) {
-			mState.pushContext(UiContext.QUESTION);
+			mState.getGamepadContext().pushContext(UiContext.QUESTION);
 		}
 	}
 
@@ -232,7 +232,7 @@ public class NH_Question
 				mRoot.requestFocus();
 			}
 
-			mState.hideControls();
+			mState.getMapInput().hideControls();
 		}
 
 		private void maybeDisableInput() {
@@ -306,7 +306,7 @@ public class NH_Question
 			if(mRoot != null)
 			{
 				mIO.sendKeyCmd((char)ch);
-				mState.popContext(UiContext.QUESTION);
+				mState.getGamepadContext().popContext(UiContext.QUESTION);
 				dismiss();
 			}
 		}
@@ -319,7 +319,7 @@ public class NH_Question
 				mRoot.setVisibility(View.GONE);
 				((ViewGroup)mRoot.getParent()).removeView(mRoot);
 				mRoot = null;
-				mState.showControls();
+				mState.getMapInput().showControls();
 			}
 			mUI = null;
 		}
