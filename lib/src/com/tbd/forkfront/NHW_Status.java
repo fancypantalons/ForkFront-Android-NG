@@ -127,6 +127,8 @@ public class NHW_Status implements NH_Window
 				listener.onFieldUpdated(entry.getKey(), new StatusField(entry.getValue()));
 			}
 			listener.onConditionsUpdated(mConditionMask, mConditionColorMasks.clone());
+			// Trigger render with current data
+			listener.onFlush();
 		}
 	}
 
