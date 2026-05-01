@@ -6,6 +6,7 @@ import java.util.Set;
 
 import android.annotation.TargetApi;
 import android.app.Application;
+import android.content.Context;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -18,6 +19,7 @@ import androidx.preference.PreferenceManager;
 import android.view.*;
 import com.tbd.forkfront.*;
 import com.tbd.forkfront.Hearse.Hearse;
+import com.google.android.material.button.MaterialButton;
 
 public class NH_State
 {
@@ -39,7 +41,7 @@ public class NH_State
 	private NH_Question mQuestion;
 	private ArrayList<NH_Window> mWindows;
 	private Tileset mTileset;
-	private CmdPanelLayout mCmdPanelLayout;
+	private WidgetLayout mWidgetLayout;
 	private DPadOverlay mDPad;
 	private boolean mIsDPadActive;
 	private boolean mStickyKeyboard;
@@ -120,8 +122,12 @@ public class NH_State
 			if (mMap == null) {
 				mMap = new NHW_Map(activity, mTileset, mStatus, this, mDecoder);
 			}
-			if (mCmdPanelLayout == null) {
-				mCmdPanelLayout = (CmdPanelLayout)activity.findViewById(R.id.cmdPanelLayout1);
+			if (mWidgetLayout == null) {
+				mWidgetLayout = (WidgetLayout)activity.findViewById(R.id.widgetLayout1);
+				if (mWidgetLayout != null) {
+					// Manually trigger if it didn't run
+					mWidgetLayout.onFinishInflate();
+				}
 			}
 		}
 
@@ -136,8 +142,56 @@ public class NH_State
 		if (mStatus != null) {
 			mStatus.setContext(activity);
 		}
-		if (mCmdPanelLayout != null) {
-			mCmdPanelLayout.setContext(activity, this);
+		if (mWidgetLayout != null) {
+			mWidgetLayout.setNHState(this);
+			mWidgetLayout.loadLayout();
+
+			// Ensure emergency button works
+			View emergencySettings = activity.findViewById(R.id.emergency_settings);
+			if (emergencySettings != null) {
+				emergencySettings.setOnClickListener(v -> startPreferences());
+			}
+			
+			// Initialize default widgets if it's the first run of the new system
+			SharedPreferences ffPrefs = activity.getSharedPreferences("forkfront_ui", Context.MODE_PRIVATE);
+			if (!ffPrefs.getBoolean("initialized_v2", false)) {
+				float density = activity.getResources().getDisplayMetrics().density;
+				int dpadSize = (int)(180 * density);
+				int btnW = (int)(100 * density);
+				int btnH = (int)(60 * density);
+
+				// Add Default D-Pad
+				ControlWidget.WidgetData dpadData = new ControlWidget.WidgetData();
+				dpadData.type = "dpad";
+				dpadData.x = 20 * density;
+				dpadData.y = 150 * density; // Higher up to ensure visibility in landscape
+				dpadData.w = dpadSize;
+				dpadData.h = dpadSize;
+				
+				ControlWidget dpadWidget = new ControlWidget(activity, new DirectionalPadView(activity), "dpad");
+				dpadWidget.setWidgetData(dpadData);
+				mWidgetLayout.addWidget(dpadWidget);
+				
+				// Add Default Search Button
+				ControlWidget.WidgetData searchData = new ControlWidget.WidgetData();
+				searchData.type = "button";
+				searchData.label = "Search";
+				searchData.command = "s";
+				searchData.x = 250 * density;
+				searchData.y = 150 * density;
+				searchData.w = btnW;
+				searchData.h = btnH;
+				
+				MaterialButton searchBtn = new MaterialButton(activity);
+				searchBtn.setText("Search");
+				searchBtn.setOnClickListener(v -> sendKeyCmd('s'));
+				ControlWidget searchWidget = new ControlWidget(activity, searchBtn, "button");
+				searchWidget.setWidgetData(searchData);
+				mWidgetLayout.addWidget(searchWidget);
+				
+				ffPrefs.edit().putBoolean("initialized_v2", true).apply();
+				mWidgetLayout.saveLayout();
+			}
 		}
 		mDPad.setContext(activity);
 		if (mMap != null) {
@@ -185,9 +239,9 @@ public class NH_State
 			showKeyboard();
 		}
 
-		if (mCmdPanelLayout != null) {
-			mCmdPanelLayout.setOrientation(newConfig.orientation);
-		}
+		/*if (mWidgetLayout != null) {
+			mWidgetLayout.setOrientation(newConfig.orientation);
+		}*/
 		mDPad.setOrientation(newConfig.orientation);
 
 		// Forward configuration changes to map for adaptive tile scaling
@@ -201,8 +255,11 @@ public class NH_State
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApp);
 
-		if (mCmdPanelLayout != null) {
-			mCmdPanelLayout.preferencesUpdated(prefs);
+		/*if (mWidgetLayout != null) {
+			mWidgetLayout.preferencesUpdated(prefs);
+		}*/
+		if (mWidgetLayout != null) {
+			mWidgetLayout.setEditMode(prefs.getBoolean("edit_mode", false));
 		}
 		mDPad.preferencesUpdated(prefs);
 		mMap.preferencesUpdated(prefs);
@@ -214,8 +271,9 @@ public class NH_State
 				w.preferencesUpdated(prefs);
 		}
 
-		if(mMode == CmdMode.Panel && mCmdPanelLayout != null)
-			mCmdPanelLayout.show();
+		/*if (mWidgetLayout != null) {
+			mWidgetLayout.show();
+		}*/
 
 		mTileset.updateTileset(prefs, mApp.getResources());
 		mMap.updateZoomLimits();
@@ -225,16 +283,16 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void onCreateContextMenu(ContextMenu menu, View v)
 	{
-		if (mCmdPanelLayout != null) {
-			mCmdPanelLayout.onCreateContextMenu(menu, v);
-		}
+		/*if (mWidgetLayout != null) {
+			mWidgetLayout.onCreateContextMenu(menu, v);
+		}*/
 	}
 
 	// ____________________________________________________________________________________
 	public void onContextMenuClosed() {
-		if (mCmdPanelLayout != null) {
-			mCmdPanelLayout.onContextMenuClosed();
-		}
+		/*if (mWidgetLayout != null) {
+			mWidgetLayout.onContextMenuClosed();
+		}*/
 		updateSystemUiVisibilityFlags(PreferenceManager.getDefaultSharedPreferences(mApp));
 	}
 
@@ -260,9 +318,9 @@ public class NH_State
 	// ____________________________________________________________________________________
 	public void onContextItemSelected(android.view.MenuItem item)
 	{
-		if (mCmdPanelLayout != null) {
-			mCmdPanelLayout.onContextItemSelected(item);
-		}
+		/*if (mWidgetLayout != null) {
+			mWidgetLayout.onContextItemSelected(item);
+		}*/
 	}
 
 	// ____________________________________________________________________________________
@@ -557,6 +615,19 @@ public class NH_State
 	}
 
 	// ____________________________________________________________________________________
+	public void setEditMode(boolean enabled)
+	{
+		if (mWidgetLayout != null) {
+			mWidgetLayout.setEditMode(enabled);
+		}
+	}
+
+	public boolean isEditMode()
+	{
+		return mWidgetLayout != null && mWidgetLayout.isEditMode();
+	}
+
+	// ____________________________________________________________________________________
 	public void updateVisibleState()
 	{
 		if(mControlsVisible)
@@ -569,16 +640,16 @@ public class NH_State
 				if(mIsDPadActive)
 				{
 					mDPad.showDirectional(true);
-					if (mCmdPanelLayout != null) {
-						mCmdPanelLayout.hide();
-					}
+					/*if (mWidgetLayout != null) {
+						mWidgetLayout.hide();
+					}*/
 				}
 				else
 				{
 					mDPad.showDirectional(false);
-					if (mCmdPanelLayout != null) {
-						mCmdPanelLayout.show();
-					}
+					/*if (mWidgetLayout != null) {
+						mWidgetLayout.show();
+					}*/
 				}
 			}
 			else
@@ -586,18 +657,18 @@ public class NH_State
 				if (mKeyboard != null) {
 					mKeyboard.show();
 				}
-				if (mCmdPanelLayout != null) {
-					mCmdPanelLayout.hide();
-				}
+				/*if (mWidgetLayout != null) {
+					mWidgetLayout.hide();
+				}*/
 				//mDPad.setVisible(false);
 				mDPad.forceHide();
 			}
 		}
 		else
 		{
-			if (mCmdPanelLayout != null) {
-				mCmdPanelLayout.hide();
-			}
+			/*if (mWidgetLayout != null) {
+				mWidgetLayout.hide();
+			}*/
 			if (mKeyboard != null) {
 				mKeyboard.hide();
 			}

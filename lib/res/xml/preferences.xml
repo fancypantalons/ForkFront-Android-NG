@@ -194,6 +194,13 @@
 			android:summary="Configure layout and content of the command panels"
 			android:orderingFromXml="true">
 
+			<androidx.preference.CheckBoxPreference
+				android:title="Edit Mode"
+				android:summary="Enable dragging and resizing of on-screen controls"
+				android:persistent="true"
+				android:defaultValue="false"
+				android:key="edit_mode"/>
+
 			<androidx.preference.PreferenceScreen
 				android:title="Panel 0"
 				android:key="panel0">
