@@ -83,6 +83,7 @@ public class CommandPaletteFragment extends DialogFragment {
             }
             
             dialog.getWindow().setLayout(width, height);
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
     }
 }
