@@ -21,6 +21,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.*;
+import com.google.android.material.radiobutton.MaterialRadioButton;
+import com.google.android.material.textfield.TextInputEditText;
 import com.tbd.forkfront.Tileset;
 import com.tbd.forkfront.Util;
 
@@ -34,8 +36,8 @@ public class TilesetPreference extends Preference {
     private List<String> mEntries;
     private List<String> mEntryValues;
     private TextView mTilesetPath;
-    private EditText mTileW;
-    private EditText mTileH;
+    private TextInputEditText mTileW;
+    private TextInputEditText mTileH;
     private ViewGroup mTilesetUI;
     private LinearLayout mRoot;
     private String mCustomTilesetPath;
@@ -65,10 +67,10 @@ public class TilesetPreference extends Preference {
         }
 
         mTilesetUI = (ViewGroup) mRoot.findViewById(R.id.customTilesUI);
-        mTileW = (EditText) mRoot.findViewById(R.id.tileW);
-        mTileH = (EditText) mRoot.findViewById(R.id.tileH);
+        mTileW = (TextInputEditText) mRoot.findViewById(R.id.tileW);
+        mTileH = (TextInputEditText) mRoot.findViewById(R.id.tileH);
 
-        RadioButton customBtn = (RadioButton) mRoot.findViewById(R.id.custom_tiles);
+        MaterialRadioButton customBtn = (MaterialRadioButton) mRoot.findViewById(R.id.custom_tiles);
         if (customBtn != null) {
             customBtn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -231,7 +233,7 @@ public class TilesetPreference extends Preference {
     private void createChoices() {
         if (mRoot == null) return;
         for (int i = mEntries.size() - 1; i >= 0; i--) {
-            RadioButton button = new RadioButton(getContext());
+            MaterialRadioButton button = new MaterialRadioButton(getContext());
             button.setText(mEntries.get(i));
             button.setTag(mEntryValues.get(i));
             button.setOnCheckedChangeListener(tilesetChecked);

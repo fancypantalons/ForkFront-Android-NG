@@ -7,6 +7,8 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.preference.PreferenceDialogFragmentCompat;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.divider.MaterialDivider;
 
 public class SliderPreferenceDialogFragment extends PreferenceDialogFragmentCompat implements SeekBar.OnSeekBarChangeListener {
 
@@ -26,6 +28,11 @@ public class SliderPreferenceDialogFragment extends PreferenceDialogFragmentComp
     protected View onCreateDialogView(android.content.Context context) {
         SliderPreference pref = (SliderPreference) getPreference();
 
+        MaterialCardView card = new MaterialCardView(context);
+        card.setCardElevation(0);
+        card.setStrokeWidth(0);
+        card.setUseCompatPadding(false);
+
         LinearLayout layout = new LinearLayout(context);
         layout.setOrientation(LinearLayout.VERTICAL);
         int padding = context.getResources().getDimensionPixelSize(R.dimen.padding_medium);
@@ -34,12 +41,21 @@ public class SliderPreferenceDialogFragment extends PreferenceDialogFragmentComp
         if (pref.getDialogMessage() != null) {
             TextView splashText = new TextView(context);
             splashText.setText(pref.getDialogMessage());
+            splashText.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
             layout.addView(splashText);
+
+            MaterialDivider divider = new MaterialDivider(context);
+            LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            dividerParams.setMargins(0, padding / 2, 0, padding);
+            layout.addView(divider, dividerParams);
         }
 
         mValueText = new TextView(context);
         mValueText.setGravity(Gravity.CENTER_HORIZONTAL);
         mValueText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, context.getResources().getDimensionPixelSize(R.dimen.text_size_xlarge));
+        mValueText.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineMedium);
         layout.addView(mValueText, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         mValue = pref.getValue();
@@ -48,11 +64,14 @@ public class SliderPreferenceDialogFragment extends PreferenceDialogFragmentComp
         mSeekBar.setMax(pref.getMax() - pref.getMin());
         mSeekBar.setProgress(mValue - pref.getMin());
         mSeekBar.setOnSeekBarChangeListener(this);
-        layout.addView(mSeekBar, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams seekParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        seekParams.setMargins(0, padding, 0, 0);
+        layout.addView(mSeekBar, seekParams);
 
         updateValueText();
 
-        return layout;
+        card.addView(layout);
+        return card;
     }
 
     @Override

@@ -42,6 +42,9 @@
         <item name="android:windowAnimationStyle">@style/ForkFront.WindowAnimationStyle</item>
     </style>
 
+    <style name="PreferenceThemeOverlay" parent="PreferenceThemeOverlay">
+    </style>
+
     <style name="ForkFront.WindowAnimationStyle" parent="android:Animation.Activity">
         <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
         <item name="android:activityOpenExitAnimation">@anim/slide_out_left</item>
