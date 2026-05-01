@@ -993,6 +993,24 @@ public class ForkFront extends AppCompatActivity
 			}
 		}
 
+		// When an EditText has focus (e.g. GetLine, command palette search),
+		// text-editing keys must reach Android's focus system so the EditText can
+		// handle backspace, delete, and cursor navigation. Without this bypass the
+		// game engine consumes these keys and the EditText never sees them.
+		View focused = getCurrentFocus();
+		if (focused instanceof android.widget.EditText) {
+			switch (event.getKeyCode()) {
+				case KeyEvent.KEYCODE_DEL:
+				case KeyEvent.KEYCODE_FORWARD_DEL:
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					return super.dispatchKeyEvent(event);
+			}
+		}
+
 		// In non-gameplay contexts (drawer, settings) and for synthetic events injected
 		// by the dispatcher's baseline fallback, skip the game key handler so D-pad
 		// navigation and synthetic keys go to Android's focus system instead of NetHack.

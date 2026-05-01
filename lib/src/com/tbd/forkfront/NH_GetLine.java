@@ -307,6 +307,8 @@ public class NH_GetLine
 			case KeyEvent.KEYCODE_DPAD_LEFT:
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
 			case KeyEvent.KEYCODE_DPAD_CENTER:
+			case KeyEvent.KEYCODE_DEL:
+			case KeyEvent.KEYCODE_FORWARD_DEL:
 				return KeyEventResult.RETURN_TO_SYSTEM;
 
 			case KeyEvent.KEYCODE_BACK:
