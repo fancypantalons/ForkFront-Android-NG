@@ -637,7 +637,10 @@ public class ForkFront extends AppCompatActivity
 					mDrawerLayout.openDrawer(androidx.core.view.GravityCompat.END);
 			}
 			@Override public void openSettings()       { launchSettings(); }
-			@Override public void openCommandPalette() { /* TODO: show command palette */ }
+			@Override public void openCommandPalette() {
+					NH_State s = mViewModel != null ? mViewModel.getState() : null;
+					if (s != null) s.showCommandPalette(ForkFront.this);
+				}
 			@Override public void toggleKeyboard() {
 				android.view.inputmethod.InputMethodManager imm =
 					(android.view.inputmethod.InputMethodManager)
