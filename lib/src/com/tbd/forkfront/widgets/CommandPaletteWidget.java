@@ -111,6 +111,11 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     }
 
     private void populateCommands() {
+        if (mActiveTouchCount > 0) {
+            mPendingPopulate = true;
+            return;
+        }
+
         // Get commands, optionally filtered by category
         List<CmdRegistry.CmdInfo> commands;
         if (mCategory != null) {
@@ -453,11 +458,7 @@ public class CommandPaletteWidget extends ControlWidget implements GameContextLi
     @Override
     public void onContextualActionsChanged(List<CmdRegistry.CmdInfo> actions) {
         if (mContextualOnly) {
-            if (mActiveTouchCount > 0) {
-                mPendingPopulate = true;
-            } else {
-                populateCommands();
-            }
+            populateCommands();
         }
     }
 
