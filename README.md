@@ -1,18 +1,18 @@
-# ForkFront-NG
+# ForkFront-DS
 
-ForkFront-NG is the Android UI library for [NetHack Android DS](https://github.com/fancypantalons/NetHack-Android-DS), a modernized Android port of NetHack 3.6.7. It implements the full game frontend: rendering, input handling, menus, dialogs, and settings — everything the player sees and touches.
+ForkFront-DS is the Android UI library for [NetHack Android DS](https://github.com/fancypantalons/NetHack-Android-DS), a modernized Android port of NetHack 3.6.7. It implements the full game frontend: rendering, input handling, menus, dialogs, and settings — everything the player sees and touches.
 
 It is consumed as a Git submodule by the parent project and compiled into the app via Gradle's composite build support.
 
 ## Origins
 
-ForkFront-NG is a hard fork of [ForkFront-Android](https://github.com/gurrhack/ForkFront-Android) by gurrhack, originally conceived as a shared frontend for Android ports of NetHack variants. *Enormous* credit goes to [Martin Gurr](https://github.com/gurrhack) and the other project contributors for laying the groundwork that I've built on.
+ForkFront-DS is a hard fork of [ForkFront-Android](https://github.com/gurrhack/ForkFront-Android) by gurrhack, originally conceived as a shared frontend for Android ports of NetHack variants. *Enormous* credit goes to [Martin Gurr](https://github.com/gurrhack) and the other project contributors for laying the groundwork that I've built on.
 
 That said, this fork diverges substantially in architecture, input model, and design philosophy. There is no intention to merge changes back upstream, though obviously if anything I've done here is useful in that project, that would be fantastic!
 
 ## Design Philosophy
 
-ForkFront-NG is built around a few core ideas inspired by my past work in [NetHackDS](https://github.com/fancypantalons/NetHack):
+ForkFront-DS is built around a few core ideas inspired by my past work in [NetHackDS](https://github.com/fancypantalons/NetHack):
 
 - **Touch and gamepad first.** The soft keyboard should never be required for gameplay — only for text
   entry. Navigation, commands, and menus should all work through touch gestures or a physical gamepad.
