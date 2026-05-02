@@ -1,5 +1,4 @@
 package com.tbd.forkfront.window.map;
-import com.tbd.forkfront.ui.Util;
 
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -7,299 +6,234 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import androidx.preference.PreferenceManager;
-import java.util.Locale;
+import com.tbd.forkfront.ui.Util;
 
-class MapViewport
-{
-	private static final double ZOOM_BASE = 1.005;
+class MapViewport {
+  private static final double ZOOM_BASE = 1.005;
 
-	// ____________________________________________________________________________________
-	enum Travel
-	{
-		Never,
-		AfterPan,
-		Always
-	}
+  enum Travel {
+    Never,
+    AfterPan,
+    Always
+  }
 
-	final NHW_Map mMap;
-	final MapView mView;
-	final MapRenderer mRenderer;
+  final NHW_Map mMap;
+  final MapView mView;
+  final MapRenderer mRenderer;
 
-	float mScale;
-	float mScaleCount;
-	float mMinScaleCount;
-	float mMaxScaleCount;
-	float mZoomStep;
-	int mStickyZoom;
-	boolean mIsStickyZoom;
-	PointF mViewOffset;
-	RectF mCanvasRect;
-	float mLockTopMargin;
-	float mMinTileH;
-	float mMaxTileH;
+  float mScale;
+  float mScaleCount;
+  float mMinScaleCount;
+  float mMaxScaleCount;
+  float mZoomStep;
+  int mStickyZoom;
+  boolean mIsStickyZoom;
+  PointF mViewOffset;
+  RectF mCanvasRect;
+  float mLockTopMargin;
+  float mMinTileH;
+  float mMaxTileH;
 
-	// ____________________________________________________________________________________
-	float getMinTileSizeDp()
-	{
-		// For xxxhdpi (4K phones), allow smaller tiles
-		if (mMap.mDisplayDensity >= 4.0f)
-			return 8.f;
-		if (mMap.mDisplayDensity >= 3.0f)
-			return 6.f;
-		return 5.f;
-	}
+  float getMinTileSizeDp() {
+    // For xxxhdpi (4K phones), allow smaller tiles
+    if (mMap.mDisplayDensity >= 4.0f) return 8.f;
+    if (mMap.mDisplayDensity >= 3.0f) return 6.f;
+    return 5.f;
+  }
 
-	// ____________________________________________________________________________________
-	float getMaxTileSizeDp()
-	{
-		// For tablets and foldables, allow larger tiles
-		if (mMap.mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_XLARGE)
-			return 150.f;
-		if (mMap.mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_LARGE)
-			return 120.f;
-		return 100.f;
-	}
+  float getMaxTileSizeDp() {
+    // For tablets and foldables, allow larger tiles
+    if (mMap.mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_XLARGE) return 150.f;
+    if (mMap.mScreenSizeClass == Configuration.SCREENLAYOUT_SIZE_LARGE) return 120.f;
+    return 100.f;
+  }
 
-	// ____________________________________________________________________________________
-	MapViewport(NHW_Map map, MapView view, MapRenderer renderer)
-	{
-		mMap = map;
-		mView = view;
-		mRenderer = renderer;
+  MapViewport(NHW_Map map, MapView view, MapRenderer renderer) {
+    mMap = map;
+    mView = view;
+    mRenderer = renderer;
 
-		mScale = 1.f;
-		mScaleCount = 0.f;
-		mMinScaleCount = -200.f;
-		mMaxScaleCount = 200.f;
-		mZoomStep = 20.f;
-		mStickyZoom = 0;
-		mIsStickyZoom = true;
-		mViewOffset = new PointF(0, 0);
-		mCanvasRect = new RectF();
+    mScale = 1.f;
+    mScaleCount = 0.f;
+    mMinScaleCount = -200.f;
+    mMaxScaleCount = 200.f;
+    mZoomStep = 20.f;
+    mStickyZoom = 0;
+    mIsStickyZoom = true;
+    mViewOffset = new PointF(0, 0);
+    mCanvasRect = new RectF();
 
-		mRenderer.setViewport(this);
-		mView.mGestures.setViewport(this);
+    mRenderer.setViewport(this);
+    mView.mGestures.setViewport(this);
 
-		loadZoomLevel();
-	}
+    loadZoomLevel();
+  }
 
-	// ____________________________________________________________________________________
-	void cliparound(final int tileX, final int tileY, final int playerX, final int playerY)
-	{
-		mMap.mPlayerPos.x = playerX;
-		mMap.mPlayerPos.y = playerY;
+  void cliparound(final int tileX, final int tileY, final int playerX, final int playerY) {
+    mMap.mPlayerPos.x = playerX;
+    mMap.mPlayerPos.y = playerY;
 
-		centerView(tileX, tileY);
-	}
+    centerView(tileX, tileY);
+  }
 
-	// ____________________________________________________________________________________
-	void centerView(final int tileX, final int tileY)
-	{
-		float tileW = mRenderer.getScaledTileWidth();
-		float tileH = mRenderer.getScaledTileHeight();
+  void centerView(final int tileX, final int tileY) {
+    float tileW = mRenderer.getScaledTileWidth();
+    float tileH = mRenderer.getScaledTileHeight();
 
-		float ofsX, ofsY;
-		if(shouldLockView(tileW, tileH))
-		{
-			ofsX = mCanvasRect.left + (mCanvasRect.width() - tileW * NHW_Map.TileCols) * .5f;
+    float ofsX, ofsY;
+    if (shouldLockView(tileW, tileH)) {
+      ofsX = mCanvasRect.left + (mCanvasRect.width() - tileW * NHW_Map.TileCols) * .5f;
 
-			float hDiff = mCanvasRect.height() - tileH * NHW_Map.TileRows;
-			float margin = Math.min(mLockTopMargin, hDiff);
-			ofsY = mCanvasRect.top + (hDiff + margin) * .5f;
-		}
-		else
-		{
-			ofsX = mCanvasRect.left + (mCanvasRect.width() - tileW) * .5f - tileW * tileX;
-			ofsY = mCanvasRect.top + (mCanvasRect.height() - tileH) * .5f - tileH * tileY;
-		}
+      float hDiff = mCanvasRect.height() - tileH * NHW_Map.TileRows;
+      float margin = Math.min(mLockTopMargin, hDiff);
+      ofsY = mCanvasRect.top + (hDiff + margin) * .5f;
+    } else {
+      ofsX = mCanvasRect.left + (mCanvasRect.width() - tileW) * .5f - tileW * tileX;
+      ofsY = mCanvasRect.top + (mCanvasRect.height() - tileH) * .5f - tileH * tileY;
+    }
 
-		if (mViewOffset.x != ofsX || mViewOffset.y != ofsY)
-		{
-			mViewOffset.set(ofsX, ofsY);
-			mView.requestRedraw();
-			mMap.notifyViewportChanged();
-		}
-	}
+    if (mViewOffset.x != ofsX || mViewOffset.y != ofsY) {
+      mViewOffset.set(ofsX, ofsY);
+      mView.requestRedraw();
+      mMap.notifyViewportChanged();
+    }
+  }
 
-	// ____________________________________________________________________________________
-	boolean shouldLockView()
-	{
-		return shouldLockView(mRenderer.getScaledTileWidth(), mRenderer.getScaledTileHeight());
-	}
+  boolean shouldLockView() {
+    return shouldLockView(mRenderer.getScaledTileWidth(), mRenderer.getScaledTileHeight());
+  }
 
-	// ____________________________________________________________________________________
-	boolean shouldLockView(float tileW, float tileH)
-	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
-		if(!prefs.getBoolean("lockView", true))
-			return false;
+  boolean shouldLockView(float tileW, float tileH) {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
+    if (!prefs.getBoolean("lockView", true)) return false;
 
-		return tileW * NHW_Map.TileCols <= mCanvasRect.width() && tileH * NHW_Map.TileRows <= mCanvasRect.height();
-	}
+    return tileW * NHW_Map.TileCols <= mCanvasRect.width()
+        && tileH * NHW_Map.TileRows <= mCanvasRect.height();
+  }
 
-	// ____________________________________________________________________________________
-	void zoom(float amount)
-	{
-		if(amount == 0)
-			return;
-		zoomForced(amount);
-	}
+  void zoom(float amount) {
+    if (amount == 0) return;
+    zoomForced(amount);
+  }
 
-	// ____________________________________________________________________________________
-	void zoomForced(float amount)
-	{
-		if(mView == null)
-			return;
+  void zoomForced(float amount) {
+    if (mView == null) return;
 
-		float ofsX = (mViewOffset.x - mCanvasRect.left - mCanvasRect.width() * 0.5f) / mView.getViewWidth();
-		float ofsY = (mViewOffset.y - mCanvasRect.top - mCanvasRect.height() * 0.5f) / mView.getViewHeight();
+    float ofsX =
+        (mViewOffset.x - mCanvasRect.left - mCanvasRect.width() * 0.5f) / mView.getViewWidth();
+    float ofsY =
+        (mViewOffset.y - mCanvasRect.top - mCanvasRect.height() * 0.5f) / mView.getViewHeight();
 
-		mScaleCount = Math.min(Math.max(mScaleCount + amount, mMinScaleCount), mMaxScaleCount);
+    mScaleCount = Math.min(Math.max(mScaleCount + amount, mMinScaleCount), mMaxScaleCount);
 
-		mScale = (float) Math.pow(ZOOM_BASE, mScaleCount);
+    mScale = (float) Math.pow(ZOOM_BASE, mScaleCount);
 
-		if(canPan())
-		{
-			ofsX = mCanvasRect.left + ofsX * mView.getViewWidth() + mCanvasRect.width() * 0.5f;
-			ofsY = mCanvasRect.top + ofsY * mView.getViewHeight() + mCanvasRect.height() * 0.5f;
+    if (canPan()) {
+      ofsX = mCanvasRect.left + ofsX * mView.getViewWidth() + mCanvasRect.width() * 0.5f;
+      ofsY = mCanvasRect.top + ofsY * mView.getViewHeight() + mCanvasRect.height() * 0.5f;
 
-			mViewOffset.set(ofsX, ofsY);
-		}
-		else
-		{
-			centerView(0, 0);
-		}
-		mView.requestRedraw();
-		mMap.notifyViewportChanged();
-	}
+      mViewOffset.set(ofsX, ofsY);
+    } else {
+      centerView(0, 0);
+    }
+    mView.requestRedraw();
+    mMap.notifyViewportChanged();
+  }
 
-	// ____________________________________________________________________________________
-	void resetZoom()
-	{
-		zoom(-mScaleCount);
-		centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
-	}
+  void resetZoom() {
+    zoom(-mScaleCount);
+    centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
+  }
 
-	// ____________________________________________________________________________________
-	void updateZoomLimits()
-	{
-		float minScale = mMinTileH / mRenderer.getBaseTileHeight();
-		float maxScale = mMaxTileH / mRenderer.getBaseTileHeight();
+  void updateZoomLimits() {
+    float minScale = mMinTileH / mRenderer.getBaseTileHeight();
+    float maxScale = mMaxTileH / mRenderer.getBaseTileHeight();
 
-		float amount;
-		if(mMaxScaleCount - mMinScaleCount < 1)
-			amount = 0.5f;
-		else
-			amount = (mScaleCount - mMinScaleCount) / (mMaxScaleCount - mMinScaleCount);
+    float amount;
+    if (mMaxScaleCount - mMinScaleCount < 1) amount = 0.5f;
+    else amount = (mScaleCount - mMinScaleCount) / (mMaxScaleCount - mMinScaleCount);
 
-		mMinScaleCount = (float)(Math.log(minScale) / Math.log(ZOOM_BASE));
-		mMaxScaleCount = (float)(Math.log(maxScale) / Math.log(ZOOM_BASE));
+    mMinScaleCount = (float) (Math.log(minScale) / Math.log(ZOOM_BASE));
+    mMaxScaleCount = (float) (Math.log(maxScale) / Math.log(ZOOM_BASE));
 
-		mZoomStep = (mMaxScaleCount - mMinScaleCount) / 20;
-		mScaleCount = mMinScaleCount + amount * (mMaxScaleCount - mMinScaleCount);
+    mZoomStep = (mMaxScaleCount - mMinScaleCount) / 20;
+    mScaleCount = mMinScaleCount + amount * (mMaxScaleCount - mMinScaleCount);
 
-		zoomForced(0);
-	}
+    zoomForced(0);
+  }
 
-	// ____________________________________________________________________________________
-	void updateViewBounds()
-	{
-		// Adjust lock top margin to account for system insets (status bar + top notch/cutout)
-		mLockTopMargin = mMap.mStatus.getHeight() + mMap.mSystemInsetsTop;
+  void updateViewBounds() {
+    // Adjust lock top margin to account for system insets (status bar + top notch/cutout)
+    mLockTopMargin = mMap.mStatus.getHeight() + mMap.mSystemInsetsTop;
 
-		// Recalculate zoom limits with new bounds
-		updateZoomLimits();
+    // Recalculate zoom limits with new bounds
+    updateZoomLimits();
 
-		// Re-center view if needed
-		centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
-	}
+    // Re-center view if needed
+    centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
+  }
 
-	// ____________________________________________________________________________________
-	void pan(float dx, float dy)
-	{
-		if(canPan())
-		{
-			mViewOffset.offset(dx, dy);
-			mView.requestRedraw();
-			mMap.notifyViewportChanged();
-		}
-	}
+  void pan(float dx, float dy) {
+    if (canPan()) {
+      mViewOffset.offset(dx, dy);
+      mView.requestRedraw();
+      mMap.notifyViewportChanged();
+    }
+  }
 
-	// ____________________________________________________________________________________
-	boolean canPan()
-	{
-		return travelAfterPan() || !shouldLockView();
-	}
+  boolean canPan() {
+    return travelAfterPan() || !shouldLockView();
+  }
 
-	// ____________________________________________________________________________________
-	boolean travelAfterPan()
-	{
-		return getTravelOption() == Travel.AfterPan;
-	}
+  boolean travelAfterPan() {
+    return getTravelOption() == Travel.AfterPan;
+  }
 
-	// ____________________________________________________________________________________
-	Travel getTravelOption()
-	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
-		// Convert old option
-		if(prefs.contains("travelAfterPan"))
-		{
-			boolean oldValue = prefs.getBoolean("travelAfterPan", true);
-			SharedPreferences.Editor editor = prefs.edit();
-			editor.remove("travelAfterPan");
-			editor.putString("travelOnClick", oldValue ? "1" : "0");
-			editor.apply();
-		}
-		int setting = Util.parseInt(prefs.getString("travelOnClick", "1"), 1);
-		if(setting == 0)
-			return Travel.Never;
-		if(setting == 1)
-			return Travel.AfterPan;
-		return Travel.Always;
-	}
+  Travel getTravelOption() {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
+    // Convert old option
+    if (prefs.contains("travelAfterPan")) {
+      boolean oldValue = prefs.getBoolean("travelAfterPan", true);
+      SharedPreferences.Editor editor = prefs.edit();
+      editor.remove("travelAfterPan");
+      editor.putString("travelOnClick", oldValue ? "1" : "0");
+      editor.apply();
+    }
+    int setting = Util.parseInt(prefs.getString("travelOnClick", "1"), 1);
+    if (setting == 0) return Travel.Never;
+    if (setting == 1) return Travel.AfterPan;
+    return Travel.Always;
+  }
 
-	// ____________________________________________________________________________________
-	void viewAreaChanged(Rect viewRect)
-	{
-		mCanvasRect.set(viewRect);
-		mMap.centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
-	}
+  void viewAreaChanged(Rect viewRect) {
+    mCanvasRect.set(viewRect);
+    mMap.centerView(mMap.mCursorPos.x, mMap.mCursorPos.y);
+  }
 
-	// ____________________________________________________________________________________
-	void saveZoomLevel() {
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
-		prefs.edit().putFloat("zoomLevel", mScaleCount).apply();
-	}
-	
-	// ____________________________________________________________________________________
-	void loadZoomLevel() {
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
-		float zoomLevel = 0;
-		try
-		{
-			zoomLevel = prefs.getFloat("zoomLevel", 0.f);
-		}
-		catch(Exception e)
-		{
-		}
-		zoom(zoomLevel - mScaleCount);
-	}
+  void saveZoomLevel() {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
+    prefs.edit().putFloat("zoomLevel", mScaleCount).apply();
+  }
 
-	// ____________________________________________________________________________________
-	PointF getViewOffset()
-	{
-		return new PointF(mViewOffset.x, mViewOffset.y);
-	}
+  void loadZoomLevel() {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mMap.mContext);
+    float zoomLevel = 0;
+    try {
+      zoomLevel = prefs.getFloat("zoomLevel", 0.f);
+    } catch (Exception e) {
+    }
+    zoom(zoomLevel - mScaleCount);
+  }
 
-	// ____________________________________________________________________________________
-	float getScale()
-	{
-		return mScale;
-	}
+  PointF getViewOffset() {
+    return new PointF(mViewOffset.x, mViewOffset.y);
+  }
 
-	// ____________________________________________________________________________________
-	RectF getCanvasRect()
-	{
-		return new RectF(mCanvasRect);
-	}
+  float getScale() {
+    return mScale;
+  }
+
+  RectF getCanvasRect() {
+    return new RectF(mCanvasRect);
+  }
 }

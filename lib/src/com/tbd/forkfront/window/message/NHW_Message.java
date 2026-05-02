@@ -1,430 +1,341 @@
 package com.tbd.forkfront.window.message;
-import com.tbd.forkfront.R;
-import com.tbd.forkfront.engine.NetHackIO;
-import com.tbd.forkfront.window.text.TextAttr;
-import com.tbd.forkfront.window.text.NHW_Text;
-import com.tbd.forkfront.window.NH_Window;
-import com.tbd.forkfront.input.KeyEventResult;
-import com.tbd.forkfront.input.Input;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import androidx.appcompat.app.AppCompatActivity;
-import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
 import android.content.SharedPreferences;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+import com.tbd.forkfront.R;
+import com.tbd.forkfront.engine.NetHackIO;
+import com.tbd.forkfront.gamepad.GamepadDeviceWatcher;
+import com.tbd.forkfront.input.Input;
+import com.tbd.forkfront.input.KeyEventResult;
+import com.tbd.forkfront.window.NH_Window;
+import com.tbd.forkfront.window.text.NHW_Text;
+import com.tbd.forkfront.window.text.TextAttr;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
-public class NHW_Message implements NH_Window
-{
-	// Listener interface for message updates
-	public interface MessageUpdateListener {
-		void onMessageAdded(String message);
-		void onMessagesCleared();
-		void onMoreCountChanged(int moreCount);
-	}
+public class NHW_Message implements NH_Window {
+  // Listener interface for message updates
+  public interface MessageUpdateListener {
+    void onMessageAdded(String message);
 
-	public static final int SHOW_MAX_LINES = 10;
+    void onMessagesCleared();
 
-	private NetHackIO mIO;
-	private AppCompatActivity mContext;
-	private final int MaxLog = 256;
-	private String[] mLog = new String[MaxLog];
-	private int mCurrentIdx;
-	private int mLogCount;
-	private int mDispCount;
-	private UI mUI;
-	private NHW_Text mLogView;
-	private boolean mIsVisible;
-	private int mWid;
-	private List<MessageUpdateListener> mListeners;
+    void onMoreCountChanged(int moreCount);
+  }
 
-	// ____________________________________________________________________________________
-	public NHW_Message(AppCompatActivity context, NetHackIO io)
-	{
-		mIO = io;
-		mListeners = new ArrayList<>();
-		setContext(context);
-	}
+  public static final int SHOW_MAX_LINES = 10;
 
-	// ____________________________________________________________________________________
-	public void addListener(MessageUpdateListener listener)
-	{
-		if (!mListeners.contains(listener)) {
-			mListeners.add(listener);
-			// Send current state to new listener
-			int lineCount = Math.min(SHOW_MAX_LINES, mDispCount);
-			int iStart = mCurrentIdx - lineCount + 1;
-			for (int i = 0; i < lineCount; i++) {
-				listener.onMessageAdded(mLog[getIndex(iStart + i)]);
-			}
-			listener.onMoreCountChanged(Math.max(0, mDispCount - SHOW_MAX_LINES));
-		}
-	}
+  private NetHackIO mIO;
+  private AppCompatActivity mContext;
+  private final int MaxLog = 256;
+  private String[] mLog = new String[MaxLog];
+  private int mCurrentIdx;
+  private int mLogCount;
+  private int mDispCount;
+  private UI mUI;
+  private NHW_Text mLogView;
+  private boolean mIsVisible;
+  private int mWid;
+  private List<MessageUpdateListener> mListeners;
 
-	// ____________________________________________________________________________________
-	public void removeListener(MessageUpdateListener listener)
-	{
-		mListeners.remove(listener);
-	}
+  public NHW_Message(AppCompatActivity context, NetHackIO io) {
+    mIO = io;
+    mListeners = new ArrayList<>();
+    setContext(context);
+  }
 
-	// ____________________________________________________________________________________
-	public String getRecentMessages(int maxLines)
-	{
-		return getLogLine(maxLines);
-	}
+  public void addListener(MessageUpdateListener listener) {
+    if (!mListeners.contains(listener)) {
+      mListeners.add(listener);
+      // Send current state to new listener
+      int lineCount = Math.min(SHOW_MAX_LINES, mDispCount);
+      int iStart = mCurrentIdx - lineCount + 1;
+      for (int i = 0; i < lineCount; i++) {
+        listener.onMessageAdded(mLog[getIndex(iStart + i)]);
+      }
+      listener.onMoreCountChanged(Math.max(0, mDispCount - SHOW_MAX_LINES));
+    }
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public String getTitle()
-	{
-		return "NHW_Message";
-	}
+  public void removeListener(MessageUpdateListener listener) {
+    mListeners.remove(listener);
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public void setContext(AppCompatActivity context)
-	{
-		if(mContext == context)
-			return;
-		mContext = context;
-		mUI = new UI();
-		if(mIsVisible)
-			mUI.showInternal();
-		else
-			mUI.hideInternal();
-		if(mLogView != null)
-			mLogView.setContext(context);
-	}
+  public String getRecentMessages(int maxLines) {
+    return getLogLine(maxLines);
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public KeyEventResult handleKeyDown(char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount)
-	{
-		KeyEventResult ret;
-		if(isLogShowing() && (ret = mLogView.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount)) != KeyEventResult.IGNORED)
-			return ret;
-		return mUI.handleKeyDown(ch) ? KeyEventResult.HANDLED : KeyEventResult.IGNORED;
-	}
+  @Override
+  public String getTitle() {
+    return "NHW_Message";
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public void clear()
-	{
-		mDispCount = 0;
-		mLogCount = 0;
-		mCurrentIdx = 0;
-		mUI.clear();
-		notifyMessagesCleared();
-	}
+  @Override
+  public void setContext(AppCompatActivity context) {
+    if (mContext == context) return;
+    mContext = context;
+    mUI = new UI();
+    if (mIsVisible) mUI.showInternal();
+    else mUI.hideInternal();
+    if (mLogView != null) mLogView.setContext(context);
+  }
 
-	// ____________________________________________________________________________________
-	private int getIndex(int i)
-	{
-		if(mLogCount == 0)
-			return 0;
-		return i & (MaxLog - 1);
-	}
+  @Override
+  public KeyEventResult handleKeyDown(
+      char ch, int nhKey, int keyCode, Set<Input.Modifier> modifiers, int repeatCount) {
+    KeyEventResult ret;
+    if (isLogShowing()
+        && (ret = mLogView.handleKeyDown(ch, nhKey, keyCode, modifiers, repeatCount))
+            != KeyEventResult.IGNORED) return ret;
+    return mUI.handleKeyDown(ch) ? KeyEventResult.HANDLED : KeyEventResult.IGNORED;
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public void printString(int attr, String str, int append, int color)
-	{
-		mCurrentIdx = getIndex(mLogCount - 1);
+  @Override
+  public void clear() {
+    mDispCount = 0;
+    mLogCount = 0;
+    mCurrentIdx = 0;
+    mUI.clear();
+    notifyMessagesCleared();
+  }
 
-		if( append < 0 && mLogCount > 0 ) {
-			append++;
-			String l = mLog[mCurrentIdx];
-			if( append < -l.length() )
-				append = -l.length();
-			l = l.substring(0, l.length() + append);
-			mLog[mCurrentIdx] = l + str;
-		} else if( append > 0 && mLogCount > 0 ) {
-			if( str.length() > 0 )
-				mLog[mCurrentIdx] = mLog[mCurrentIdx] + str;
-		} else {
-			addMessage(str);
-		}
-		mUI.update();
-	}
+  private int getIndex(int i) {
+    if (mLogCount == 0) return 0;
+    return i & (MaxLog - 1);
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public void setCursorPos( int x, int y )
-	{
-	}
+  @Override
+  public void printString(int attr, String str, int append, int color) {
+    mCurrentIdx = getIndex(mLogCount - 1);
 
-	// ____________________________________________________________________________________
-	private void addMessage(String newMsg)
-	{
-		mCurrentIdx = getIndex(mCurrentIdx + 1);
-		mLog[mCurrentIdx] = newMsg;
-		mDispCount++;
-		mLogCount++;
-		notifyMessageAdded(newMsg);
-		notifyMoreCountChanged();
-	}
+    if (append < 0 && mLogCount > 0) {
+      append++;
+      String l = mLog[mCurrentIdx];
+      if (append < -l.length()) append = -l.length();
+      l = l.substring(0, l.length() + append);
+      mLog[mCurrentIdx] = l + str;
+    } else if (append > 0 && mLogCount > 0) {
+      if (str.length() > 0) mLog[mCurrentIdx] = mLog[mCurrentIdx] + str;
+    } else {
+      addMessage(str);
+    }
+    mUI.update();
+  }
 
-	// ____________________________________________________________________________________
-	private void notifyMessageAdded(String message)
-	{
-		for (MessageUpdateListener listener : mListeners) {
-			listener.onMessageAdded(message);
-		}
-	}
+  @Override
+  public void setCursorPos(int x, int y) {}
 
-	// ____________________________________________________________________________________
-	private void notifyMessagesCleared()
-	{
-		for (MessageUpdateListener listener : mListeners) {
-			listener.onMessagesCleared();
-		}
-	}
+  private void addMessage(String newMsg) {
+    mCurrentIdx = getIndex(mCurrentIdx + 1);
+    mLog[mCurrentIdx] = newMsg;
+    mDispCount++;
+    mLogCount++;
+    notifyMessageAdded(newMsg);
+    notifyMoreCountChanged();
+  }
 
-	// ____________________________________________________________________________________
-	private void notifyMoreCountChanged()
-	{
-		int moreCount = Math.max(0, mDispCount - SHOW_MAX_LINES);
-		for (MessageUpdateListener listener : mListeners) {
-			listener.onMoreCountChanged(moreCount);
-		}
-	}
+  private void notifyMessageAdded(String message) {
+    for (MessageUpdateListener listener : mListeners) {
+      listener.onMessageAdded(message);
+    }
+  }
 
-	// ____________________________________________________________________________________
-	public String getLogLine( int maxLineCount ) {
-		if(mDispCount <= 0)
-			return "";
+  private void notifyMessagesCleared() {
+    for (MessageUpdateListener listener : mListeners) {
+      listener.onMessagesCleared();
+    }
+  }
 
-		int nLines = Math.min(mDispCount, maxLineCount);
+  private void notifyMoreCountChanged() {
+    int moreCount = Math.max(0, mDispCount - SHOW_MAX_LINES);
+    for (MessageUpdateListener listener : mListeners) {
+      listener.onMoreCountChanged(moreCount);
+    }
+  }
 
-		StringBuilder line = new StringBuilder();
-		for( int i = nLines - 1; i >= 0; i-- ) {
-			int idx = getIndex(mCurrentIdx - i);
-			line.append(mLog[idx]);
-			line.append(' ');
-		}
-		line.append('\n');
-		return line.toString();
-	}
+  public String getLogLine(int maxLineCount) {
+    if (mDispCount <= 0) return "";
 
-	// ____________________________________________________________________________________
-	@Override
-	public void show(boolean bBlocking)
-	{
-		mIsVisible = true;
-		mUI.showInternal();
-		if(bBlocking)
-		{
-			// unblock immediately
-			mIO.sendKeyCmd(' ');
-		}
-	}
+    int nLines = Math.min(mDispCount, maxLineCount);
 
-	// ____________________________________________________________________________________
-	@Override
-	public void destroy()
-	{
-		mIsVisible = false;
-		mUI.hideInternal();
-	}
+    StringBuilder line = new StringBuilder();
+    for (int i = nLines - 1; i >= 0; i--) {
+      int idx = getIndex(mCurrentIdx - i);
+      line.append(mLog[idx]);
+      line.append(' ');
+    }
+    line.append('\n');
+    return line.toString();
+  }
 
-	// ____________________________________________________________________________________
-	public void showLog(boolean bBlocking)
-	{
-		if(mLogView == null)
-			mLogView = new NHW_Text(0, mContext, mIO);
+  @Override
+  public void show(boolean bBlocking) {
+    mIsVisible = true;
+    mUI.showInternal();
+    if (bBlocking) {
+      // unblock immediately
+      mIO.sendKeyCmd(' ');
+    }
+  }
 
-		boolean highlightNew = mDispCount > SHOW_MAX_LINES;
+  @Override
+  public void destroy() {
+    mIsVisible = false;
+    mUI.hideInternal();
+  }
 
-		int nLogs = 0;
-		for( int n = 0; n < MaxLog; n++ ) {
-			if( mLog[n] != null )
-				nLogs++;
-		}
+  public void showLog(boolean bBlocking) {
+    if (mLogView == null) mLogView = new NHW_Text(0, mContext, mIO);
 
-		int attr = 0;
-		mLogView.clear();
-		int i = mCurrentIdx + 1;
-		for(int n = 0; n < MaxLog; n++, i++)
-		{
-			String s = mLog[getIndex(i)];
-			if(s != null)
-			{
-				nLogs--;
-				if( highlightNew && nLogs < mDispCount )
-					attr = TextAttr.ATTR_BOLD;
-				mLogView.printString(attr, s, 0, 15);
-			}
-		}
-		mLogView.show(bBlocking);
-		mLogView.scrollToEnd();
-		clear();
-		mUI.update();
-	}
+    boolean highlightNew = mDispCount > SHOW_MAX_LINES;
 
-	// ____________________________________________________________________________________
-	private boolean isLogShowing()
-	{
-		return mLogView != null && mLogView.isVisible();
-	}
+    int nLogs = 0;
+    for (int n = 0; n < MaxLog; n++) {
+      if (mLog[n] != null) nLogs++;
+    }
 
-	// ____________________________________________________________________________________
-	public void setId(int wid)
-	{
-		mWid = wid;
-	}
+    int attr = 0;
+    mLogView.clear();
+    int i = mCurrentIdx + 1;
+    for (int n = 0; n < MaxLog; n++, i++) {
+      String s = mLog[getIndex(i)];
+      if (s != null) {
+        nLogs--;
+        if (highlightNew && nLogs < mDispCount) attr = TextAttr.ATTR_BOLD;
+        mLogView.printString(attr, s, 0, 15);
+      }
+    }
+    mLogView.show(bBlocking);
+    mLogView.scrollToEnd();
+    clear();
+    mUI.update();
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public int id()
-	{
-		return mWid;
-	}
+  private boolean isLogShowing() {
+    return mLogView != null && mLogView.isVisible();
+  }
 
-	public boolean isMoreVisible()
-	{
-		return mUI != null && mUI.isMoreVisible();
-	}
+  public void setId(int wid) {
+    mWid = wid;
+  }
 
-	@Override
-	public boolean handleGamepadKey(android.view.KeyEvent ev)
-	{
-		if(isLogShowing()) return mLogView.handleGamepadKey(ev);
-		if(!isMoreVisible()) return false;
-		if(ev.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+  @Override
+  public int id() {
+    return mWid;
+  }
 
-		switch(ev.getKeyCode())
-		{
-		case android.view.KeyEvent.KEYCODE_BUTTON_A:
-		case android.view.KeyEvent.KEYCODE_BUTTON_B:
-		case android.view.KeyEvent.KEYCODE_BUTTON_X:
-		case android.view.KeyEvent.KEYCODE_BUTTON_Y:
-		case android.view.KeyEvent.KEYCODE_BUTTON_SELECT:
-			showLog(false);
-			return true;
-		}
-		return false;
-	}
+  public boolean isMoreVisible() {
+    return mUI != null && mUI.isMoreVisible();
+  }
 
-	@Override
-	public boolean handleGamepadMotion(android.view.MotionEvent ev)
-	{
-		return false;
-	}
+  @Override
+  public boolean handleGamepadKey(android.view.KeyEvent ev) {
+    if (isLogShowing()) return mLogView.handleGamepadKey(ev);
+    if (!isMoreVisible()) return false;
+    if (ev.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
 
-	@Override
-	public boolean isVisible()
-	{
-		return mIsVisible;
-	}
+    switch (ev.getKeyCode()) {
+      case android.view.KeyEvent.KEYCODE_BUTTON_A:
+      case android.view.KeyEvent.KEYCODE_BUTTON_B:
+      case android.view.KeyEvent.KEYCODE_BUTTON_X:
+      case android.view.KeyEvent.KEYCODE_BUTTON_Y:
+      case android.view.KeyEvent.KEYCODE_BUTTON_SELECT:
+        showLog(false);
+        return true;
+    }
+    return false;
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	public void preferencesUpdated(SharedPreferences prefs)
-	{
-	}
+  @Override
+  public boolean handleGamepadMotion(android.view.MotionEvent ev) {
+    return false;
+  }
 
-	// ____________________________________________________________________________________ //
-	// 																						//
-	// ____________________________________________________________________________________ //
-	private class UI
-	{
-		private TextView m_view;
-		private TextView m_more;
+  @Override
+  public boolean isVisible() {
+    return mIsVisible;
+  }
 
-		// ____________________________________________________________________________________
-		public UI()
-		{
-			m_view = (TextView)mContext.findViewById(R.id.nh_message);
-			m_more = (TextView)mContext.findViewById(R.id.more);
-			m_more.setVisibility(View.GONE);
-			m_more.setFocusable(true);
-			if(GamepadDeviceWatcher.isGamepadConnected(mContext))
-				m_more.setFocusableInTouchMode(true);
-			m_more.setOnClickListener(new OnClickListener()
-			{
-				@Override
-				public void onClick(View v)
-				{
-					showLog(false);
-				}
-			});
-		}
+  @Override
+  public void preferencesUpdated(SharedPreferences prefs) {}
 
-		// ____________________________________________________________________________________
-		public boolean isMoreVisible()
-		{
-			return m_more.getVisibility() == View.VISIBLE;
-		}
+  private class UI {
+    private TextView m_view;
+    private TextView m_more;
 
-		// ____________________________________________________________________________________
-		public void showInternal()
-		{
-			update();
-			m_view.setVisibility(View.VISIBLE);
-		}
+    public UI() {
+      m_view = (TextView) mContext.findViewById(R.id.nh_message);
+      m_more = (TextView) mContext.findViewById(R.id.more);
+      m_more.setVisibility(View.GONE);
+      m_more.setFocusable(true);
+      if (GamepadDeviceWatcher.isGamepadConnected(mContext)) m_more.setFocusableInTouchMode(true);
+      m_more.setOnClickListener(
+          new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+              showLog(false);
+            }
+          });
+    }
 
-		// ____________________________________________________________________________________
-		public void hideInternal()
-		{
-			//	m_view.setVisibility(View.INVISIBLE);
-			//	m_more.setVisibility(View.GONE);
-		}
+    public boolean isMoreVisible() {
+      return m_more.getVisibility() == View.VISIBLE;
+    }
 
-		// ____________________________________________________________________________________
-		public void clear()
-		{
-			m_more.setVisibility(View.GONE);
-			m_view.setText("");
-		}
+    public void showInternal() {
+      update();
+      m_view.setVisibility(View.VISIBLE);
+    }
 
-		// ____________________________________________________________________________________
-		public void update()
-		{
-			updateText();
-			if( mDispCount > SHOW_MAX_LINES ) {
-				m_more.setText("--" + Integer.toString(mDispCount - SHOW_MAX_LINES) + " more--");
-				m_more.setVisibility(View.VISIBLE);
-			} else
-				m_more.setVisibility(View.GONE);
-		}
+    public void hideInternal() {
+      //	m_view.setVisibility(View.INVISIBLE);
+      //	m_more.setVisibility(View.GONE);
+    }
 
-		// ____________________________________________________________________________________
-		public boolean handleGamepadKey(android.view.KeyEvent ev)
-		{
-			if(isMoreVisible() && !isLogShowing()) {
-				showLog(false);
-				return true;
-			}
-			return false;
-		}
+    public void clear() {
+      m_more.setVisibility(View.GONE);
+      m_view.setText("");
+    }
 
-		// ____________________________________________________________________________________
-		public boolean handleKeyDown(char ch)
-		{
-			if(isMoreVisible() && ch == ' ' && !isLogShowing()) {
-				showLog(false);
-				return true;
-			}
-			return false;
-		}
+    public void update() {
+      updateText();
+      if (mDispCount > SHOW_MAX_LINES) {
+        m_more.setText("--" + Integer.toString(mDispCount - SHOW_MAX_LINES) + " more--");
+        m_more.setVisibility(View.VISIBLE);
+      } else m_more.setVisibility(View.GONE);
+    }
 
-		// ____________________________________________________________________________________
-		private void updateText()
-		{
-			m_view.setText("");
-			if( mDispCount > 0 ) {
-				int lineCount = Math.min(SHOW_MAX_LINES, mDispCount);
-				int iStart = mCurrentIdx - lineCount + 1;
-				for( int i = 0; i < lineCount; i++ ) {
-					String msg = mLog[getIndex(iStart + i)];
-					if( i > 0 )
-						m_view.append("\n");
-					m_view.append(msg);
-				}
-			}
-		}
-	}
+    public boolean handleGamepadKey(android.view.KeyEvent ev) {
+      if (isMoreVisible() && !isLogShowing()) {
+        showLog(false);
+        return true;
+      }
+      return false;
+    }
+
+    public boolean handleKeyDown(char ch) {
+      if (isMoreVisible() && ch == ' ' && !isLogShowing()) {
+        showLog(false);
+        return true;
+      }
+      return false;
+    }
+
+    private void updateText() {
+      m_view.setText("");
+      if (mDispCount > 0) {
+        int lineCount = Math.min(SHOW_MAX_LINES, mDispCount);
+        int iStart = mCurrentIdx - lineCount + 1;
+        for (int i = 0; i < lineCount; i++) {
+          String msg = mLog[getIndex(iStart + i)];
+          if (i > 0) m_view.append("\n");
+          m_view.append(msg);
+        }
+      }
+    }
+  }
 }

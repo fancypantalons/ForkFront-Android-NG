@@ -1,9 +1,12 @@
 package com.tbd.forkfront.engine;
-import com.tbd.forkfront.R;
-import com.tbd.forkfront.Log;
-import com.tbd.forkfront.window.menu.MenuItem;
-import com.tbd.forkfront.engine.ByteDecoder;
 
+import android.app.Application;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import com.tbd.forkfront.Log;
+import com.tbd.forkfront.R;
+import com.tbd.forkfront.window.menu.MenuItem;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,994 +14,837 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import android.app.Application;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
-
 /**
- * NetHackIO is responsible for JNI communication.
- * It ensures that every JNI callback is posted to the Android main UI thread
- * using a Handler(Looper.getMainLooper()).
+ * NetHackIO is responsible for JNI communication. It ensures that every JNI callback is posted to
+ * the Android main UI thread using a Handler(Looper.getMainLooper()).
  */
-public class NetHackIO implements EngineCommandSender
-{
-	private final Handler mHandler;
-	private NH_Handler mNhHandler;  // Not final - set via setHandler() after construction
-	private final Thread mThread;
-	private final ByteDecoder mDecoder;
-	private final String mLibraryName;
-	private final ConcurrentLinkedQueue<Cmd> mCmdQue;
-	private int mNextWinId;
-	private int mMessageWid;
-    private volatile int mIsReady;
-    private final Object mReadyMonitor = new Object();
-    private volatile CountDownLatch mSaveStateLatch;
-	private String mDataDir;
+public class NetHackIO implements EngineCommandSender {
+  private final Handler mHandler;
+  private NH_Handler mNhHandler; // Not final - set via setHandler() after construction
+  private final Thread mThread;
+  private final ByteDecoder mDecoder;
+  private final String mLibraryName;
+  private final ConcurrentLinkedQueue<Cmd> mCmdQue;
+  private int mNextWinId;
+  private int mMessageWid;
+  private volatile int mIsReady;
+  private final Object mReadyMonitor = new Object();
+  private volatile CountDownLatch mSaveStateLatch;
+  private String mDataDir;
 
-	// ____________________________________________________________________________________ //
-	// Send commands																		//
-	// ____________________________________________________________________________________ //
-	// TODO make responses explicit on requests instead of queuing them up
-	enum CmdType {
-		KEY,
-		POS,
-		LINE,
-		SELECT,
-		SAVE_STATE,
-		ABORT;
-	}
+  // TODO make responses explicit on requests instead of queuing them up
+  enum CmdType {
+    KEY,
+    POS,
+    LINE,
+    SELECT,
+    SAVE_STATE,
+    ABORT;
+  }
 
-	private interface Cmd {
-		CmdType type();
-	}
+  private interface Cmd {
+    CmdType type();
+  }
 
-	private static class AbortCmd implements Cmd {
-		@Override
-		public CmdType type() {
-			return CmdType.ABORT;
-		}
-	}
+  private static class AbortCmd implements Cmd {
+    @Override
+    public CmdType type() {
+      return CmdType.ABORT;
+    }
+  }
 
-	private static class SaveStateCmd implements Cmd {
-		@Override
-		public CmdType type() {
-			return CmdType.SAVE_STATE;
-		}
-	}
+  private static class SaveStateCmd implements Cmd {
+    @Override
+    public CmdType type() {
+      return CmdType.SAVE_STATE;
+    }
+  }
 
-	private static class KeyCmd implements Cmd {
-		private final char key;
+  private static class KeyCmd implements Cmd {
+    private final char key;
 
-		KeyCmd(char key) {
-			this.key = key;
-		}
-
-		@Override
-		public CmdType type() {
-			return CmdType.KEY;
-		}
-	}
-
-	private static class PosCmd implements Cmd {
-		private final char key;
-		private final int x, y;
-
-		private PosCmd(char key) {
-			this.key = key;
-			this.x = 0;
-			this.y = 0;
-		}
-
-		public PosCmd(int x, int y) {
-			key = 0;
-			this.x = x;
-			this.y = y;
-		}
-
-		@Override
-		public CmdType type() {
-			return CmdType.POS;
-		}
-	}
-
-	private static class LineCmd implements Cmd {
-
-		private final String line;
-
-		private LineCmd(String line) {
-			this.line = line;
-		}
-
-		@Override
-		public CmdType type() {
-			return CmdType.LINE;
-		}
-	}
-
-	private static class Item {
-		final int count;
-		final long id;
-
-		private Item(long id, int count) {
-			this.id = id;
-			this.count = count;
-		}
-	}
-
-	private static class SelectCmd implements Cmd {
-		long[] items;
-
-		SelectCmd(long id, int count) {
-			items = new long[]{id, count};
-		}
-
-		SelectCmd(List<MenuItem> items) {
-			if(items == null) {
-				this.items = null;
-			} else {
-				this.items = new long[items.size() * 2];
-				for(int i = 0; i < items.size(); i++) {
-					this.items[i * 2 + 0] = items.get(i).getId();
-					this.items[i * 2 + 1] = items.get(i).getCount();
-				}
-			}
-		}
-
-
-		@Override
-		public CmdType type() {
-			return CmdType.SELECT;
-		}
-	}
-
-	// ____________________________________________________________________________________
-	/**
-	 * Create NetHackIO with Application context.
-	 *
-	 * @param app Application context (survives Activity destruction)
-	 * @param nhHandler Handler for JNI callbacks from native engine (can be null, must call setHandler before start)
-	 * @param decoder ByteDecoder for NetHack protocol
-	 */
-	public NetHackIO(Application app, NH_Handler nhHandler, ByteDecoder decoder)
-	{
-		mNhHandler = nhHandler;  // Allow null initially, must call setHandler() before start()
-		mDecoder = decoder;
-		mLibraryName = app.getResources().getString(R.string.libraryName);
-		mNextWinId = 1;
-		mCmdQue = new ConcurrentLinkedQueue<>();
-		// Use main looper explicitly - works without Activity context
-		// Handler posts JNI callbacks to main thread regardless of Activity state
-		mHandler = new Handler(Looper.getMainLooper());
-		mThread = new Thread(ThreadMain, "nh_thread");
-	}
-
-	// ____________________________________________________________________________________
-	/**
-	 * Set the handler for JNI callbacks.
-	 * Must be called before start() and can only be called once.
-	 *
-	 * @param handler NH_Handler implementation for callbacks
-	 * @throws IllegalStateException if handler already set or thread already started
-	 */
-	public void setHandler(NH_Handler handler) {
-		if (mNhHandler != null) {
-			throw new IllegalStateException("Handler already set");
-		}
-		if (mThread.isAlive()) {
-			throw new IllegalStateException("Cannot set handler after thread started");
-		}
-		mNhHandler = handler;
-	}
-
-	// ____________________________________________________________________________________
-	public void start(String path)
-	{
-		mDataDir = path;
-		mThread.start();
-	}
-
-	// ____________________________________________________________________________________
-    public synchronized void saveState()
-    {
-        CountDownLatch latch = new CountDownLatch(1);
-        mSaveStateLatch = latch;
-        mCmdQue.add(new SaveStateCmd());
-        try {
-            latch.await(750, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+    KeyCmd(char key) {
+      this.key = key;
     }
 
-	// ____________________________________________________________________________________
-    public void saveAndQuit()
-    {
-        for (int i = 0; i < 4; i++) {
-            sendAbortCmd();
-        }
-        sleepQuietly(150);
+    @Override
+    public CmdType type() {
+      return CmdType.KEY;
+    }
+  }
+
+  private static class PosCmd implements Cmd {
+    private final char key;
+    private final int x, y;
+
+    private PosCmd(char key) {
+      this.key = key;
+      this.x = 0;
+      this.y = 0;
     }
 
-    private static void sleepQuietly(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        }
+    public PosCmd(int x, int y) {
+      key = 0;
+      this.x = x;
+      this.y = y;
     }
 
-	// ____________________________________________________________________________________
-	public void waitReady()
-	{
-		// flush out queue   
-		long endTime = System.currentTimeMillis() + 1000;			
-		while(mCmdQue.peek() != null && endTime - System.currentTimeMillis() > 0)
-			Thread.yield();
+    @Override
+    public CmdType type() {
+      return CmdType.POS;
+    }
+  }
 
-		// boolean test = mIsReady == 0;
-		// if(test)
-		// 	Log.print("TEST:TEST:TEST:");
-		
-		synchronized(mReadyMonitor)
-		{
-			try
-			{
-				// wait until nethack is ready for more input
-				do
-					mReadyMonitor.wait(10);
-				while(mIsReady == 0);
-			}
-			catch(InterruptedException e)
-			{
-			}
-		}
-	}
-	
-	// ____________________________________________________________________________________
-	public Handler getHandler()
-	{
-		return mHandler;
-	}
+  private static class LineCmd implements Cmd {
 
-	// ____________________________________________________________________________________
-    private Runnable ThreadMain = new Runnable()
-    {
+    private final String line;
+
+    private LineCmd(String line) {
+      this.line = line;
+    }
+
+    @Override
+    public CmdType type() {
+      return CmdType.LINE;
+    }
+  }
+
+  private static class Item {
+    final int count;
+    final long id;
+
+    private Item(long id, int count) {
+      this.id = id;
+      this.count = count;
+    }
+  }
+
+  private static class SelectCmd implements Cmd {
+    long[] items;
+
+    SelectCmd(long id, int count) {
+      items = new long[] {id, count};
+    }
+
+    SelectCmd(List<MenuItem> items) {
+      if (items == null) {
+        this.items = null;
+      } else {
+        this.items = new long[items.size() * 2];
+        for (int i = 0; i < items.size(); i++) {
+          this.items[i * 2 + 0] = items.get(i).getId();
+          this.items[i * 2 + 1] = items.get(i).getCount();
+        }
+      }
+    }
+
+    @Override
+    public CmdType type() {
+      return CmdType.SELECT;
+    }
+  }
+
+  /**
+   * Create NetHackIO with Application context.
+   *
+   * @param app Application context (survives Activity destruction)
+   * @param nhHandler Handler for JNI callbacks from native engine (can be null, must call
+   *     setHandler before start)
+   * @param decoder ByteDecoder for NetHack protocol
+   */
+  public NetHackIO(Application app, NH_Handler nhHandler, ByteDecoder decoder) {
+    mNhHandler = nhHandler; // Allow null initially, must call setHandler() before start()
+    mDecoder = decoder;
+    mLibraryName = app.getResources().getString(R.string.libraryName);
+    mNextWinId = 1;
+    mCmdQue = new ConcurrentLinkedQueue<>();
+    // Use main looper explicitly - works without Activity context
+    // Handler posts JNI callbacks to main thread regardless of Activity state
+    mHandler = new Handler(Looper.getMainLooper());
+    mThread = new Thread(ThreadMain, "nh_thread");
+  }
+
+  /**
+   * Set the handler for JNI callbacks. Must be called before start() and can only be called once.
+   *
+   * @param handler NH_Handler implementation for callbacks
+   * @throws IllegalStateException if handler already set or thread already started
+   */
+  public void setHandler(NH_Handler handler) {
+    if (mNhHandler != null) {
+      throw new IllegalStateException("Handler already set");
+    }
+    if (mThread.isAlive()) {
+      throw new IllegalStateException("Cannot set handler after thread started");
+    }
+    mNhHandler = handler;
+  }
+
+  public void start(String path) {
+    mDataDir = path;
+    mThread.start();
+  }
+
+  public synchronized void saveState() {
+    CountDownLatch latch = new CountDownLatch(1);
+    mSaveStateLatch = latch;
+    mCmdQue.add(new SaveStateCmd());
+    try {
+      latch.await(750, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public void saveAndQuit() {
+    for (int i = 0; i < 4; i++) {
+      sendAbortCmd();
+    }
+    sleepQuietly(150);
+  }
+
+  private static void sleepQuietly(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException ignored) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public void waitReady() {
+    // flush out queue
+    long endTime = System.currentTimeMillis() + 1000;
+    while (mCmdQue.peek() != null && endTime - System.currentTimeMillis() > 0) Thread.yield();
+
+    // boolean test = mIsReady == 0;
+    // if(test)
+    // 	Log.print("TEST:TEST:TEST:");
+
+    synchronized (mReadyMonitor) {
+      try {
+        // wait until nethack is ready for more input
+        do mReadyMonitor.wait(10);
+        while (mIsReady == 0);
+      } catch (InterruptedException e) {
+      }
+    }
+  }
+
+  public Handler getHandler() {
+    return mHandler;
+  }
+
+  private Runnable ThreadMain =
+      new Runnable() {
         @Override
-        public void run()
-        {
-            Log.print("start native process");
+        public void run() {
+          Log.print("start native process");
 
-            try
-            {
-                System.loadLibrary(mLibraryName);
-                RunNetHack(mDataDir);
-            }
-            catch(Exception e)
-            {
-                Log.print("Native thread exception: " + e.toString());
-            }
-            Log.print("native process finished");
-            System.exit(0);
+          try {
+            System.loadLibrary(mLibraryName);
+            RunNetHack(mDataDir);
+          } catch (Exception e) {
+            Log.print("Native thread exception: " + e.toString());
+          }
+          Log.print("native process finished");
+          System.exit(0);
         }
-    };
+      };
 
-	// ____________________________________________________________________________________
-    public void sendKeyCmd(char key)
-    {
-        if (mNhHandler != null) {
-            mNhHandler.hideDPad();
-        }
-        mCmdQue.add(new KeyCmd(key));
+  public void sendKeyCmd(char key) {
+    if (mNhHandler != null) {
+      mNhHandler.hideDPad();
     }
+    mCmdQue.add(new KeyCmd(key));
+  }
 
-	// ____________________________________________________________________________________
-    public void sendDirKeyCmd(char key)
-    {
-        if (mNhHandler != null) {
-            mNhHandler.hideDPad();
-        }
-        mCmdQue.add(new PosCmd(key));
+  public void sendDirKeyCmd(char key) {
+    if (mNhHandler != null) {
+      mNhHandler.hideDPad();
     }
+    mCmdQue.add(new PosCmd(key));
+  }
 
-	// ____________________________________________________________________________________
-    public void sendPosCmd(int x, int y)
-    {
-        if (mNhHandler != null) {
-            mNhHandler.hideDPad();
-        }
-        mCmdQue.add(new PosCmd(x, y));
+  public void sendPosCmd(int x, int y) {
+    if (mNhHandler != null) {
+      mNhHandler.hideDPad();
     }
+    mCmdQue.add(new PosCmd(x, y));
+  }
 
-	// ____________________________________________________________________________________
-	public void sendLineCmd(String str)
-	{
-		mCmdQue.add(new LineCmd(str));
-	}
+  public void sendLineCmd(String str) {
+    mCmdQue.add(new LineCmd(str));
+  }
 
-	// ____________________________________________________________________________________
-	public void sendSelectCmd(long id, int count)
-	{
-		mCmdQue.add(new SelectCmd(id, count));
-	}
+  public void sendSelectCmd(long id, int count) {
+    mCmdQue.add(new SelectCmd(id, count));
+  }
 
-	// ____________________________________________________________________________________
-	public void sendSelectCmd(ArrayList<MenuItem> items)
-	{
-		mCmdQue.add(new SelectCmd(items));
-	}
+  public void sendSelectCmd(ArrayList<MenuItem> items) {
+    mCmdQue.add(new SelectCmd(items));
+  }
 
-	// ____________________________________________________________________________________
-	public void sendSelectNoneCmd()
-	{
-		mCmdQue.add(new SelectCmd(0, 0));
-	}
+  public void sendSelectNoneCmd() {
+    mCmdQue.add(new SelectCmd(0, 0));
+  }
 
-	// ____________________________________________________________________________________
-	public void sendCancelSelectCmd()
-	{
-		mCmdQue.add(new SelectCmd(null));
-	}
+  public void sendCancelSelectCmd() {
+    mCmdQue.add(new SelectCmd(null));
+  }
 
-	// ____________________________________________________________________________________
-	private void sendAbortCmd()
-	{
-		mCmdQue.add(new AbortCmd());
-	}
+  private void sendAbortCmd() {
+    mCmdQue.add(new AbortCmd());
+  }
 
-	// ------------------------------------------------------------------------------------
-	// Receive commands called from nethack thread
-	// ------------------------------------------------------------------------------------
+  // Receive commands called from nethack thread
 
-	// ____________________________________________________________________________________
-	private Cmd removeFromQue()
-	{
-		Cmd cmd = mCmdQue.poll();
-		while(cmd == null)
-		{
-			try
-			{
-				Thread.sleep(50);
-			}
-			catch(InterruptedException e)
-			{
-			}
-			cmd = mCmdQue.poll();
-		}
-		return cmd;
-	}
+  private Cmd removeFromQue() {
+    Cmd cmd = mCmdQue.poll();
+    while (cmd == null) {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+      }
+      cmd = mCmdQue.poll();
+    }
+    return cmd;
+  }
 
-	// ____________________________________________________________________________________
-    private void handleSpecialCmds(Cmd cmd)
-    {
-        switch(cmd.type())
-        {
-        case SAVE_STATE:
-            SaveNetHackState();
-            CountDownLatch latch = mSaveStateLatch;
-            if (latch != null) {
-                latch.countDown();
-            }
+  private void handleSpecialCmds(Cmd cmd) {
+    switch (cmd.type()) {
+      case SAVE_STATE:
+        SaveNetHackState();
+        CountDownLatch latch = mSaveStateLatch;
+        if (latch != null) {
+          latch.countDown();
+        }
         break;
-        }
+    }
+  }
+
+  private Cmd discardUntil(CmdType cmd0) {
+    Cmd cmd;
+    do {
+      cmd = removeFromQue();
+      handleSpecialCmds(cmd);
+    } while (cmd.type() != cmd0 && cmd.type() != CmdType.ABORT);
+    return cmd;
+  }
+
+  private Cmd discardUntil(CmdType cmd0, CmdType cmd1) {
+    Cmd cmd;
+    do {
+      cmd = removeFromQue();
+      handleSpecialCmds(cmd);
+    } while (cmd.type() != cmd0 && cmd.type() != cmd1 && cmd.type() != CmdType.ABORT);
+    return cmd;
+  }
+
+  private void incReady() {
+    synchronized (mReadyMonitor) {
+      if (mIsReady++ == 0) mReadyMonitor.notify();
+    }
+  }
+
+  private void decReady() {
+    mIsReady--;
+    if (mIsReady < 0) throw new RuntimeException();
+  }
+
+  @SuppressWarnings("unused")
+  private int receiveKeyCmd() {
+    int key = 0x80;
+
+    incReady();
+
+    Cmd cmd = discardUntil(CmdType.KEY);
+    if (cmd.type() == CmdType.KEY) key = ((KeyCmd) cmd).key;
+
+    decReady();
+    return key;
+  }
+
+  @SuppressWarnings("unused")
+  private int receivePosKeyCmd(int lockMouse, int[] pos) {
+    incReady();
+
+    if (lockMouse != 0) {
+      mHandler.post(
+          new Runnable() {
+            @Override
+            public void run() {
+              mNhHandler.lockMouse();
+            }
+          });
     }
 
-	// ____________________________________________________________________________________
-	private Cmd discardUntil(CmdType cmd0)
-	{
-		Cmd cmd;
-		do
-		{
-			cmd = removeFromQue();
-			handleSpecialCmds(cmd);
-		}while(cmd.type() != cmd0 && cmd.type() != CmdType.ABORT);
-		return cmd;
-	}
+    Cmd cmd = discardUntil(CmdType.KEY, CmdType.POS);
 
-	// ____________________________________________________________________________________
-	private Cmd discardUntil(CmdType cmd0, CmdType cmd1)
-	{
-		Cmd cmd;
-		do
-		{
-			cmd = removeFromQue();
-			handleSpecialCmds(cmd);
-		}while(cmd.type() != cmd0 && cmd.type() != cmd1 && cmd.type() != CmdType.ABORT);
-		return cmd;
-	}
+    int key = 0x80;
 
-	// ____________________________________________________________________________________
-	private void incReady()
-	{
-		synchronized(mReadyMonitor)
-		{
-			if(mIsReady++ == 0)
-				mReadyMonitor.notify();
-		}
-	}
+    if (cmd.type() == CmdType.KEY) {
+      key = ((KeyCmd) cmd).key;
+    } else if (cmd.type() == CmdType.POS) {
+      key = ((PosCmd) cmd).key;
+      pos[0] = ((PosCmd) cmd).x;
+      pos[1] = ((PosCmd) cmd).y;
+    }
 
-	// ____________________________________________________________________________________
-	private void decReady()
-	{
-		mIsReady--;
-		if(mIsReady < 0)
-			throw new RuntimeException();
-	}
+    decReady();
+    return key;
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private int receiveKeyCmd()
-	{
-		int key = 0x80;
+  // Functions called by nethack thread to schedule an operation on UI thread
 
-		incReady();
-		
-		Cmd cmd = discardUntil(CmdType.KEY);
-		if(cmd.type() == CmdType.KEY)
-			key = ((KeyCmd)cmd).key;
+  @SuppressWarnings("unused")
+  private void debugLog(final byte[] cmsg) {
+    Log.print(mDecoder.decode(cmsg));
+  }
 
-		decReady();
-		return key;
-	}
+  @SuppressWarnings("unused")
+  private void setCursorPos(final int wid, final int x, final int y) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.setCursorPos(wid, x, y);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private int receivePosKeyCmd(int lockMouse, int[] pos)
-	{
-		incReady();
+  @SuppressWarnings("unused")
+  private void putString(
+      final int wid, final int attr, final byte[] cmsg, final int append, final int color) {
+    final String msg = mDecoder.decode(cmsg);
+    if (wid == mMessageWid) Log.print(msg);
 
-		if(lockMouse != 0)
-		{
-			mHandler.post(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					mNhHandler.lockMouse();
-				}
-			});
-		}
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.putString(wid, attr, msg, append, color);
+          }
+        });
+  }
 
-		Cmd cmd = discardUntil(CmdType.KEY, CmdType.POS);
+  @SuppressWarnings("unused")
+  private void setHealthColor(final int color) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.setHealthColor(color);
+          }
+        });
+  }
 
-		int key = 0x80;
+  // Field-based status methods
+  @SuppressWarnings("unused")
+  private void statusInit() {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.statusInit();
+          }
+        });
+  }
 
-		if(cmd.type() == CmdType.KEY) {
-			key = ((KeyCmd)cmd).key;
-		} else if(cmd.type() == CmdType.POS) {
-			key = ((PosCmd)cmd).key;
-			pos[0] = ((PosCmd)cmd).x;
-			pos[1] = ((PosCmd)cmd).y;
-		}
-		
-		decReady();
-		return key;
-	}
+  @SuppressWarnings("unused")
+  private void statusEnableField(
+      final int fieldIdx, final String name, final String fmt, final boolean enable) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.statusEnableField(fieldIdx, name, fmt, enable);
+          }
+        });
+  }
 
-	// ------------------------------------------------------------------------------------
-	// Functions called by nethack thread to schedule an operation on UI thread
-	// ------------------------------------------------------------------------------------
+  @SuppressWarnings("unused")
+  private void statusUpdate(
+      final int fieldIdx,
+      final String value,
+      final long conditionMask,
+      final int chg,
+      final int percent,
+      final int color,
+      final long[] colormasks) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.statusUpdate(
+                fieldIdx, value, conditionMask, chg, percent, color, colormasks);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void debugLog(final byte[] cmsg)
-	{
-		Log.print(mDecoder.decode(cmsg));
-	}
+  @SuppressWarnings("unused")
+  private void statusFinish() {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.statusFinish();
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void setCursorPos(final int wid, final int x, final int y)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.setCursorPos(wid, x, y);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void redrawStatus() {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.redrawStatus();
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void putString(final int wid, final int attr, final byte[] cmsg, final int append, final int color)
-	{
-		final String msg = mDecoder.decode(cmsg);
-		if(wid == mMessageWid)
-			Log.print(msg);
+  @SuppressWarnings("unused")
+  private void rawPrint(final int attr, final byte[] cmsg) {
+    final String msg = mDecoder.decode(cmsg);
+    Log.print(msg);
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.rawPrint(attr, msg);
+          }
+        });
+  }
 
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.putString(wid, attr, msg, append, color);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void printTile(
+      final int wid,
+      final int x,
+      final int y,
+      final int tile,
+      final int bkglyph,
+      final int ch,
+      final int col,
+      final int special) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.printTile(wid, x, y, tile, bkglyph, ch, col, special);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void setHealthColor(final int color)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.setHealthColor(color);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void ynFunction(final byte[] cquestion, final byte[] choices, final int def) {
+    final String question = mDecoder.decode(cquestion);
+    // Log.print("nhthread: ynFunction");
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            // Log.print("uithread: ynFunction");
+            mNhHandler.ynFunction(question, choices, def);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	// ____________________________________________________________________________________
-	// Field-based status methods
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void statusInit()
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.statusInit();
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private String getLine(final byte[] title, final int nMaxChars, final int showLog, int reentry) {
+    if (reentry == 0) {
+      final String msg = mDecoder.decode(title);
+      // Log.print("nhthread: getLine");
+      mHandler.post(
+          new Runnable() {
+            @Override
+            public void run() {
+              // Log.print("uithread: getLine");
+              mNhHandler.getLine(msg, nMaxChars, showLog != 0);
+            }
+          });
+    }
+    return waitForLine();
+  }
 
-	@SuppressWarnings("unused")
-	private void statusEnableField(final int fieldIdx, final String name, final String fmt, final boolean enable)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.statusEnableField(fieldIdx, name, fmt, enable);
-			}
-		});
-	}
+  private String waitForLine() {
+    incReady();
 
-	@SuppressWarnings("unused")
-	private void statusUpdate(final int fieldIdx, final String value, final long conditionMask,
-	                          final int chg, final int percent, final int color, final long[] colormasks)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.statusUpdate(fieldIdx, value, conditionMask, chg, percent, color, colormasks);
-			}
-		});
-	}
+    Cmd cmd = discardUntil(CmdType.LINE);
+    String string;
+    if (cmd.type() == CmdType.LINE) {
+      // prevent injecting special abort character
+      string = ((LineCmd) cmd).line.replace((char) 0x80, '?');
+    } else {
+      string = new String(new char[] {0x80});
+    }
 
-	@SuppressWarnings("unused")
-	private void statusFinish()
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.statusFinish();
-			}
-		});
-	}
+    decReady();
+    return string;
+  }
 
-	@SuppressWarnings("unused")
-	private void redrawStatus()
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.redrawStatus();
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void delayOutput() {
+    try {
+      Thread.sleep(50);
+    } catch (InterruptedException e) {
+    }
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void rawPrint(final int attr, final byte[] cmsg)
-	{
-		final String msg = mDecoder.decode(cmsg);
-		Log.print(msg);
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.rawPrint(attr, msg);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private int createWindow(final int type) {
+    final int wid = mNextWinId++;
+    if (type == 1) mMessageWid = wid;
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.createWindow(wid, type);
+          }
+        });
+    return wid;
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void printTile(final int wid, final int x, final int y, final int tile, final int bkglyph, final int ch, final int col, final int special)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.printTile(wid, x, y, tile, bkglyph, ch, col, special);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void displayWindow(final int wid, final int bBlocking) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.displayWindow(wid, bBlocking);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void ynFunction(final byte[] cquestion, final byte[] choices, final int def)
-	{
-		final String question = mDecoder.decode(cquestion);
-		//Log.print("nhthread: ynFunction");
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				//Log.print("uithread: ynFunction");
-				mNhHandler.ynFunction(question, choices, def);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void clearWindow(final int wid, final int isRogueLevel) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.clearWindow(wid, isRogueLevel);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private String getLine(final byte[] title, final int nMaxChars, final int showLog, int reentry)
-	{
-		if(reentry == 0)
-		{
-			final String msg = mDecoder.decode(title);
-			//Log.print("nhthread: getLine");
-			mHandler.post(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					//Log.print("uithread: getLine");
-					mNhHandler.getLine(msg, nMaxChars, showLog != 0);
-				}
-			});
-		}
-		return waitForLine();
-	}
+  @SuppressWarnings("unused")
+  private void destroyWindow(final int wid) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.destroyWindow(wid);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	private String waitForLine()
-	{
-		incReady();
+  @SuppressWarnings("unused")
+  private void startMenu(final int wid) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.startMenu(wid);
+          }
+        });
+  }
 
-		Cmd cmd = discardUntil(CmdType.LINE);
-		String string;
-		if(cmd.type() == CmdType.LINE)
-		{
-			// prevent injecting special abort character
-			string = ((LineCmd)cmd).line.replace((char)0x80, '?');
-		}
-		else {
-			string = new String(new char[]{0x80});
-		}
+  @SuppressWarnings("unused")
+  private void addMenu(
+      final int wid,
+      final int tile,
+      final long id,
+      final int acc,
+      final int groupAcc,
+      final int attr,
+      final byte[] text,
+      final int bSelected,
+      final int color) {
+    final String msg = mDecoder.decode(text);
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.addMenu(wid, tile, id, acc, groupAcc, attr, msg, bSelected, color);
+          }
+        });
+  }
 
-		decReady();
-		return string;
-	}
+  @SuppressWarnings("unused")
+  private void endMenu(final int wid, final byte[] prompt) {
+    final String msg = mDecoder.decode(prompt);
+    // Log.print("nhthread: endMenu");
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            // Log.print("uithread: endMenu");
+            mNhHandler.endMenu(wid, msg);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void delayOutput()
-	{
-		try
-		{
-			Thread.sleep(50);
-		}
-		catch(InterruptedException e)
-		{
-		}
-	}
+  @SuppressWarnings("unused")
+  private long[] selectMenu(final int wid, final int how, final int reentry) {
+    // Log.print("nhthread: selectMenu");
+    if (reentry == 0) {
+      mHandler.post(
+          new Runnable() {
+            @Override
+            public void run() {
+              // Log.print("uithread: selectMenu");
+              mNhHandler.selectMenu(wid, how);
+            }
+          });
+    }
+    return waitForSelect();
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private int createWindow(final int type)
-	{
-		final int wid = mNextWinId++;
-		if(type == 1)
-			mMessageWid = wid;
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.createWindow(wid, type);
-			}
-		});
-		return wid;
-	}
+  private long[] waitForSelect() {
+    incReady();
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void displayWindow(final int wid, final int bBlocking)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.displayWindow(wid, bBlocking);
-			}
-		});
-	}
+    long[] items = null;
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void clearWindow(final int wid, final int isRogueLevel)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.clearWindow(wid, isRogueLevel);
-			}
-		});
-	}
+    Cmd cmd = discardUntil(CmdType.SELECT);
+    if (cmd.type() == CmdType.SELECT) items = ((SelectCmd) cmd).items;
+    else items = new long[1];
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void destroyWindow(final int wid)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.destroyWindow(wid);
-			}
-		});
-	}
+    if (items != null) {
+      StringBuilder sb = new StringBuilder("waitForSelect returned: [");
+      for (int i = 0; i < items.length; i++) {
+        sb.append(Long.toHexString(items[i]));
+        if (i < items.length - 1) sb.append(", ");
+      }
+      sb.append("]");
+      Log.print(sb.toString());
+    }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void startMenu(final int wid)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.startMenu(wid);
-			}
-		});
-	}
+    decReady();
+    return items;
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void addMenu(final int wid, final int tile, final long id, final int acc, final int groupAcc, final int attr, final byte[] text, final int bSelected, final int color)
-	{
-		final String msg = mDecoder.decode(text);
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.addMenu(wid, tile, id, acc, groupAcc, attr, msg, bSelected, color);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void cliparound(
+      final int x,
+      final int y,
+      final int playerX,
+      final int playerY,
+      final int objectFlags,
+      final int nearbyMonsters) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.cliparound(x, y, playerX, playerY, objectFlags, nearbyMonsters);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void endMenu(final int wid, final byte[] prompt)
-	{
-		final String msg = mDecoder.decode(prompt);
-		//Log.print("nhthread: endMenu");
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				//Log.print("uithread: endMenu");
-				mNhHandler.endMenu(wid, msg);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void highlightDPad() {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.highlightDPad();
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private long[] selectMenu(final int wid, final int how, final int reentry)
-	{
-		//Log.print("nhthread: selectMenu");
-		if(reentry == 0)
-		{
-			mHandler.post(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					//Log.print("uithread: selectMenu");
-					mNhHandler.selectMenu(wid, how);
-				}
-			});
-		}
-		return waitForSelect();
-	}
+  @SuppressWarnings("unused")
+  private void showLog(final int bBlocking) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.showLog(bBlocking);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	private long[] waitForSelect()
-	{
-		incReady();
-		
-		long[] items = null;
-		
-		Cmd cmd = discardUntil(CmdType.SELECT);
-		if(cmd.type() == CmdType.SELECT)
-			items = ((SelectCmd)cmd).items;
-		else
-			items = new long[1];
+  @SuppressWarnings("unused")
+  private void editOpts() {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.editOpts();
+          }
+        });
+  }
 
-		if (items != null) {
-			StringBuilder sb = new StringBuilder("waitForSelect returned: [");
-			for (int i = 0; i < items.length; i++) {
-				sb.append(Long.toHexString(items[i]));
-				if (i < items.length - 1) sb.append(", ");
-			}
-			sb.append("]");
-			Log.print(sb.toString());
-		}
+  @SuppressWarnings("unused")
+  private void setUsername(final byte[] username) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.setLastUsername(new String(username));
+          }
+        });
+  }
 
-		decReady();
-		return items;
-	}
+  @SuppressWarnings("unused")
+  private void setNumPadOption(final int num_pad) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.setNumPadOption(num_pad != 0);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void cliparound(final int x, final int y, final int playerX, final int playerY, final int objectFlags, final int nearbyMonsters)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.cliparound(x, y, playerX, playerY, objectFlags, nearbyMonsters);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private String askName(final int nMaxChars, final String[] saves) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.askName(nMaxChars, saves);
+          }
+        });
+    return waitForLine();
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void highlightDPad()
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.highlightDPad();
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void loadSound(final byte[] filename) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.loadSound(new String(filename));
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void showLog(final int bBlocking)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.showLog(bBlocking);
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private void playSound(final byte[] filename, final int volume) {
+    mHandler.post(
+        new Runnable() {
+          @Override
+          public void run() {
+            mNhHandler.playSound(new String(filename), volume);
+          }
+        });
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void editOpts()
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.editOpts();
-			}
-		});
-	}
+  @SuppressWarnings("unused")
+  private String getDumplogDir() {
+    String path = "";
+    try {
+      File file =
+          new File(
+              Environment.getExternalStorageDirectory(), "Documents" + File.separator + "nethack");
+      if (!file.exists()) file.mkdirs();
+      path = file.getAbsolutePath();
+    } catch (Exception e) {
+    }
+    return path;
+  }
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void setUsername(final byte[] username)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.setLastUsername(new String(username));
-			}
-		});
-	}
+  private native void RunNetHack(String path);
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void setNumPadOption(final int num_pad)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.setNumPadOption(num_pad != 0);
-			}
-		});
-	}
+  private native void SaveNetHackState();
 
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private String askName(final int nMaxChars, final String[] saves)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.askName(nMaxChars, saves);
-			}
-		});
-		return waitForLine();
-	}
-
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void loadSound(final byte[] filename)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.loadSound(new String(filename));
-			}
-		});
-	}
-
-	// ____________________________________________________________________________________
-	@SuppressWarnings("unused")
-	private void playSound(final byte[] filename, final int volume)
-	{
-		mHandler.post(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				mNhHandler.playSound(new String(filename), volume);
-			}
-		});
-	}
-
-	@SuppressWarnings("unused")
-	private String getDumplogDir()
-	{
-		String path = "";
-		try
-		{
-			File file = new File(Environment.getExternalStorageDirectory(), "Documents" + File.separator + "nethack");
-			if(!file.exists())
-				file.mkdirs();
-			path = file.getAbsolutePath();
-		} catch(Exception e) {}
-		return path;
-	}
-
-	// ____________________________________________________________________________________
-	private native void RunNetHack(String path);
-	private native void SaveNetHackState();
-	public native void pushInput(String str);
+  public native void pushInput(String str);
 }

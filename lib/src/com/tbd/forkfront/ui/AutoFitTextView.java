@@ -8,111 +8,93 @@ import android.util.TypedValue;
 import com.tbd.forkfront.window.text.NH_TextView;
 
 public class AutoFitTextView extends NH_TextView {
-	private static final float MIN_SIZE_SP = 10;
+  private static final float MIN_SIZE_SP = 10;
 
-	private boolean mTextChanged;
-	private int mLastMeasuredWidth;
-	private boolean mIsMonospaceMode;
-	private float mMeasuredTextSize = getOriginalTextSize();
+  private boolean mTextChanged;
+  private int mLastMeasuredWidth;
+  private boolean mIsMonospaceMode;
+  private float mMeasuredTextSize = getOriginalTextSize();
 
-	// ____________________________________________________________________________________
-	public AutoFitTextView(Context context)
-	{
-		super(context);
-	}
+  public AutoFitTextView(Context context) {
+    super(context);
+  }
 
-	// ____________________________________________________________________________________
-	public AutoFitTextView(Context context, AttributeSet attrs)
-	{
-		super(context, attrs);
-	}
+  public AutoFitTextView(Context context, AttributeSet attrs) {
+    super(context, attrs);
+  }
 
-	// ____________________________________________________________________________________
-	public AutoFitTextView(Context context, AttributeSet attrs, int defStyle)
-	{
-		super(context, attrs, defStyle);
-	}
+  public AutoFitTextView(Context context, AttributeSet attrs, int defStyle) {
+    super(context, attrs, defStyle);
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	protected void onTextChanged(final CharSequence text, final int start, final int before, final int after)
-	{
-		mTextChanged = true;
-	}
+  @Override
+  protected void onTextChanged(
+      final CharSequence text, final int start, final int before, final int after) {
+    mTextChanged = true;
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	protected void onSizeChanged(int w, int h, int oldw, int oldh)
-	{
-		if(w != oldw || h != oldh)
-			mTextChanged = true;
-	}
+  @Override
+  protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+    if (w != oldw || h != oldh) mTextChanged = true;
+  }
 
-	// ____________________________________________________________________________________
-	@Override
-	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+  @Override
+  protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-		int viewW = getMeasuredWidth() - getPaddingLeft() - getPaddingRight();
-		int viewH = getMeasuredHeight() - getPaddingTop() - getPaddingBottom();
+    int viewW = getMeasuredWidth() - getPaddingLeft() - getPaddingRight();
+    int viewH = getMeasuredHeight() - getPaddingTop() - getPaddingBottom();
 
-		if(viewW > 0 && viewH > 0 && (mTextChanged || mLastMeasuredWidth != viewW))
-		{
-			mTextChanged = false;
-			mLastMeasuredWidth = viewW;
-			fitText(viewW);
-			// Redo measure for a new height value
-			super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-		}
-	}
+    if (viewW > 0 && viewH > 0 && (mTextChanged || mLastMeasuredWidth != viewW)) {
+      mTextChanged = false;
+      mLastMeasuredWidth = viewW;
+      fitText(viewW);
+      // Redo measure for a new height value
+      super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+  }
 
-	// ____________________________________________________________________________________
-	private void fitText(int viewW)
-	{
-		CharSequence text = getText();
-		if(text.length() <= 0)
-			return;
+  private void fitText(int viewW) {
+    CharSequence text = getText();
+    if (text.length() <= 0) return;
 
-		float minSize = getMinTextSize();
-		TextPaint paint = new TextPaint();
-		paint.set(super.getPaint());
-		float textSize = getOriginalTextSize();
-		paint.setTextSize(textSize);
-		float textW = paint.measureText(text, 0, text.length());
-		while(textSize > minSize && textW > viewW) // fast enough
-		{
-			textSize--;
-			paint.setTextSize(textSize);
-			textW = paint.measureText(text, 0, text.length());
-		}
+    float minSize = getMinTextSize();
+    TextPaint paint = new TextPaint();
+    paint.set(super.getPaint());
+    float textSize = getOriginalTextSize();
+    paint.setTextSize(textSize);
+    float textW = paint.measureText(text, 0, text.length());
+    while (textSize > minSize && textW > viewW) // fast enough
+    {
+      textSize--;
+      paint.setTextSize(textSize);
+      textW = paint.measureText(text, 0, text.length());
+    }
 
-		mMeasuredTextSize = textSize;
+    mMeasuredTextSize = textSize;
 
-		if(!mIsMonospaceMode) {
-			super.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
-		}
-	}
+    if (!mIsMonospaceMode) {
+      super.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+    }
+  }
 
-	// ____________________________________________________________________________________
-	public float getMinTextSize()
-	{
-		float scaledDensity = getContext().getResources().getDisplayMetrics().scaledDensity;
-		return MIN_SIZE_SP * scaledDensity;
-	}
+  public float getMinTextSize() {
+    float scaledDensity = getContext().getResources().getDisplayMetrics().scaledDensity;
+    return MIN_SIZE_SP * scaledDensity;
+  }
 
-	@Override
-	public void setBaseTextSize(int unit, float size) {
-		mMeasuredTextSize = android.util.TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics());
-		super.setBaseTextSize(unit, size);
-	}
+  @Override
+  public void setBaseTextSize(int unit, float size) {
+    mMeasuredTextSize =
+        android.util.TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics());
+    super.setBaseTextSize(unit, size);
+  }
 
-	@Override
-	protected void updateMode(boolean monospaceMode, Typeface typeface, float size) {
-		mIsMonospaceMode = monospaceMode;
-		setTypeface(typeface);
-		if(mIsMonospaceMode)
-			setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
-		else
-			setTextSize(TypedValue.COMPLEX_UNIT_PX, mMeasuredTextSize);
-	}
+  @Override
+  protected void updateMode(boolean monospaceMode, Typeface typeface, float size) {
+    mIsMonospaceMode = monospaceMode;
+    setTypeface(typeface);
+    if (mIsMonospaceMode) setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+    else setTextSize(TypedValue.COMPLEX_UNIT_PX, mMeasuredTextSize);
+  }
 }
