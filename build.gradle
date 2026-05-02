@@ -16,6 +16,54 @@ allprojects {
   }
 }
 
+configurations {
+  googleJavaFormat {
+    attributes {
+      attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+      attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
+    }
+  }
+}
+
+dependencies {
+  googleJavaFormat 'com.google.googlejavaformat:google-java-format:1.28.0'
+}
+
+def formatterJvmArgs = [
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+]
+
+task googleJavaFormat(type: JavaExec) {
+  group = "Formatting"
+  description = "Formats all Java source files in place using google-java-format"
+  classpath = configurations.googleJavaFormat
+  mainClass = "com.google.googlejavaformat.java.Main"
+  jvmArgs = formatterJvmArgs
+  args = ["--replace"]
+
+  def javaFiles = fileTree(dir: "lib", include: "**/*.java").files
+  args javaFiles.collect { it.absolutePath }
+}
+
+task googleJavaFormatCheck(type: JavaExec) {
+  group = "Formatting"
+  description = "Checks Java source files match google-java-format style without modifying them"
+  classpath = configurations.googleJavaFormat
+  mainClass = "com.google.googlejavaformat.java.Main"
+  jvmArgs = formatterJvmArgs
+
+  doFirst {
+    def files = project.hasProperty('gjfFiles')
+            ? project.property('gjfFiles').tokenize(':')
+            : fileTree(dir: "lib", include: "**/*.java").files.collect { it.absolutePath }
+    args = ["--dry-run", "--set-exit-if-changed"] + files
+  }
+}
+
 task clean(type: Delete) {
   delete rootProject.buildDir
 }

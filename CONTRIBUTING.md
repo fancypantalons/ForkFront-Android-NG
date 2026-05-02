@@ -27,15 +27,48 @@ direction. For bug fixes and small improvements, a PR without a prior issue is f
 
 ForkFront is a **Java-only** project. Do not introduce Kotlin or suggest migration.
 
-Follow standard Android Java conventions with these specifics:
+All Java source must be formatted with [google-java-format](https://github.com/google/google-java-format)
+at its default settings. Formatting is enforced mechanically — the pre-commit hook (see below) will
+block any commit where staged files don't comply.
 
-- 4-space indentation, no tabs.
+Beyond what the formatter enforces:
+
 - Keep the existing package structure under `lib/src/com/tbd/forkfront/`. Do not reorganize packages
   without a discussion first.
-- Match the style of the file you're editing. Consistency within a file takes precedence over
-  general guidelines.
 - Comments should explain *why*, not *what*. Well-named identifiers make the what obvious. Skip
   the comment if a future reader wouldn't be confused without it.
+- Do not use decorative separator comments (`// ------`, `// ______`, box-style section headers,
+  etc.). They add visual noise without conveying information.
+
+## Development Setup
+
+### Formatting
+
+To reformat all Java source files in place:
+
+```
+./gradlew googleJavaFormat
+```
+
+To check formatting without modifying any files (exits non-zero if anything is out of compliance):
+
+```
+./gradlew googleJavaFormatCheck
+```
+
+### Pre-commit Hook
+
+A pre-commit hook is provided that enforces the formatting standard at commit time. It checks only
+staged files, so it's fast and won't block you over issues in files you didn't touch.
+
+Enable it once per clone:
+
+```
+git config core.hooksPath .githooks
+```
+
+If the hook blocks a commit, run `./gradlew googleJavaFormat`, re-stage the fixed files, and commit
+again. The hook does not auto-fix anything.
 
 ## Pull Requests
 

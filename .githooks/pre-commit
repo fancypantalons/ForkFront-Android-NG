@@ -1,0 +1,30 @@
+#!/bin/bash
+# Blocks commits if staged Java files don't match google-java-format style.
+#
+# Install once per clone:
+#   git config core.hooksPath .githooks
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+# Collect staged Java files (added, copied, modified, renamed)
+STAGED_FILES=()
+while IFS= read -r f; do
+  [[ "$f" == *.java ]] && STAGED_FILES+=("$REPO_ROOT/$f")
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+[ ${#STAGED_FILES[@]} -eq 0 ] && exit 0
+
+echo "Checking formatting on ${#STAGED_FILES[@]} staged Java file(s)..."
+
+# Join paths with ':' for the Gradle project property
+JOINED=$(printf '%s:' "${STAGED_FILES[@]}")
+JOINED="${JOINED%:}"
+
+if ! "$REPO_ROOT/gradlew" -p "$REPO_ROOT" googleJavaFormatCheck "-PgjfFiles=$JOINED"; then
+  echo ""
+  echo "Formatting check failed. To fix:"
+  echo "  ./gradlew googleJavaFormat"
+  echo ""
+  echo "Then re-stage the affected files and commit again."
+  exit 1
+fi
